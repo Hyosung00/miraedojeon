@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/dshin/Desktop/미래도전/Mido_Visualization/**)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(npm uninstall:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c taskkill:*)",
+      "Bash(dir /s /b \"C:\\Users\\dshin\\Desktop\\미래도전\\frontend\\src\")",
+      "Bash(dir \"C:\\Users\\dshin\\Desktop\\미래도전\\frontend\\src\")",
+      "Bash(dir \"C:\\Users\\dshin\\Desktop\\미래도전\\frontend\\src\\menu-items\")",
+      "mcp__ide__getDiagnostics",
+      "Bash(dir \"C:\\Users\\dshin\\Desktop\\미래도전\\frontend\\src\\pages\\component-overview\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

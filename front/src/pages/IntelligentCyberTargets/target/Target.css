@@ -1,0 +1,610 @@
+/* TrendChart 스타일 (App.css에서 이동)/* ================= Dashboard Center ================= */
+.dashboard-center {
+  width: 100%;
+  height: 100%;
+  background: #f0edfd;
+}
+/* ================= TrendChart ================= */
+.TrendChartContainer {
+  width: 100%;
+  min-width: 220px;
+  max-width: 600px;
+  height: auto;
+  max-height: 95%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f0edfd;
+  border-radius: 16px;
+  padding: 16px 10px;
+  margin: 0 0 10px 10px;
+}
+.trendchart-title {
+  text-align: center;
+  width: 100%;
+  font-size: 1.2em;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.trendchart-row {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* ================= Dashboard Right ================= */
+.dashboard-right {
+  flex: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: 0px;
+  align-items: flex-start;
+  min-width: 240px;
+  background: #f0edfd;
+}
+.target-Datatable {
+  width: 100%;
+  border-collapse: collapse;
+  background: #f0edfd;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(57, 48, 107, 0.07);
+  margin-left: 0;
+}
+.target-Datatable th,
+.target-Datatable td {
+  padding: 12px 16px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+.target-Datatable th {
+  background-color: #dcd4ed;
+  font-weight: 700;
+  color: #2a2a70;
+}
+.target-Datatable tr:nth-child(even) {
+  background-color: #f3f2fa;
+}
+.targetgraph-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  height: 100%;
+  padding: 8px 8px;
+  margin-top: 32px;
+}
+.statistics-card-row {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0 0 20px;
+  justify-content: left;
+}
+  /* top-stats-inner: 통계카드와 트렌드차트를 한 행에 배치 */
+  .top-stats-inner {
+  display: flex;
+  flex-direction: row;
+  gap: 50px;
+  align-items: stretch;
+  justify-content: center;
+  }
+
+  /* trendchart-wrapper가 한 행에 배치될 때 최소 너비와 여백 */
+  .trendchart-wrapper {
+    min-width: 300px;
+    margin-left: 24px;
+    display: flex;
+    align-items: center;
+  }
+.TrendChartTitle {
+  margin: 0;
+  color: #39306b;
+}
+.TrendChartList {
+  list-style: none;
+  padding: 0;
+}
+.TrendChartItem {
+  display: flex;
+  justify-content: space-between;
+/* TrendChart 스타일 (App.css에서 이동) 및 통합 */
+.TrendChartContainer {
+  width: 100%;
+  min-width: 220px;
+  max-width: 600px;
+  height: auto;
+  max-height: 95%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #f0edfd;
+  border-radius: 16px;
+  padding: 16px 10px;
+  margin: 0 0 10px 10px;
+}
+  height: calc(100% * 0.7);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2a2a70;
+  border-radius: 16px;
+}
+.dashboard-right {
+  flex: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: 0px;
+  align-items: flex-start;
+  min-width: 240px;
+  background: #f0edfd;
+}
+/* 구문 오류: 블록 밖 속성 제거 및 중괄호 정리 */
+/* TargetCondition.jsx, ScoreField.jsx, NodeLabelField.jsx 등에서 사용되는 스타일 통합 */
+/* 아래는 TargetCondition.css에서 가져온 내용 */
+.target-condition {
+  background: #f7f6fb;
+  border-radius: 16px;
+  padding: 20px;
+.statistics-card {
+  flex: 1 1 0;
+  min-width: 180px;
+  max-width: 300px;
+  background: #f0edfd;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 0 10px 0 0;
+  text-align: left;
+  box-sizing: border-box;
+}
+}
+.condition-header h3 {
+  margin: 0;
+  color: #39306b;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+.toggle-advanced-btn {
+  background: #f0edfd;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+.toggle-advanced-btn:hover {
+
+  /* ================= TargetCondition ================= */
+  
+  transform: translateY(-1px);
+}
+.condition-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.condition-actions {
+.target-Datacontainer {
+  background: #f0edfd;
+  border-radius: 16px;
+  padding: 16px;
+  margin-left: 10px;
+  margin-right: 24px;
+  margin-bottom: 10px;
+  min-width: 220px;
+  box-sizing: border-box;
+  width: 95%;
+  max-width: 100%;
+}
+  margin: 0 0 8px 0;
+  color: #39306b;
+  font-size: 1em;
+}
+.active-filters ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #2d5a2d;
+.target-Datatable {
+  width: 100%;
+  border-collapse: collapse;
+  background: #f0edfd;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(57, 48, 107, 0.07);
+  margin-left: 0;
+}
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+.condition-group label {
+  display: block;
+  font-weight: 600;
+  color: #39306b;
+  margin-bottom: 8px;
+  font-size: 0.95em;
+}
+.apply-btn,
+.clear-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.apply-btn {
+  background: #39306b;
+  color: white;
+}
+.apply-btn:hover:not(:disabled) {
+  background: #39306b;
+  transform: translateY(-1px);
+}
+.apply-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+.clear-btn {
+  background: #f44336;
+  color: white;
+}
+.clear-btn:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+}
+.basic-conditions,
+.advanced-conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.range-inputs input {
+  width: 100%;
+  min-width: 48px;
+  max-width: 120px;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 0.9em;
+  transition: border-color 0.3s ease;
+}
+.range-inputs input:focus {
+  outline: none;
+  border-color: #39306b;
+  box-shadow: 0 0 0 2px rgba(57, 48, 107, 0.1);
+}
+.range-inputs span {
+  color: #666;
+  font-weight: 500;
+}
+.label-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  background: #f8f8f8;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+  font-size: 0.9em;
+}
+.checkbox-label:hover {
+  background: #ececec;
+}
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+.checkbox-label input[type="checkbox"]:checked + span {
+  font-weight: 600;
+  color: #39306b;
+}
+/* ------------------------------------- DataTable component styles ---------------------------------- */
+
+
+
+.target-Datatable tr:nth-child(even) {
+  background-color: #dedede;
+}
+
+/* ----------------------------------- TargetGraph component styles ----------------------------------- */
+
+/* Main container for TargetGraph.jsx */
+.targetgraph-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  height: 100%;
+  padding: 8px 8px;
+  margin-top: 32px
+}
+
+/* 통계카드 영역을 flex로 나누기 위한 컨테이너 */
+.statistics-card-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+
+/* ================= Statistics Card ================= */
+.statistics-card {
+  flex: 1 1 0;
+  min-width: 180px;
+  max-width: 300px;
+  background: #f0edfd;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 0 10px 0 0;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+
+
+/* TargetGraph2D canvas 크기 조절용 */
+.dashboard-center {
+  width: 100%;
+  height: 100%;
+  background: #f0edfd;
+}
+
+.target-graph-canvas {
+  width: 100%;
+  height: calc(100% * 0.7);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2a2a70;
+  border-radius: 16px;
+}
+
+.target-graph-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  border-radius: 16px;
+}
+
+/* ------------------------------------- Dashboard Log styles ---------------------------------- */
+
+aside.dashboard-log {
+  grid-column: 3;
+  grid-row: 1;
+  background: #232333;
+  padding: 16px;
+  color: #fff;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  overflow-y: auto;
+  height: 100%;
+  min-width: 250px;
+  max-width: 320px;
+  border-left: 1px solid #2a2a70;
+  margin-left: 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------- TargetCondition styles ---------------------------------- */
+
+.target-condition {
+  background: #f0edfd;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+}
+
+.condition-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.condition-header h3 {
+  margin: 0;
+  color: #39306b;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.toggle-advanced-btn {
+  background: #39306b;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.3s ease;
+}
+
+.toggle-advanced-btn:hover {
+  background: #2a1f5a;
+  transform: translateY(-1px);
+}
+
+.condition-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.basic-conditions,
+.advanced-conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.condition-group {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.condition-group label {
+  display: block;
+  font-weight: 600;
+  color: #39306b;
+  margin-bottom: 8px;
+  font-size: 0.95em;
+}
+
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.range-inputs input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 0.9em;
+  transition: border-color 0.3s ease;
+}
+
+.range-inputs input:focus {
+  outline: none;
+  border-color: #39306b;
+  box-shadow: 0 0 0 2px rgba(57, 48, 107, 0.1);
+}
+
+.range-inputs span {
+  color: #666;
+  font-weight: 500;
+}
+
+.label-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  background: #f8f8f8;
+  border-radius: 6px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+  font-size: 0.9em;
+}
+
+.checkbox-label:hover {
+  background: #ececec;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"]:checked + span {
+  font-weight: 600;
+  color: #39306b;
+}
+
+.condition-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.apply-btn,
+.clear-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.apply-btn {
+  background: #39306b;
+  color: white;
+}
+
+.apply-btn.active {
+  background: #6656be;
+  color: #fff;
+  border: 1px solid #1976d2;
+}
+
+.apply-btn:hover:not(:disabled) {
+  background: #39306b;
+  transform: translateY(-1px);
+}
+
+.apply-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.clear-btn {
+  background: #f44336;
+  color: white;
+}
+
+.clear-btn:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+}
+
+.active-filters {
+  background: #e8f5e8;
+  padding: 16px;
+  border-radius: 8px;
+  border-left: 4px solid #18b57b;
+}
+
+.active-filters h4 {
+  margin: 0 0 8px 0;
+  color: #39306b;
+  font-size: 1em;
+}
+
+.active-filters ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #2d5a2d;
+}
+
+.active-filters li {
+  margin: 4px 0;
+  font-size: 0.9em;
+}

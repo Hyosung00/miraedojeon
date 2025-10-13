@@ -1,0 +1,274 @@
+/* 로그 항목 스타일 */
+.packet-log {
+  margin-bottom: 16px;
+  color: #fff;
+  background: #24254a;
+  border-radius: 12px;
+  padding: 12px;
+}
+.packet-log.normal {
+  border-left: 5px solid #50e3c2;
+  background: #213534;
+  color: #b5fdf0;
+}
+.packet-log.abnormal {
+  border-left: 5px solid #f55a68;
+  background: #422934;
+  color: #ffd2d8;
+}
+.packet-log details {
+  margin-top: 4px;
+  color: #fff;
+}
+.packet-log summary {
+  cursor: pointer;
+  color: #ffeb3b;
+  font-weight: bold;
+}
+.packet-log ul {
+  margin: 0;
+  padding-left: 16px;
+}
+.packet-log li {
+  color: #fff;
+}
+.dashboard-main {
+  width: 100%;
+  height: 100%;
+  background: #14151a;
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-sub-overlay {
+  position: absolute;
+  right: clamp(8px, 1.5vw, 24px);
+  bottom: clamp(8px, 1.5vh, 24px);
+  width: clamp(400px, 45vw, 640px);
+  height: clamp(300px, 35vh, 480px);
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 100px);
+  background: rgba(28, 28, 34, 0.87);
+  border-radius: 20px;
+  box-shadow: 0 4px 24px 3px rgba(67, 59, 100, 0.22);
+  z-index: 2;
+  transition: box-shadow 0.3s ease;
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  border: 2px solid #241c2c;
+}
+.dashboard-sub-overlay:hover {
+  box-shadow: 0 12px 40px 10px rgba(0, 0, 0, 0.4);
+  z-index: 3;
+}
+.menu-btn.main-menu {
+  font-weight: bold;
+  background-color: #5c1212;
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 5px 0;
+  text-align: left;
+  width: 100%;
+  max-width: 295px;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.submenu-dropdown {
+  padding-left: 16px;
+  border-left: 2px solid #ccc;
+  word-break: break-all;
+}
+.menu-btn.submenu {
+  background-color: #1a2ca0;
+  border: 1px solid #ddd;
+  padding: 8px;
+  margin: 3px 0 3px 20px;
+  text-align: left;
+  width: calc(100% - 20px);
+}
+.submenu-dropdown {
+  margin-left: 0px;
+  padding-left: 0px;
+  border-left: 2px solid #ccc;
+}
+.menu-btn {
+  min-width: clamp(60px, 10vw, 74px);
+  min-height: clamp(40px, 6vh, 46px);
+  padding: clamp(6px, 1vh, 8px) clamp(12px, 2vw, 18px);
+  background: linear-gradient(90deg, #1b5da3 0%, #3c1dba 100%);
+  color: #fff;
+  border: 2px solid #d1b7ff;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(131, 70, 200, 0.11);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  white-space: nowrap;
+}
+.submenu-btn {
+  min-width: clamp(60px, 10vw, 74px);
+  min-height: clamp(40px, 6vh, 46px);
+  padding: clamp(6px, 1vh, 8px) clamp(12px, 2vw, 18px);
+  background: linear-gradient(90deg, #476f98 0%, #2b52ff 100%);
+  color: #fff;
+  border: 2px solid #d1b7ff;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(131, 70, 200, 0.11);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  white-space: nowrap;
+}
+.menu-btn:hover,
+.menu-btn:focus {
+  background: linear-gradient(90deg, #171fb7 0%, #1f24bc 100%);
+  border-color: #b385fd;
+  box-shadow: 0 6px 20px rgba(148, 80, 255, 0.25);
+  transform: translateY(-2px) scale(1.03);
+}
+.menu-btn.main {
+  font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+  min-width: clamp(42px, 8vw, 50px);
+  min-height: clamp(42px, 8vw, 50px);
+  width: clamp(42px, 8vw, 50px);
+  height: clamp(42px, 8vw, 50px);
+  border-radius: 50%;
+  padding: 0;
+  background: linear-gradient(180deg, #3c2ff3 0%, #623ef0 100%);
+  border: 2.5px solid #bfe0fd;
+  box-shadow: 0 2px 20px rgba(150, 80, 230, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.menu-btn .icon {
+  font-size: 1.2em;
+  letter-spacing: 0.08em;
+  vertical-align: middle;
+}
+.menu-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 2vh, 16px);
+  animation: fadeIn 0.25s ease;
+  width: 100%;
+}
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.menu-dropdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.5vh, 12px);
+  margin-top: clamp(12px, 2vh, 18px);
+  animation: fadeSlide 0.2s ease;
+  width: 100%;
+}
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Dashboard 관련 스타일 */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(315px, 200px) 1fr minmax(250px, 320px);
+  height: 100vh;
+  min-width: 900px;
+}
+.dashboard-menu {
+  grid-column: 1;
+  grid-row: 1;
+  background: #f7f6fb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 8px 32px 8px;
+  gap: 16px;
+  border-right: 1px solid #cccce9;
+  overflow-y: hidden;
+  text-align: left;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 315px;
+  box-sizing: border-box;
+}
+.dashboard-main-container {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  height: 100vh;
+}
+.dashboard-right {
+  flex: 0;
+  display: flex;
+  flex-direction: column;
+  margin-right: 10px;
+  align-items: flex-start;
+  min-width: 240px;
+}
+.dashboard-center {
+  width: 100%;
+  height: 100%;
+}
+.dashboard-log {
+  grid-column: 3;
+  grid-row: 1;
+  background: #ffffff;
+  padding: 16px;
+  color: #fff;
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  overflow-y: auto;
+  height: 100%;
+  min-width: 250px;
+  max-width: 320px;
+  border-left: 1px solid #cccce9;
+}
+
+aside.dashboard-log {
+  background: #f7f6fb;
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+  align-items: flex-start;
+  min-width: 250px;
+  max-width: 320px;
+}
+
+/* EventLog title custom color */
+.eventlog-title {
+  color: #000000; /* 예시: 밝은 파란색 */
+  font-weight: bold;
+}
+
+/* EventLog empty log message custom color */
+.eventlog-empty {
+  color: #000000; /* 예시: 오렌지색 */
+  font-style: italic;
+}

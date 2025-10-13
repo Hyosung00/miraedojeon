@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(C:Users987snAppDataLocalMicrosoftWindowsAppspython.exe --version)",
+      "Bash(node:*)",
+      "Bash(npm install)",
+      "Bash(npm start)",
+      "Bash(curl http://localhost:5000/api/north-korea-attacks?limit=3)",
+      "Bash(git checkout:*)",
+      "Bash(npm run dev:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
