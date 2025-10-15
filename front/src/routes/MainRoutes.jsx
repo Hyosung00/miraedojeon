@@ -6,28 +6,28 @@ import DashboardLayout from 'layout/Dashboard';
 // Dashboard
 const DashboardDefault = Loadable(lazy(() => import('pages/CyberObjectInfo/dashboard/default')));
 
-// ActiveResponse
-const ResponseEffectVisualization = Loadable(lazy(() => import('pages/ActiveResponse/ResponseEffectVisualization/index')));
-const ThreatAnalysis = Loadable(lazy(() => import('pages/ActiveResponse/ThreatAnalysis/index')));
+// Osint & Data Fusion
+const GeoIP = Loadable(lazy(() => import('pages/Osint&DataFusion/OsintInfocollect/GeoIP')));
+const FusionDB = Loadable(lazy(() => import('pages/Osint&DataFusion/FusionDB/index')));
 
 // CyberObjectInfo
 const CyberDashboard = Loadable(lazy(() => import('pages/CyberObjectInfo/dashboard/default')));
 const CyberMultilayer = Loadable(lazy(() => import('pages/CyberObjectInfo/Multilayer/MultilayerVisualization')));
 
 // External & Internal
-const TimeSeriesVisualization = Loadable(lazy(() => import('pages/External&Internal/TimeSeriesVisualization')));
+const TimeSeriesVisualization = Loadable(lazy(() => import('pages/ExtInt/TimeSeriesVisualization')));
+const InternalNetwork = Loadable(lazy(() => import('pages/ExtInt/Internal/internaltopology')));
+const ExternalNetwork = Loadable(lazy(() => import('pages/ExtInt/External/externaltopology')));
 
 // IntelligentCyberTargets
 const TargetDashboard = Loadable(lazy(() => import('pages/IntelligentCyberTargets/target/TargetDashboard')));
 const TargetIdentification = Loadable(lazy(() => import('pages/IntelligentCyberTargets/TargetIdentification/index')));
 const TargetPrioity = Loadable(lazy(() => import('pages/IntelligentCyberTargets/TargetPrioity/index')));
 
-// Osint & Data Fusion
-const GeoIP = Loadable(lazy(() => import('pages/Osint&DataFusion/OsintInfocollect/GeoIP')));
-const FusionDB = Loadable(lazy(() => import('pages/Osint&DataFusion/FusionDB/index')));
+// ActiveResponse
+const ResponseEffectVisualization = Loadable(lazy(() => import('pages/ActiveResponse/ResponseEffectVisualization/index')));
+const ThreatAnalysis = Loadable(lazy(() => import('pages/ActiveResponse/ThreatAnalysis/index')));
 
-// Extra Pages
-const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
 
 const MainRoutes = {
   path: '/',
@@ -35,45 +35,45 @@ const MainRoutes = {
   children: [
     { path: '/', element: <DashboardDefault /> },
     {
-  path: 'dashboard',
+      path: 'dashboard',
       children: [
-  { path: 'default', element: <DashboardDefault /> },
-  { path: 'cyber', element: <CyberDashboard /> },
-  { path: 'MultilayerVisualization', element: <CyberMultilayer /> }
+        { path: 'default', element: <CyberDashboard /> }
       ]
     },
     {
-  path: 'ActiveResponse',
+      path: 'CyberObjectInfo',
       children: [
-  { path: 'responseeffectvisualization', element: <ResponseEffectVisualization /> },
-  { path: 'threatanalysis', element: <ThreatAnalysis /> }
+        { path: 'MultilayerVisualization', element: <CyberMultilayer /> }
       ]
     },
     {
-  path: 'external-network',
+      path: 'ActiveResponse',
       children: [
-  { path: 'TimeSeriesVisualization', element: <TimeSeriesVisualization /> }
+        { path: 'responseeffectvisualization', element: <ResponseEffectVisualization /> },
+        { path: 'threatanalysis', element: <ThreatAnalysis /> }
       ]
     },
     {
-  path: 'target',
+      path: 'ExtInt',
       children: [
-  { path: 'targetDashboard', element: <TargetDashboard /> },
-  { path: 'targetIdentification', element: <TargetIdentification /> },
-  { path: 'priorityVisualization', element: <TargetPrioity /> }
+        { path: 'TimeSeriesVisualization', element: <TimeSeriesVisualization /> },
+        { path: 'internaltopology', element: <InternalNetwork /> },
+        { path: 'externaltopology', element: <ExternalNetwork /> }
       ]
     },
     {
-  path: 'Osint&Data Fusion',
+      path: 'target',
       children: [
-  { path: 'GeoIP', element: <GeoIP /> },
-  { path: 'FusionDB', element: <FusionDB /> }
+        { path: 'targetDashboard', element: <TargetDashboard /> },
+        { path: 'targetIdentification', element: <TargetIdentification /> },
+        { path: 'priorityVisualization', element: <TargetPrioity /> }
       ]
     },
     {
-  path: 'extra-pages',
+      path: 'Osint&DataFusion',
       children: [
-  { path: 'sample-page', element: <SamplePage /> }
+        { path: 'GeoIP', element: <GeoIP /> },
+        { path: 'FusionDB', element: <FusionDB /> }
       ]
     }
   ]

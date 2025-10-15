@@ -39,6 +39,8 @@ async function connectDB() {
 app.get('/api/north-korea-attacks', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 20;
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
 
     // 1. 북한 노드 찾기
     const northKoreaNodes = await nodesCollection.find({
@@ -51,12 +53,29 @@ app.get('/api/north-korea-attacks', async (req, res) => {
 
     const northKoreaIps = northKoreaNodes.map(node => node.ip);
 
-    // 2. 북한을 목표로 하는 공격 엣지 조회
-    const attackEdges = await edgesCollection.find({
+    // 2. 쿼리 조건 구성 (날짜 필터링 포함)
+    const query = {
       dst_ip: { $in: northKoreaIps }
-    }).limit(limit).toArray();
+    };
 
-    // 3. 관련된 모든 노드 정보 수집
+    // 날짜 필터링 조건 추가
+    if (startDate || endDate) {
+      query.timestamp = {};
+      if (startDate) {
+        query.timestamp.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.timestamp.$lte = new Date(endDate);
+      }
+    }
+
+    // 3. 북한을 목표로 하는 공격 엣지 조회
+    const attackEdges = await edgesCollection.find(query)
+      .sort({ timestamp: 1 })
+      .limit(limit)
+      .toArray();
+
+    // 4. 관련된 모든 노드 정보 수집
     const allIps = new Set();
     attackEdges.forEach(edge => {
       if (edge.src_ip) allIps.add(edge.src_ip);
@@ -71,7 +90,7 @@ app.get('/api/north-korea-attacks', async (req, res) => {
       }
     }
 
-    // 4. 공격 데이터 포맷팅
+    // 5. 공격 데이터 포맷팅
     const attacks = attackEdges.map((edge, index) => {
       const srcNode = relatedNodes[edge.src_ip];
       const dstNode = relatedNodes[edge.dst_ip];

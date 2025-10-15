@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import * as Cesium from 'cesium';
-import { Box, Typography, Card, CardContent, Grid, IconButton } from '@mui/material';
+import { Box, Typography, Card, CardContent, Grid, IconButton, Slider } from '@mui/material';
 import { ClusterOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,7 @@ const API_CONFIG = {
   ENDPOINTS: {
     NORTH_KOREA_ATTACKS: '/api/north-korea-attacks'
   },
-  DEFAULT_LIMIT: 20
+  DEFAULT_LIMIT: 20  // 하루당 20개로 제한
 };
 
 const COLORS = {
@@ -43,9 +43,9 @@ const ANIMATION_TIMINGS = {
 const style = document.createElement('style');
 style.textContent = `
   @keyframes pulse {
-    0% { box-shadow: 0 0 10px rgba(255,0,0,0.5); }
-    50% { box-shadow: 0 0 20px rgba(255,0,0,0.8); }
-    100% { box-shadow: 0 0 10px rgba(255,0,0,0.5); }
+    0% { box-shadow: 0 0 10px rgba(124,58,237,0.4); }
+    50% { box-shadow: 0 0 20px rgba(124,58,237,0.6); }
+    100% { box-shadow: 0 0 10px rgba(124,58,237,0.4); }
   }
 `;
 document.head.appendChild(style);
@@ -127,11 +127,31 @@ const scrollToLog = (attackId) => {
 };
 
 // API에서 실제 MongoDB 데이터를 가져와서 포맷팅하는 함수
-const fetchAndFormatAttackData = async () => {
+const fetchAndFormatAttackData = async (startDate = null, endDate = null) => {
   try {
-    const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.NORTH_KOREA_ATTACKS}?limit=${API_CONFIG.DEFAULT_LIMIT}`;
+    let url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.NORTH_KOREA_ATTACKS}?limit=${API_CONFIG.DEFAULT_LIMIT}`;
+
+    if (startDate) {
+      url += `&startDate=${startDate.toISOString()}`;
+    }
+    if (endDate) {
+      url += `&endDate=${endDate.toISOString()}`;
+    }
+
+    console.log('🌐 API 요청:', url);
     const response = await fetch(url);
+    console.log('📡 API 응답 상태:', response.status, response.statusText);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const data = await response.json();
+    console.log('📦 API 응답 데이터:', {
+      success: data.success,
+      count: data.count,
+      attacks: data.attacks?.length || 0
+    });
 
     if (!data.success) {
       console.error('API 호출 실패:', data.error);
@@ -216,9 +236,11 @@ const fetchAndFormatAttackData = async () => {
       });
     });
 
+    console.log(`✅ ${attacks.length}개 작전 변환 완료`);
     return attacks;
   } catch (error) {
     console.error('❌ API 호출 중 오류:', error);
+    console.error('❌ 에러 상세:', error.message, error.stack);
     return [];
   }
 };
@@ -233,6 +255,10 @@ const TwoDPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(null);
   const [attacks, setAttacks] = useState([]);
+
+  // 날짜 및 시간 필터링 상태
+  const [allAttacks, setAllAttacks] = useState([]); // 전체 데이터 저장 (일주일, 하루당 20개 = 총 140개)
+  const [timeRange, setTimeRange] = useState([0, 7]); // 시간 범위 (일 단위, 0일~7일)
 
   // attackStats를 useMemo로 최적화 (attacks가 변경될 때만 재계산)
   const attackStats = useMemo(() => {
@@ -251,44 +277,141 @@ const TwoDPage = () => {
     };
   }, [attacks]);
 
+  // 시작 날짜 설정 (9/2 00:00:00)
+  const startDate = useMemo(() => {
+    const date = new Date('2025-09-02T00:00:00Z');
+    return date;
+  }, []);
+
+  // 종료 날짜 설정 (9/8 23:59:59 - 7일간)
+  const endDate = useMemo(() => {
+    const date = new Date('2025-09-08T23:59:59Z');
+    return date;
+  }, []);
+
+  // 현재 시간바 위치에 따른 필터링된 작전 데이터
+  const filteredAttacks = useMemo(() => {
+    console.log('🔄 filteredAttacks useMemo 실행');
+    console.log('  - allAttacks 길이:', allAttacks ? allAttacks.length : 'null');
+    console.log('  - timeRange:', timeRange);
+
+    if (!allAttacks || allAttacks.length === 0) {
+      console.log('⚠️ allAttacks가 비어있음');
+      return [];
+    }
+
+    const baseTime = startDate.getTime();
+    const rangeStartTime = baseTime + (timeRange[0] * 24 * 60 * 60 * 1000); // 범위 시작
+    const rangeEndTime = baseTime + (timeRange[1] * 24 * 60 * 60 * 1000); // 범위 종료
+
+    console.log('🔍 필터링 정보:', {
+      '전체 작전 수': allAttacks.length,
+      '범위 시작 (일)': timeRange[0],
+      '범위 종료 (일)': timeRange[1],
+      '범위 시작 시간': new Date(rangeStartTime).toISOString(),
+      '범위 종료 시간': new Date(rangeEndTime).toISOString(),
+      '첫 번째 작전 시간': allAttacks[0] ? new Date(allAttacks[0].timestamp).toISOString() : 'N/A',
+      '마지막 작전 시간': allAttacks[allAttacks.length - 1] ? new Date(allAttacks[allAttacks.length - 1].timestamp).toISOString() : 'N/A'
+    });
+
+    // 범위 내의 작전만 표시
+    const filtered = allAttacks.filter(attack => {
+      const attackTime = new Date(attack.timestamp).getTime();
+      const isInRange = attackTime >= rangeStartTime && attackTime <= rangeEndTime;
+
+      // 처음 3개만 샘플로 로그 출력
+      if (allAttacks.indexOf(attack) < 3) {
+        console.log(`  작전 ${attack.id}:`, {
+          시간: new Date(attackTime).toISOString(),
+          '범위 내': isInRange,
+          '시작보다 크거나 같음': attackTime >= rangeStartTime,
+          '종료보다 작거나 같음': attackTime <= rangeEndTime
+        });
+      }
+
+      return isInRange;
+    });
+
+    console.log(`✅ 필터링 결과: ${filtered.length}개 작전 (${timeRange[1] - timeRange[0]}일치)`);
+    return filtered;
+  }, [allAttacks, timeRange, startDate]);
+
+  // attacks를 filteredAttacks로 동기화
+  useEffect(() => {
+    console.log('🔄 attacks 상태 업데이트:', filteredAttacks.length, '개');
+    setAttacks(filteredAttacks);
+  }, [filteredAttacks]);
+
   // 공격 데이터 초기화 및 업데이트 (API 호출)
   useEffect(() => {
     const initializeAttacks = async () => {
-      const attackData = await fetchAndFormatAttackData();
-      setAttacks(attackData);
-      // attackStats는 useMemo로 자동 계산되므로 별도 설정 불필요
-    };
+      console.log('📅 7일간 데이터 가져오기 (하루당 20개씩):', {
+        시작: startDate.toISOString(),
+        종료: endDate.toISOString()
+      });
 
-    // 한국 시간 기준으로 다음 자정까지의 시간 계산
-    const getTimeUntilMidnightKST = () => {
-      const now = new Date();
-      const koreaTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Seoul"}));
-      const tomorrow = new Date(koreaTime);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      // 7일간 데이터를 병렬로 가져오기 (하루당 20개)
+      const promises = [];
+      for (let day = 0; day < 7; day++) {
+        // UTC 시간대로 날짜 생성
+        const dayStart = new Date(Date.UTC(2025, 8, 2 + day, 0, 0, 0, 0)); // 2025년 9월 2일부터
+        const dayEnd = new Date(Date.UTC(2025, 8, 2 + day, 23, 59, 59, 999));
 
-      const utcTomorrow = new Date(tomorrow.toLocaleString("en-US", {timeZone: "UTC"}));
-      const utcNow = new Date(now.toLocaleString("en-US", {timeZone: "UTC"}));
+        console.log(`📆 ${day + 1}일차 데이터 요청 시작: ${dayStart.toISOString()}`);
 
-      return utcTomorrow.getTime() - utcNow.getTime();
+        promises.push(
+          fetchAndFormatAttackData(dayStart, dayEnd)
+            .then(dayData => {
+              console.log(`  ✅ ${day + 1}일차 응답: ${dayData.length}개 작전`);
+
+              // ID를 고유하게 만들기 (날짜 포함)
+              const uniqueData = dayData.slice(0, 20).map((attack) => ({
+                ...attack,
+                id: `day${day}-${attack.id}` // 예: day0-attack-0, day1-attack-0
+              }));
+
+              return uniqueData;
+            })
+            .catch(error => {
+              console.error(`  ❌ ${day + 1}일차 에러:`, error);
+              return [];
+            })
+        );
+      }
+
+      // 모든 요청이 완료될 때까지 대기
+      const allDayData = await Promise.all(promises);
+      const allData = allDayData.flat(); // 2차원 배열을 1차원으로 평탄화
+
+      console.log('📊 일자별 데이터 개수:', allDayData.map((data, i) => `${i+1}일: ${data.length}개`).join(', '));
+
+      console.log(`✅ 총 ${allData.length}개의 작전 데이터를 가져왔습니다.`);
+
+      if (allData.length > 0) {
+        console.log('📊 전체 데이터 시간 범위:', {
+          첫번째: new Date(allData[0].timestamp).toISOString(),
+          마지막: new Date(allData[allData.length - 1].timestamp).toISOString()
+        });
+        console.log('📊 첫 3개 작전 샘플:', allData.slice(0, 3).map(a => ({
+          id: a.id,
+          timestamp: new Date(a.timestamp).toISOString(),
+          source: a.source.name,
+          target: a.target.name
+        })));
+      } else {
+        console.error('❌ 데이터가 하나도 없습니다!');
+      }
+
+      setAllAttacks(allData);
+      console.log('💾 allAttacks 상태에 저장 완료:', allData.length, '개');
+
+      // 초기에는 전체 7일 표시
+      setTimeRange([0, 7]);
+      console.log('📅 초기 timeRange 설정: [0, 7]');
     };
 
     initializeAttacks();
-
-    // 다음 한국 자정까지 대기 후 24시간마다 업데이트
-    const timeUntilMidnight = getTimeUntilMidnightKST();
-
-    const midnightTimeout = setTimeout(() => {
-      initializeAttacks();
-
-      // 이후 24시간마다 반복
-      const dailyInterval = setInterval(initializeAttacks, 24 * 60 * 60 * 1000);
-
-      return () => clearInterval(dailyInterval);
-    }, timeUntilMidnight);
-
-    return () => clearTimeout(midnightTimeout);
-  }, []);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     if (!cesiumContainer.current) return;
@@ -387,8 +510,8 @@ const TwoDPage = () => {
         ];
 
         // 자연스러운 줌 속도 최적화
-        scene.screenSpaceCameraController.zoomFactor = 2.0;
-        scene.screenSpaceCameraController.wheelZoomFactor = 0.05;  // 느린 줌 속도
+        scene.screenSpaceCameraController.zoomFactor = 5.0;
+        scene.screenSpaceCameraController.wheelZoomFactor = 10.0;  // 정상적인 줌 속도
 
         // 관성 설정 최적화 (부드러운 움직임)
         scene.screenSpaceCameraController.inertiaSpin = 0.95;
@@ -706,10 +829,20 @@ const TwoDPage = () => {
 
   // 2D 모드용 엔티티 생성 함수
   const create2DEntities = (attacks) => {
-    if (!viewer.current || !attacks || attacks.length === 0) return;
+    if (!viewer.current || !attacks || attacks.length === 0) {
+      console.warn('⚠️ create2DEntities: viewer 또는 attacks가 없음', {
+        viewer: !!viewer.current,
+        attacksCount: attacks?.length || 0
+      });
+      return;
+    }
+
+    console.log(`🎨 create2DEntities 시작: ${attacks.length}개 작전 시각화`);
+    let successCount = 0;
+    let failCount = 0;
 
     try {
-      attacks.forEach((attack) => {
+      attacks.forEach((attack, index) => {
         // 좌표 유효성 검증
         const sourceLon = parseFloat(attack.source.building.lon);
         const sourceLat = parseFloat(attack.source.building.lat);
@@ -717,8 +850,23 @@ const TwoDPage = () => {
         const targetLat = parseFloat(attack.target.building.lat);
 
         if (isNaN(sourceLon) || isNaN(sourceLat) || isNaN(targetLon) || isNaN(targetLat)) {
-          console.warn('2D 모드: 잘못된 좌표 데이터');
+          console.warn('2D 모드: 잘못된 좌표 데이터', {
+            id: attack.id,
+            source: attack.source.name,
+            target: attack.target.name
+          });
+          failCount++;
           return;
+        }
+
+        // 처음 5개는 상세 로그 출력
+        if (index < 5) {
+          console.log(`  작전 ${index + 1}:`, {
+            id: attack.id,
+            source: `${attack.source.name} (${sourceLat.toFixed(2)}, ${sourceLon.toFixed(2)})`,
+            target: `${attack.target.name} (${targetLat.toFixed(2)}, ${targetLon.toFixed(2)})`,
+            protocol: attack.type
+          });
         }
 
         // 2D 모드에서는 높이를 0으로 설정
@@ -788,10 +936,13 @@ const TwoDPage = () => {
           attackData: attack
         });
 
-        console.log(`✅ 2D 공격 처리 완료: ${attack.source.building.name} → ${attack.target.building.name}`);
+        successCount++;
       });
+
+      console.log(`✅ create2DEntities 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+      console.log(`📊 생성된 엔티티: 마커 ${successCount * 2}개, 광선 ${successCount}개`);
     } catch (error) {
-      console.error('2D 엔티티 생성 오류:', error);
+      console.error('❌ 2D 엔티티 생성 오류:', error);
     }
   };
 
@@ -818,8 +969,10 @@ const TwoDPage = () => {
     // 클릭 이벤트 핸들러
     if (viewer.current.screenSpaceEventHandler) {
       viewer.current.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      viewer.current.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
     }
 
+    // 싱글 클릭 이벤트
     viewer.current.screenSpaceEventHandler.setInputAction((click) => {
       try {
         const pickedObject = viewer.current.scene.pick(click.position);
@@ -874,6 +1027,53 @@ const TwoDPage = () => {
         console.error('클릭 이벤트 처리 오류:', error);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    // 더블 클릭 이벤트 - 마커로 확대
+    viewer.current.screenSpaceEventHandler.setInputAction((click) => {
+      try {
+        const pickedObject = viewer.current.scene.pick(click.position);
+
+        if (pickedObject && pickedObject.id) {
+          // ID 찾기
+          let entityId = null;
+          if (pickedObject.id.id) {
+            entityId = pickedObject.id.id;
+          } else if (pickedObject.id._id) {
+            entityId = pickedObject.id._id;
+          } else if (typeof pickedObject.id === 'string') {
+            entityId = pickedObject.id;
+          }
+
+          // 마커인지 확인
+          const isSourceMarker = entityId && entityId.startsWith('source-2d-');
+          const isTargetMarker = entityId && entityId.startsWith('target-2d-');
+
+          if (isSourceMarker || isTargetMarker) {
+            const entity = viewer.current.entities.getById(entityId);
+            if (entity && entity.position) {
+              const position = entity.position.getValue(viewer.current.clock.currentTime);
+              if (position) {
+                const cartographic = Cesium.Cartographic.fromCartesian(position);
+                const longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                const latitude = Cesium.Math.toDegrees(cartographic.latitude);
+
+                // 2D 모드에서 적절한 줌 레벨로 이동
+                viewer.current.camera.flyTo({
+                  destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, 50000), // 50km 고도
+                  duration: 1.5,
+                  complete: () => {
+                    // 카메라 이동 완료 후 컨트롤 재활성화
+                    viewer.current.scene.screenSpaceCameraController.enableInputs = true;
+                  }
+                });
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('더블클릭 이벤트 처리 오류:', error);
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
   }, [attacks, isLoaded]);
 
   if (error) {
@@ -990,10 +1190,10 @@ const TwoDPage = () => {
         }}>
           {/* 실시간 통계 */}
           <Card sx={{
-            bgcolor: '#1a1a1a',
-            color: 'white',
-            border: '1px solid #333',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            bgcolor: '#f0edfd',
+            color: '#333',
+            border: '1px solid #d0c9f0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             minHeight: 0,
             flexShrink: 0
           }}>
@@ -1001,20 +1201,20 @@ const TwoDPage = () => {
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ color: '#ff4444', fontWeight: 'bold' }}>
+                    <Typography variant="h4" sx={{ color: '#7c3aed', fontWeight: 'bold' }}>
                       {attackStats.total}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#ccc' }}>
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                       총 작전 수
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ color: '#ffaa44', fontWeight: 'bold' }}>
+                    <Typography variant="h4" sx={{ color: '#9333ea', fontWeight: 'bold' }}>
                       {attackStats.active}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#ccc' }}>
+                    <Typography variant="body2" sx={{ color: '#666' }}>
                       활성 작전
                     </Typography>
                   </Box>
@@ -1025,12 +1225,12 @@ const TwoDPage = () => {
 
           {/* 최근 공격 목록 */}
           <Card sx={{
-            bgcolor: '#1a1a1a',
-            color: 'white',
+            bgcolor: 'transparent',
+            color: '#333',
             flex: 1,
             minHeight: 0,
-            border: '1px solid #333',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            border: 'none',
+            boxShadow: 'none',
             display: 'flex',
             flexDirection: 'column'
           }}>
@@ -1057,11 +1257,11 @@ const TwoDPage = () => {
                   sx={{
                     p: 1,
                     mb: 1,
-                    bgcolor: (selectedAttackId === attack.id || selectedBuildingAttacks.includes(attack.id)) ? 'rgba(255,68,68,0.3)' : 'rgba(255,68,68,0.1)',
+                    bgcolor: (selectedAttackId === attack.id || selectedBuildingAttacks.includes(attack.id)) ? 'rgba(124,58,237,0.2)' : 'rgba(124,58,237,0.05)',
                     borderRadius: 1,
-                    borderLeft: '3px solid #FF0000',
-                    border: (selectedAttackId === attack.id || selectedBuildingAttacks.includes(attack.id)) ? '2px solid #FF0000' : 'none',
-                    boxShadow: (selectedAttackId === attack.id || selectedBuildingAttacks.includes(attack.id)) ? '0 0 10px rgba(255,0,0,0.5)' : 'none',
+                    borderLeft: '3px solid #7c3aed',
+                    border: (selectedAttackId === attack.id || selectedBuildingAttacks.includes(attack.id)) ? '2px solid #7c3aed' : 'none',
+                    boxShadow: (selectedAttackId === attack.id || selectedBuildingAttacks.includes(attack.id)) ? '0 0 10px rgba(124,58,237,0.4)' : 'none',
                     animation: (selectedAttackId === attack.id || selectedBuildingAttacks.includes(attack.id)) ? 'pulse 1.5s infinite' : 'none',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
@@ -1082,26 +1282,34 @@ const TwoDPage = () => {
                     }
                   }}
                 >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#333' }}>
                     🔴 {attack.type} - 진행중
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#ccc' }}>
+                  <Typography variant="caption" sx={{ color: '#666' }}>
                     {attack.source.name} → {attack.target.name}
                   </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: '#aaa', fontSize: '10px' }}>
+                  <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
                     출발지 IP: {attack.source.ip}:{attack.source.port}
                   </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: '#aaa', fontSize: '10px' }}>
+                  <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
                     대상 IP: {attack.target.ip}:{attack.target.port}
                   </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: '#aaa', fontSize: '10px' }}>
+                  <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
                     Subnet: {attack.target.subnet} | Gateway: {attack.target.gateway}
                   </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: '#aaa', fontSize: '10px' }}>
+                  <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
                     DNS: {attack.target.dns} | Count: {attack.count}
                   </Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: '#aaa' }}>
-                    {attack.timestamp.toLocaleTimeString('ko-KR', {timeZone: 'Asia/Seoul'})}
+                  <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
+                    {attack.timestamp.toLocaleString('ko-KR', {
+                      timeZone: 'Asia/Seoul',
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })}
                   </Typography>
 
                   {/* 내부망 이동 아이콘 */}
@@ -1109,18 +1317,18 @@ const TwoDPage = () => {
                     size="small"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/internal-network/topology');
+                      navigate('/ExtInt/internaltopology');
                     }}
                     sx={{
                       position: 'absolute',
                       top: 4,
                       right: 4,
-                      color: '#00ffff',
-                      bgcolor: 'rgba(0,255,255,0.1)',
-                      border: '1px solid rgba(0,255,255,0.3)',
+                      color: '#7c3aed',
+                      bgcolor: 'rgba(124,58,237,0.1)',
+                      border: '1px solid rgba(124,58,237,0.3)',
                       '&:hover': {
-                        bgcolor: 'rgba(0,255,255,0.2)',
-                        color: '#ffffff'
+                        bgcolor: 'rgba(124,58,237,0.2)',
+                        color: '#9333ea'
                       },
                       width: 24,
                       height: 24
@@ -1134,12 +1342,89 @@ const TwoDPage = () => {
             </CardContent>
           </Card>
 
+          {/* 시간 필터링 컨트롤 */}
+          <Card sx={{
+            bgcolor: '#f0edfd',
+            color: '#333',
+            border: '1px solid #d0c9f0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            flexShrink: 0,
+            minHeight: 0
+          }}>
+            <CardContent>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold', color: '#7c3aed' }}>
+                날짜 범위 필터링
+              </Typography>
+              <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
+                {(() => {
+                  const startDay = new Date(startDate);
+                  startDay.setDate(startDay.getDate() + timeRange[0]);
+                  const endDay = new Date(startDate);
+                  endDay.setDate(endDay.getDate() + timeRange[1] - 1);
+                  return `${startDay.toLocaleDateString('ko-KR')} ~ ${endDay.toLocaleDateString('ko-KR')} (${timeRange[1] - timeRange[0]}일)`;
+                })()}
+              </Typography>
+              <Slider
+                value={timeRange}
+                onChange={(_, newValue) => setTimeRange(newValue)}
+                min={0}
+                max={7}
+                step={1}
+                marks={[
+                  { value: 0, label: '9/2' },
+                  { value: 1, label: '9/3' },
+                  { value: 2, label: '9/4' },
+                  { value: 3, label: '9/5' },
+                  { value: 4, label: '9/6' },
+                  { value: 5, label: '9/7' },
+                  { value: 6, label: '9/8' },
+                  { value: 7, label: '9/9' }
+                ]}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => {
+                  const day = new Date(startDate);
+                  day.setDate(day.getDate() + value);
+                  return day.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                }}
+                sx={{
+                  color: '#7c3aed',
+                  '& .MuiSlider-thumb': {
+                    backgroundColor: '#7c3aed',
+                    '&:hover, &.Mui-focusVisible': {
+                      boxShadow: '0 0 0 8px rgba(124,58,237, 0.16)',
+                    },
+                  },
+                  '& .MuiSlider-track': {
+                    backgroundColor: '#7c3aed',
+                  },
+                  '& .MuiSlider-rail': {
+                    backgroundColor: '#d0c9f0',
+                  },
+                  '& .MuiSlider-mark': {
+                    backgroundColor: '#b8aee0',
+                  },
+                  '& .MuiSlider-markLabel': {
+                    color: '#666',
+                    fontSize: '9px',
+                  },
+                  '& .MuiSlider-valueLabel': {
+                    backgroundColor: '#7c3aed',
+                    color: '#fff',
+                  },
+                }}
+              />
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#888', fontSize: '10px' }}>
+                표시된 작전: {attacks.length}개 / 전체: {allAttacks.length}개 (하루당 최대 20개)
+              </Typography>
+            </CardContent>
+          </Card>
+
           {/* 범례 */}
           <Card sx={{
-            bgcolor: '#1a1a1a',
-            color: 'white',
-            border: '1px solid #333',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            bgcolor: '#f0edfd',
+            color: '#333',
+            border: '1px solid #d0c9f0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             flexShrink: 0,
             minHeight: 0
           }}>
@@ -1147,15 +1432,15 @@ const TwoDPage = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FFFF00', border: '2px solid #FF0000' }} />
-                  <Typography variant="caption">공격 출발지</Typography>
+                  <Typography variant="caption" sx={{ color: '#666' }}>공격 출발지</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#00FFFF', border: '2px solid #0000FF' }} />
-                  <Typography variant="caption">공격 목표지</Typography>
+                  <Typography variant="caption" sx={{ color: '#666' }}>공격 목표지</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box sx={{ width: 20, height: 2, bgcolor: '#FF0000', borderRadius: 1, boxShadow: '0 0 4px #FF0000' }} />
-                  <Typography variant="caption">🔴 사이버 작전</Typography>
+                  <Typography variant="caption" sx={{ color: '#666' }}>🔴 사이버 작전</Typography>
                 </Box>
               </Box>
             </CardContent>

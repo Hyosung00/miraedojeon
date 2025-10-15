@@ -6,9 +6,9 @@ const StatisticsCard = ({ dbTitle, dbValue, dbSubtext, className }) => {
 
   return (
     <div className={className}>
-      <div style={{ fontSize: 32, fontWeight: 700, color: "#39306b" }}>{value}</div>
-      <div style={{ fontSize: 16, margin: "8px 0" }}>{title}</div>
-      <div style={{ fontSize: 12, color: "#767686" }}>{subtext}</div>
+      <div className="statistics-card-value">{value}</div>
+      <div className="statistics-card-title">{title}</div>
+      <div className="statistics-card-subtext">{subtext}</div>
     </div>
   );
 };

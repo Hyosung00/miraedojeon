@@ -23,14 +23,14 @@ const externalNetwork = {
       id: 'GeoIP',
       title: 'OSINT 정보 수집',
       type: 'item',
-      url: '/Osint&Data Fusion/GeoIP',
+        url: '/Osint&DataFusion/GeoIP',
       icon: icons.RadarChartOutlined
     },
     { // 융합 데이터베이스 구축
       id: 'FusionDB',
       title: '융합 데이터베이스 구축',
       type: 'item',
-      url: '/Osint&Data Fusion/FusionDB',
+        url: '/Osint&DataFusion/FusionDB',
       icon: icons.DotChartOutlined
     }
   ]

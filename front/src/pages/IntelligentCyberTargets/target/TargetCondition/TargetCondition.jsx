@@ -23,7 +23,7 @@ const TargetCondition = ({ onConditionChange, data }) => {
     isActive: false
   });
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true); // 고급 옵션 항상 열려있기 닫혀있기
 
   // 실제 데이터에서 사용 가능한 노드 레이블 추출
   const availableTypes = React.useMemo(() => {

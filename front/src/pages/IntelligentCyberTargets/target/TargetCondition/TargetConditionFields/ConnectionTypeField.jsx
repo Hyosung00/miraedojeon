@@ -3,7 +3,7 @@ import React from 'react';
 const ConnectionTypeField = ({ value, onChange }) => (
   <div className="condition-group">
     <label>연결 유형</label>
-    <div style={{ display: 'flex', gap: '8px' }}>
+    <div className="connection-type-buttons">
       <button
         type="button"
         className={value === '' ? 'apply-btn active' : 'apply-btn'}

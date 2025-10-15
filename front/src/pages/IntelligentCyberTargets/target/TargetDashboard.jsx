@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 // Card, CardContent 제거
 import TargetGraphComp from "./TargetGraphComp";
 import TargetCondition from "./TargetCondition";
@@ -13,13 +14,23 @@ import "./Target.css";
 
 // logs와 activeView prop 추가
 export default function TargetDashboard({ onNodeClick, data, logs = [], activeView = "target" }) {
+  const navigate = useNavigate();
   const [nodes, setNodes] = useState(data || []);
   const [filteredNodes, setFilteredNodes] = useState([]);
   const [filterConditions, setFilterConditions] = useState({});
   const [currentLogs, setCurrentLogs] = useState(logs);
+  const [selectedNode, setSelectedNode] = useState(null);
 
   // 항상 함수 최상단에서 선언
   const originalNodes = Array.isArray(nodes) ? nodes : (nodes?.nodes || nodes?.network || []);
+
+  // 임시로 TrendChart를 최상단에 렌더링
+  const dummyData = [
+    { degree_score: 0.2, con_score: 0.3 },
+    { degree_score: 0.5, con_score: 0.7 },
+    { degree_score: 0.8, con_score: 0.1 },
+    { degree_score: 0.9, con_score: 0.6 }
+  ];
 
   React.useEffect(() => {
     if (!data) {
@@ -73,6 +84,8 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
   ];
 
   const handleNodeClick = (node) => {
+    // 선택된 노드 저장
+    setSelectedNode(node);
     // 새로운 로그 항목 생성
     const newLogEntry = {
       type: 'node-click',
@@ -82,18 +95,25 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
       dbInfo: node.dbInfo,
       timestamp: new Date().toLocaleTimeString()
     };
-    
-    // 로그 목록에 추가 (최신 항목이 위로)
-    setCurrentLogs(prevLogs => [newLogEntry, ...prevLogs]);
-    
+    // 로그를 누적하지 않고 새 로그로 덮어쓰기
+    setCurrentLogs([newLogEntry]);
     // 부모 컴포넌트에도 전달
     if (onNodeClick) onNodeClick(node);
   };
 
+  const handleNavigateToResponse = () => {
+    if (!selectedNode) {
+      alert('먼저 노드를 선택해주세요.');
+      return;
+    }
+    // 선택된 노드 정보를 state로 전달하면서 페이지 이동
+  navigate('/ActiveResponse/responseeffectvisualization', { state: { selectedNode } });
+  };
+
   return (
-    <div className="target-dashboard-root" style={{ width: '100%', height: '100%', display: 'flex' }}>
+    <div className="target-dashboard-root">
       {/* 대시보드 본문 */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="dashboard-main-content">
         <Header />
         {/* 상단 통계카드와 트렌드차트를 한 행에 배치 */}
         <div className="top-stats-wrapper">
@@ -146,37 +166,59 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
                 className="statistics-card"
               />
             </div>
-            <div className="trendchart-wrapper" style={{ marginLeft: '24px', minWidth: '300px' }}>
-              <TrendChart data={originalNodes.map(n => ({
-                degree_score: n.src_IP?.degree_score || n.dst_IP?.degree_score || 0,
-                con_score: n.src_IP?.con_score || n.dst_IP?.con_score || 0
-              }))} />
+            <div className="trendchart-row">
+              <div className="trendchart-wrapper">
+                <TrendChart data={originalNodes.map(n => ({
+                  degree_score: n.src_IP?.degree_score || n.dst_IP?.degree_score || 0,
+                  con_score: n.src_IP?.con_score || n.dst_IP?.con_score || 0
+                }))} />
+              </div>
             </div>
           </div>
         </div>
         {/* 하단 3분할 레이아웃 - flex row로 명확하게 지정 */}
-        <div className="dashboard-layout" style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '60vh', gap: '16px' }}>
-          <div className="dashboard-left" style={{ flex: '0 0 260px', minWidth: 220, maxWidth: 320 }}>
+        <div className="dashboard-layout">
+          <div className="dashboard-left">
             <TargetCondition 
               onConditionChange={handleConditionChange}
               data={originalNodes}
             />
           </div>
-          <div className="dashboard-center" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="dashboard-center">
             {/* 상단 통계/트렌드는 center 내부에서 렌더링되도록 함 */}
             <div className="center-top">
               {/* top-stats-wrapper가 이미 렌더링되도록 유지 (it is outside of dashboard-layout in previous structure) */}
             </div>
             <TargetGraphComp dbNodes={filteredNodes} onNodeClick={handleNodeClick} />
           </div>
-          <div className="dashboard-right" style={{ flex: '0 0 260px', minWidth: 220, maxWidth: 320 }}>
+          <div className="dashboard-right">
             <DataTable dbData={dbData} />
           </div>
         </div>
       </div>
       {/* 우측 EventLog */}
-      <aside style={{ minWidth: 250, maxWidth: 320, borderLeft: '1px solid #eee', background: '#fafafa', padding: 16 }}>
+      <aside className="dashboard-aside">
         <EventLog logs={currentLogs} activeView={activeView} />
+        <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <button 
+            onClick={handleNavigateToResponse}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: selectedNode ? '#39306b' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: selectedNode ? 'pointer' : 'not-allowed',
+              width: '100%',
+              transition: 'all 0.3s ease'
+            }}
+            disabled={!selectedNode}
+          >
+            대응 효과 분석
+          </button>
+        </div>
       </aside>
     </div>
   );

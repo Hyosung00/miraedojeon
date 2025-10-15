@@ -149,7 +149,7 @@ const TargetGraph2D = ({ dbNodes = [], onNodeClick, filterConditions }) => {
   }, [dbNodes, nodes, edges]);
 
   return (
-    <div className="target-graph-canvas" ref={containerRef} style={{ width: "100%", height: "76.4vh", background: "#fafaff", margin: "auto" }} />
+    <div className="target-graph-canvas" ref={containerRef} />
   );
 };
 

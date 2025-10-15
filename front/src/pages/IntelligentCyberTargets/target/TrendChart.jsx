@@ -24,10 +24,14 @@ function getHistogram(normalizedScores) {
 
 const TrendChart = ({ data }) => {
   if (!Array.isArray(data) || data.length === 0) {
-    return <div>데이터가 없습니다.</div>;
+    console.log("TrendChart: No data available");
   }
+  
   const normalizedScores = normalizeScores(data);
   const histogram = getHistogram(normalizedScores);
+  
+  console.log("TrendChart histogram:", histogram);
+  console.log("TrendChart normalizedScores:", normalizedScores);
   // 분포 곡선용 데이터
   const lineData = normalizedScores
     .map((score, idx) => ({ idx, score }))
@@ -36,7 +40,7 @@ const TrendChart = ({ data }) => {
   return (
     <div className="TrendChartContainer">
       <div className="trendchart-row">
-        <div className="trendchart-card" style={{height: 180}}>
+        <div className="trendchart-card">
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={histogram} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
               <XAxis dataKey="range" />
@@ -47,7 +51,7 @@ const TrendChart = ({ data }) => {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="trendchart-card" style={{height: 180}}>
+        <div className="trendchart-card">
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={lineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <XAxis dataKey="idx" hide={true} />

@@ -27,7 +27,7 @@ const ScoreField = ({ filters, onInputChange }) => (
       <div className="range-inputs">
         <input
           type="number"
-          placeholder="최소 점수"
+          placeholder="최소점수"
           value={filters.minTargetScore}
           onChange={e => onInputChange('minTargetScore', e.target.value)}
           min="0"
@@ -36,7 +36,7 @@ const ScoreField = ({ filters, onInputChange }) => (
         <span>~</span>
         <input
           type="number"
-          placeholder="최대 점수"
+          placeholder="최대점수"
           value={filters.maxTargetScore}
           onChange={e => onInputChange('maxTargetScore', e.target.value)}
           min="0"

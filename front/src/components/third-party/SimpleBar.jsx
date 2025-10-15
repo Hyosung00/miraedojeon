@@ -46,16 +46,19 @@ const SimpleBarStyle = styled(SimpleBar)(({ theme }) => ({
 export default function SimpleBarScroll({ children, sx, ...other }) {
   const theme = useTheme();
 
+  // children이 undefined일 경우 빈 div로 대체
+  const safeChildren = children !== undefined && children !== null ? children : <div />;
+
   return (
     <>
       <RootStyle>
         <SimpleBarStyle clickOnTrack={false} sx={sx} data-simplebar-direction="ltr" {...other}>
-          {children}
+          {safeChildren}
         </SimpleBarStyle>
       </RootStyle>
       <MobileView>
         <Box sx={{ overflowX: 'auto', ...sx }} {...other}>
-          {children}
+          {safeChildren}
         </Box>
       </MobileView>
     </>

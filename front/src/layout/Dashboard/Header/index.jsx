@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
+import headerTitles from './headerTitles';
 
 // material-ui
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -28,6 +30,10 @@ export default function Header() {
   // header content
   const headerContent = useMemo(() => <HeaderContent />, []);
 
+  // 현재 라우트에 따라 헤더 타이틀 결정
+  const location = useLocation();
+  const title = headerTitles[location.pathname] || "-";
+
   // common header
   const mainHeader = (
     <Toolbar>
@@ -46,6 +52,9 @@ export default function Header() {
       >
         {!drawerOpen ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
       </IconButton>
+      <span style={{ fontWeight: 400, fontSize: 20, color: '#39306b', marginLeft: 24 }}>
+        {title}
+      </span>
       {headerContent}
     </Toolbar>
   );
