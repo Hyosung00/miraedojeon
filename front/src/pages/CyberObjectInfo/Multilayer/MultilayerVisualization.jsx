@@ -289,9 +289,13 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
     const fg = fgRef.current; if (!fg) return;
     const controls = fg.controls && fg.controls();
     if (controls) {
+      // Disable OrbitControls-driven rotate (we use custom pointer rotation)
+      // Keep zoom enabled, but ensure RIGHT mouse button does not trigger dolly/rotate.
       controls.enableRotate = false;
       controls.enablePan = false;
       controls.enableZoom = true;
+      // Map mouse buttons explicitly: LEFT rotate (unused here), MIDDLE dolly, RIGHT pan (pan disabled)
+      try { controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }; } catch (e) {}
       controls.minPolarAngle = 1e-6;
       controls.maxPolarAngle = 1e-6;
     }
@@ -377,10 +381,21 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   let spacePressed = false;
     const getX = (e) => e.clientX ?? (e.touches && e.touches[0]?.clientX) ?? 0;
     const getY = (e) => e.clientY ?? (e.touches && e.touches[0]?.clientY) ?? 0;
-    const onDown = (e)=>{dragging=true; lastX=getX(e); lastY=getY(e);};
   const onMove = (e)=>{ if(!dragging) return; const x=getX(e), y=getY(e); const dx=x-lastX, dy=y-lastY; lastX=x; lastY=y; if(spacePressed){ scene.rotation.z += dx*ROLL_SENS; } else { scene.rotation.y += dx*YAW_SENS; scene.rotation.x += dy*PITCH_SENS; } clampAll(); };
     const onUp = ()=>{dragging=false;};
-    dom.addEventListener('pointerdown', onDown);
+    // 우클릭 줌인줌아웃 방지 및 드래그 등 금지
+    const onDown = (e)=>{
+      try {
+        if ((e.pointerType === 'mouse' || typeof e.button === 'number') && e.button === 2) {
+          try { e.preventDefault(); e.stopPropagation(); } catch (err) {}
+          return;
+        }
+      } catch (err) {}
+      dragging=true; lastX=getX(e); lastY=getY(e);
+    };
+    dom.addEventListener('pointerdown', onDown, { capture: true });
+  const onContextMenu = (ev) => { try { ev.preventDefault(); } catch (e) {} };
+  dom.addEventListener('contextmenu', onContextMenu);
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     dom.addEventListener('pointerleave', onUp);
@@ -393,7 +408,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
     window.addEventListener('keydown', onKey);
     window.addEventListener('keydown', onSpaceDown);
     window.addEventListener('keyup', onSpaceUp);
-    return ()=>{ dom.removeEventListener('pointerdown', onDown); window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); dom.removeEventListener('pointerleave', onUp); window.removeEventListener('keydown', onKey); window.removeEventListener('keydown', onSpaceDown); window.removeEventListener('keyup', onSpaceUp); };
+    return ()=>{ dom.removeEventListener('pointerdown', onDown); dom.removeEventListener('contextmenu', onContextMenu); window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); dom.removeEventListener('pointerleave', onUp); window.removeEventListener('keydown', onKey); window.removeEventListener('keydown', onSpaceDown); window.removeEventListener('keyup', onSpaceUp); };
   }, []);
 
   // 필터링 후 시각화용 그래프 계산
