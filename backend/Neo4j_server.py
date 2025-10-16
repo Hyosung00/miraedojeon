@@ -184,8 +184,6 @@ class Neo4jConnector:
         # HS_DB.py에서 사용되던 activeView 처리
         if activeView == "target":
             return self._fetch_target(safe_serialize, pick_id)
-        elif activeView == "active":
-            return self._fetch_active(safe_serialize, pick_id)
         elif activeView == "external":
             return self._fetch_external(safe_serialize, pick_id)
 

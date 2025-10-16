@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-// Card, CardContent 제거
+
 import TargetGraphComp from "./TargetGraphComp";
 import TargetCondition from "./TargetCondition";
 import DataTable from "./DataTable.jsx";
 import TrendChart from "./TrendChart.jsx";
 import StatisticsCard from "./StatisticsCard.jsx";
-import Header from "./Header.jsx";
 import EventLog from "./dashboard/EventLog";
 import { extractUniqueTypes } from "./TargetCondition/filterUtils";
 import "./Target.css";
@@ -114,7 +113,6 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
     <div className="target-dashboard-root">
       {/* 대시보드 본문 */}
       <div className="dashboard-main-content">
-        <Header />
         {/* 상단 통계카드와 트렌드차트를 한 행에 배치 */}
         <div className="top-stats-wrapper">
           <div className="top-stats-inner">

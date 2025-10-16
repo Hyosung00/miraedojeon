@@ -513,7 +513,6 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
       
       const newLog = {
         message: `노드 선택: ${node.label || node.id}`,
-        timestamp: new Date().toLocaleTimeString(),
         nodeInfo: { layer: node.layer, type: node.type, ip: node.ip },
         connectedCount: connectedNodes.size,
         connectedIps: connectedIps,
@@ -656,7 +655,6 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
                 color: '#333'
               }}>
                 {log.message && <div style={{ fontWeight: 600, marginBottom: '4px', color: '#222' }}>{log.message}</div>}
-                {log.timestamp && <div style={{ fontSize: '11px', color: '#666' }}>{log.timestamp}</div>}
                 {log.nodeInfo && (
                   <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
                     Layer: {log.nodeInfo.layer} | Type: {log.nodeInfo.type}

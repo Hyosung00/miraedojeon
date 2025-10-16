@@ -799,7 +799,6 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
               
               const newLog = {
                 message: `노드 선택: ${n.label || n.id}`,
-                timestamp: new Date().toLocaleTimeString(),
                 nodeInfo: { kind: n.kind, zone: n.zone, ip: n.ip },
                 connectedCount: connectedNodes.size,
                 connectedIps: connectedIps,
@@ -863,7 +862,7 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
                 overflow:'hidden',
                 border:'1px solid rgba(255,255,255,0.04)'
               }}>
-              <ZonePage zone={activeZone} onBack={() => setActiveZone(null)} onInspectorChange={onInspectorChange} />
+              <ZonePage zone={activeZone} onBack={() => setActiveZone(null)} onInspectorChange={onInspectorChange} setEventLogs={setEventLogs} />
             </div>
           </div>
         )}
@@ -904,7 +903,6 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
                 color: '#333'
               }}>
                 {log.message && <div style={{ fontWeight: 600, marginBottom: '4px', color: '#222' }}>{log.message}</div>}
-                {log.timestamp && <div style={{ fontSize: '11px', color: '#666' }}>{log.timestamp}</div>}
                 
                 {/* 연결된 노드 개수 */}
                 {log.connectedCount !== undefined && (

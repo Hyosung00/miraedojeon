@@ -17,13 +17,12 @@ const TYPE_COLORS = {
   default: "#a0b4ff",
 };
 
-export default function ZonePage({ zone, onBack, onInspectorChange }) {
+export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs }) {
   const fgRef = useRef();
   const graphContainerRef = useRef(null);
   const [zoneGraph, setZoneGraph] = useState({ nodes: [], links: [] });
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
-  const [localInspector, setLocalInspector] = useState(null);
   const NODE_SCALE_MULT = 1.7; // match network_topology scaling
   // 정확한 캔버스 크기 전달을 위한 컨테이너 측정 상태
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -257,33 +256,77 @@ export default function ZonePage({ zone, onBack, onInspectorChange }) {
   const isHLNode = (n) => selected && (n.id === selected.id || adjacency.get(selected.id)?.has(n.id));
   const isIncident = (l) => selected && (getId(l.source) === selected.id || getId(l.target) === selected.id); // ★ 수정
 
-  // Inspector: localInspector 상태에 JSX를 저장하여 ZonePage 내부 우측 상단에 렌더합니다.
+  // Send inspector data to parent (internaltopology) event log
   useEffect(() => {
-    if (!selected) {
-      setLocalInspector(null);
+    if (!selected || !setEventLogs) {
       return;
     }
-    const inspectorJsx = (
-      <div style={{maxHeight:'78vh'}} className="rounded-xl bg-white/95 p-3 overflow-auto">
-        <h2 className="text-sm font-semibold mb-2">Inspector</h2>
-        <table style={{ width: '100%', fontSize: 13, color: '#222', borderRadius: 8, marginBottom: 8 }}>
-          <tbody>
-            {['label','kind','ip','subnet','zone','id'].map((key) => (
-              <tr key={key} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '7px 6px', fontWeight: 600, color: '#64748b' }}>{key}</td>
-                <td style={{ padding: '7px 6px', textAlign: 'right', fontFamily: 'monospace', color: '#222' }}>{String(selected[key] ?? '')}</td>
-              </tr>
-            ))}
-            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-              <td style={{ padding: '7px 6px', fontWeight: 600, color: '#64748b' }}>이웃연결수</td>
-              <td style={{ padding: '7px 6px', textAlign: 'right', fontFamily: 'monospace', color: '#222' }}>{adjacency.get(selected.id)?.size ?? 0}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    );
-    setLocalInspector(inspectorJsx);
-  }, [selected, adjacency]);
+    
+    // Collect connected node information
+    const connectedNodes = adjacency.get(selected.id) || new Set();
+    const connectedIps = Array.from(connectedNodes)
+      .map(nid => {
+        const node = zoneGraph.nodes.find(n => n.id === nid);
+        return node?.ip;
+      })
+      .filter(ip => ip);
+    
+    // Collect all link details (dbInfo) for clicked node
+    const dbInfo = zoneGraph.links
+      .filter(link => {
+        const sid = typeof link.source === 'object' ? link.source.id : link.source;
+        const tid = typeof link.target === 'object' ? link.target.id : link.target;
+        return sid === selected.id || tid === selected.id;
+      })
+      .map(link => {
+        const sid = typeof link.source === 'object' ? link.source.id : link.source;
+        const tid = typeof link.target === 'object' ? link.target.id : link.target;
+        const srcNode = zoneGraph.nodes.find(n => n.id === sid);
+        const dstNode = zoneGraph.nodes.find(n => n.id === tid);
+        
+        return {
+          src_IP: srcNode ? {
+            id: srcNode.id,
+            ip: srcNode.ip,
+            __labels: [srcNode.kind],
+            __id: srcNode.id,
+            index: srcNode.zone
+          } : null,
+          dst_IP: dstNode ? {
+            id: dstNode.id,
+            ip: dstNode.ip,
+            __labels: [dstNode.kind],
+            __id: dstNode.id,
+            index: dstNode.zone,
+            __indexColor: dstNode.color,
+            color: dstNode.color
+          } : null,
+          edge: {
+            sourceIP: sid,
+            targetIP: tid,
+            type: link.type,
+            count: link.count
+          }
+        };
+      });
+    
+    const newLog = {
+      message: `Zone ${zone} - 노드 선택: ${selected.label || selected.id}`,
+      nodeInfo: { 
+        label: selected.label,
+        kind: selected.kind, 
+        ip: selected.ip,
+        subnet: selected.subnet,
+        zone: selected.zone,
+        id: selected.id
+      },
+      connectedCount: connectedNodes.size,
+      connectedIps: connectedIps,
+      dbInfo: dbInfo
+    };
+    
+    setEventLogs([newLog]);
+  }, [selected, adjacency, zoneGraph.nodes, zoneGraph.links, zone, setEventLogs]);
 
   // Custom node object with highlight and always show IP label
   function nodeThreeObjectHL(node) {
@@ -389,125 +432,116 @@ export default function ZonePage({ zone, onBack, onInspectorChange }) {
 
   return (
     <div style={{ width: '100%', height: '100%', background: 'transparent', padding: 0 }}>
-      <div style={{ display: 'flex', height: '100%' }}>
-        {/* 왼쪽: 그래프 영역 */}
-        <div style={{ flex: 1, position: 'relative', background: '#181c23', borderRadius: 12, overflow: 'hidden', margin: '0 24px 0 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, padding: 24 }}>
-            <button
-              onClick={onBack}
-              style={{ background: 'transparent', border: 'none', color: '#93c5fd', cursor: 'pointer', fontSize: 14 }}
-            >
-              ← Back
-            </button>
-            <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#fff' }}>{`Zone ${zone}`}</h2>
-            <div style={{ color: '#cbd5e1' }}>
-              {loading ? 'Loading…' : `${zoneGraph.nodes.length} nodes • ${zoneGraph.links.length} links`}
-            </div>
-          </div>
-          <div ref={graphContainerRef} style={{ height: 'calc(100% - 80px)', position: 'relative' }}>
-            <ForceGraph3D
-              ref={fgRef}
-              graphData={zoneGraph}
-              backgroundColor="#181c23"
-              width={containerSize.width}
-              height={containerSize.height}
-              nodeLabel={null}
-              nodeThreeObject={nodeThreeObjectHL}
-              nodeThreeObjectExtend
-              linkThreeObject={linkThreeObject}
-              linkThreeObjectExtend={false}
-
-              //  링크 강조 강화 (색/불투명도/두께/파티클/화살표)
-              linkColor={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return selected ? (isIncident(l) ? '#3a6fe2' : '#87aafc') : '#87aafc';
-                if (!selected) return '#bfc6d4';
-                return isIncident(l) ? '#24a0ff' : '#5b6475';
-              }}
-              linkOpacity={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return selected ? (isIncident(l) ? 1.0 : 0.35) : 0.35;
-                return (!selected ? 0.35 : isIncident(l) ? 0.95 : 0.08);
-              }}
-              linkWidth={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return 0; // hide base line for logical links
-                return (!selected ? 1.2 : isIncident(l) ? 6 : 0.5);
-              }}
-
-              linkDirectionalParticles={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return 0;
-                return (selected && isIncident(l) ? 4 : 0);
-              }}
-              linkDirectionalParticleWidth={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return 0;
-                return (selected && isIncident(l) ? 5 : 0);
-              }}
-              linkDirectionalParticleSpeed={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return 0;
-                return (selected && isIncident(l) ? 0.006 : 0);
-              }}
-              linkDirectionalParticleColor={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return '#000000';
-                return (selected && isIncident(l) ? '#00e5ff' : '#000000');
-              }}
-
-              linkDirectionalArrowLength={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return 0;
-                return (selected && isIncident(l) ? 6 : 0);
-              }}
-              linkDirectionalArrowRelPos={0.6} // ★
-              linkDirectionalArrowColor={(l) => {
-                const isLogical = String(l.type || '').toLowerCase() === 'logical';
-                if (isLogical) return '#000000';
-                return (selected && isIncident(l) ? '#00e5ff' : '#000000');
-              }}
-
-              linkLabel={(l) => {
-                const sId = getId(l.source);  
-                const tId = getId(l.target);
-                const src = zoneGraph.nodes.find(n => n.id === sId);
-                const tgt = zoneGraph.nodes.find(n => n.id === tId);
-                return `IP: ${(src && src.ip) || sId} → ${(tgt && tgt.ip) || tId}`;
-              }}
-
-              enableNodeDrag={false}
-              showNavInfo={false}
-              cooldownTicks={60}
-              d3AlphaDecay={0.028}
-              d3VelocityDecay={0.35}
-              style={{ height: '100%', width: '100%' }}
-              onNodeClick={setSelected}
-              onBackgroundClick={() => setSelected(null)}
-              onLinkClick={(l) => {
-                // when user clicks a link, select source node for inspector and highlight
-                const sid = getId(l.source);
-                const node = zoneGraph.nodes.find(n => n.id === sid) || zoneGraph.nodes[0];
-                if (node) setSelected(node);
-              }}
-              onLinkUpdate={(l, obj) => { try { const line = l.__lineObj || obj; if (line && line.computeLineDistances) line.computeLineDistances(); } catch {} }}
-              onEngineTick={() => {
-                const scene = fgRef.current?.scene?.(); if (!scene) return;
-                scene.traverse((obj) => { if (obj.userData?.type === 'logical-dashed' && obj.userData.link) { updateLogicalDashed(obj.userData.link, obj); } });
-              }}
-              onEngineStop={() => { const scene = fgRef.current?.scene?.(); if (!scene) return; scene.traverse((obj) => { if (obj.userData?.type === 'logical-dashed' && obj.userData.link) { updateLogicalDashed(obj.userData.link, obj); obj.visible = true; } }); }}
-            />
+      {/* 전체 영역: 그래프만 표시 (Inspector 제거) */}
+      <div style={{ flex: 1, position: 'relative', background: '#181c23', borderRadius: 12, overflow: 'hidden', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, padding: 24 }}>
+          <button
+            onClick={onBack}
+            style={{ background: 'transparent', border: 'none', color: '#93c5fd', cursor: 'pointer', fontSize: 14 }}
+          >
+            ← Back
+          </button>
+          <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#fff' }}>{`Zone ${zone}`}</h2>
+          <div style={{ color: '#cbd5e1' }}>
+            {loading ? 'Loading…' : `${zoneGraph.nodes.length} nodes • ${zoneGraph.links.length} links`}
           </div>
         </div>
-        {/* 오른쪽: Inspector 패널 */}
-        <div style={{ width: 350, maxWidth: 400, background: 'rgba(255,255,255,0.95)', borderRadius: 12, overflow: 'auto', padding: 16, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', margin: '24px 24px 24px 0', height: 'calc(100vh - 120px - 48px)' }}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-            <strong style={{color:'#0b1220'}}>Inspector</strong>
-            <button onClick={() => setSelected(null)} style={{background:'transparent',border:'none',cursor:'pointer'}}>✕</button>
-          </div>
-          <div>
-            {localInspector ? localInspector : <div style={{color:'#6b7280'}}>노드를 클릭하면 세부정보가 표시됩니다.</div>}
-          </div>
+        <div ref={graphContainerRef} style={{ height: 'calc(100% - 80px)', position: 'relative' }}>
+          <ForceGraph3D
+            ref={fgRef}
+            graphData={zoneGraph}
+            backgroundColor="#181c23"
+            width={containerSize.width}
+            height={containerSize.height}
+            nodeLabel={null}
+            nodeThreeObject={nodeThreeObjectHL}
+            nodeThreeObjectExtend
+            linkThreeObject={linkThreeObject}
+            linkThreeObjectExtend={false}
+
+            //  링크 강조 강화 (색/불투명도/두께/파티클/화살표)
+            linkColor={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return selected ? (isIncident(l) ? '#3a6fe2' : '#87aafc') : '#87aafc';
+              if (!selected) return '#bfc6d4';
+              return isIncident(l) ? '#24a0ff' : '#5b6475';
+            }}
+            linkOpacity={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return selected ? (isIncident(l) ? 1.0 : 0.35) : 0.35;
+              return (!selected ? 0.35 : isIncident(l) ? 0.95 : 0.08);
+            }}
+            linkWidth={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return 0; // hide base line for logical links
+              return (!selected ? 1.2 : isIncident(l) ? 6 : 0.5);
+            }}
+
+            linkDirectionalParticles={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return 0;
+              return (selected && isIncident(l) ? 4 : 0);
+            }}
+            linkDirectionalParticleWidth={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return 0;
+              return (selected && isIncident(l) ? 5 : 0);
+            }}
+            linkDirectionalParticleSpeed={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return 0;
+              return (selected && isIncident(l) ? 0.006 : 0);
+            }}
+            linkDirectionalParticleColor={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return '#000000';
+              return (selected && isIncident(l) ? '#00e5ff' : '#000000');
+            }}
+
+            linkDirectionalArrowLength={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return 0;
+              return (selected && isIncident(l) ? 6 : 0);
+            }}
+            linkDirectionalArrowRelPos={0.6} // ★
+            linkDirectionalArrowColor={(l) => {
+              const isLogical = String(l.type || '').toLowerCase() === 'logical';
+              if (isLogical) return '#000000';
+              return (selected && isIncident(l) ? '#00e5ff' : '#000000');
+            }}
+
+            linkLabel={(l) => {
+              const sId = getId(l.source);  
+              const tId = getId(l.target);
+              const src = zoneGraph.nodes.find(n => n.id === sId);
+              const tgt = zoneGraph.nodes.find(n => n.id === tId);
+              return `IP: ${(src && src.ip) || sId} → ${(tgt && tgt.ip) || tId}`;
+            }}
+
+            enableNodeDrag={false}
+            showNavInfo={false}
+            cooldownTicks={60}
+            d3AlphaDecay={0.028}
+            d3VelocityDecay={0.35}
+            style={{ height: '100%', width: '100%' }}
+            onNodeClick={setSelected}
+            onBackgroundClick={() => {
+              setSelected(null);
+              if (setEventLogs) setEventLogs([]);
+            }}
+            onLinkClick={(l) => {
+              // when user clicks a link, select source node for inspector and highlight
+              const sid = getId(l.source);
+              const node = zoneGraph.nodes.find(n => n.id === sid) || zoneGraph.nodes[0];
+              if (node) setSelected(node);
+            }}
+            onLinkUpdate={(l, obj) => { try { const line = l.__lineObj || obj; if (line && line.computeLineDistances) line.computeLineDistances(); } catch {} }}
+            onEngineTick={() => {
+              const scene = fgRef.current?.scene?.(); if (!scene) return;
+              scene.traverse((obj) => { if (obj.userData?.type === 'logical-dashed' && obj.userData.link) { updateLogicalDashed(obj.userData.link, obj); } });
+            }}
+            onEngineStop={() => { const scene = fgRef.current?.scene?.(); if (!scene) return; scene.traverse((obj) => { if (obj.userData?.type === 'logical-dashed' && obj.userData.link) { updateLogicalDashed(obj.userData.link, obj); obj.visible = true; } }); }}
+          />
         </div>
       </div>
     </div>
