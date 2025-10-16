@@ -62,7 +62,9 @@
     "vite": "6.0.11",
     "vite-jsconfig-paths": "2.0.1",
     "web-vitals": "4.2.4",
-    "yup": "1.6.1"
+    "yup": "1.6.1",
+    "recharts": "^3.2.1",
+    "vis-network": "^10.0.2"
   },
   "eslintConfig": {
     "extends": [

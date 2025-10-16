@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "concurrently": "^9.2.1",
-    "mongodb": "^6.20.0",
-    "neo4j-driver": "^6.0.0",
-    "recharts": "^3.2.1",
-    "vis-network": "^10.0.2"
-  }
-}
