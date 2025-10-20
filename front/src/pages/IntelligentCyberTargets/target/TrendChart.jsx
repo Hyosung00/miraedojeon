@@ -39,30 +39,53 @@ const TrendChart = React.memo(({ data }) => {
   }, [data]);
 
   return (
-    <div className="TrendChartContainer">
-      <div className="trendchart-row">
-        <div className="trendchart-card">
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={histogram} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-              <XAxis dataKey="range" />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="count" fill="#8884d8" name="점수 별 표적 개수" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="trendchart-card">
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={lineData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <XAxis dataKey="idx" hide={true} />
-              <YAxis domain={[0, 1]} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="score" stroke="#82ca9d" dot={false} name="표적 정규화 점수" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+    <div style={{ 
+      width: '100%', 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'row',
+      alignItems: 'center', 
+      justifyContent: 'center',
+      gap: '16px',
+      padding: '8px'
+    }}>
+      {/* 바 차트 */}
+      <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={histogram} margin={{ top: 10, right: 10, left: -5, bottom: 5 }}>
+            <XAxis 
+              dataKey="range" 
+              tick={{ fontSize: 11 }}
+              interval={1}
+            />
+            <YAxis 
+              allowDecimals={false}
+              tick={{ fontSize: 11 }}
+            />
+            <Tooltip />
+            <Legend wrapperStyle={{ fontSize: '11px' }} iconSize={8} />
+            <Bar dataKey="count" fill="#8884d8" name="점수 별 표적 개수" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 라인 차트 */}
+      <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={lineData} margin={{ top: 10, right: 10, left: -5, bottom: 5 }}>
+            <XAxis 
+              dataKey="idx" 
+              hide={true} 
+            />
+            <YAxis 
+              domain={[0, 1]}
+              tick={{ fontSize: 11 }}
+            />
+            <Tooltip />
+            <Legend wrapperStyle={{ fontSize: '11px' }} iconSize={8} />
+            <Line type="monotone" dataKey="score" stroke="#82ca9d" dot={false} name="표적 정규화 점수" />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

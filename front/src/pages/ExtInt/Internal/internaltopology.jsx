@@ -708,105 +708,121 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
   }, [measureContainer]);
 
   return (
-    <div style={{display:'flex',width:'100%',height:'calc(100vh - 120px)',gap:'24px',padding:'16px'}}>
-      {/* 왼쪽 툴바 (카드 스타일) */}
-      <Card sx={{
-        width: 280,
-        flex: 'none',
-        bgcolor: '#f0edfd',
-        color: '#000',
-        border: '1px solid #d0c9f0',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-        borderRadius: '20px',
-        mr: '8px',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: 1 }}>
-          <div style={{height:1, background:'rgba(0,0,0,0.10)', margin:'6px 0 10px'}} />
-        {/* 링크 유형 */}
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-          <span style={{fontSize:13, color:'#000000ff'}}>Link Type</span>
-        </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:14}}>
-          <button onClick={()=>{ setLinkTypeFilter('physical'); }} style={{ padding:'7px 0',borderRadius:8,fontSize:12, background:(view==="physical" || linkTypeFilter==='physical')?'#2563ebcc':'rgba(240,237,253, 1)', color:'#000000ff',border:'1px solid',cursor:'pointer' }} title="물리 링크만 보기">Physical</button>
-          <button onClick={()=>{ setLinkTypeFilter('logical'); }} style={{ padding:'7px 0',borderRadius:8,fontSize:12, background:(view==="logical" || linkTypeFilter==='logical')?'#2563ebcc':'rgba(240,237,253, 1)', color:'#000000ff',border:'1px solid',cursor:'pointer' }} title="논리 링크(점선)만 보기">Logical</button>
-        </div>
-        {/* 뷰 초기화 */}
-        <div style={{display:'flex',gap:8,marginBottom:12}}>
-          <button onClick={() => { setSelected(null); setSelectedZones(allZones); setLinkTypeFilter('all'); const core = graph.nodes.find((n) => n.kind === "core"); if (core && fgRef.current) { const distance = 150; const zFixed = 640; const distRatio = 1 + distance / Math.hypot(core.x || 1, core.y || 1, core.z || 1); fgRef.current.cameraPosition({ x: (core.x || 1) * distRatio, y: (core.y || 1) * distRatio, z: zFixed }, core, 800); } }} style={{flex:1,padding:'7px 0', borderRadius:8,fontSize:13,background:'#39306b',color:'#fff',border:'1px solid #3b82f6',cursor:'pointer'}}>뷰 초기화</button>
-        </div>
-        {/* Zones 목록 */}
-        <div style={{display:'flex',alignItems:'center',gap:8,margin:'8px 0 10px'}}>
-          <div style={{width:12,height:12,borderRadius:6,background:'#60a5fa',boxShadow:'0 0 4px #60a5fa'}}></div>
-          <span style={{fontSize:15,color:'#000000ff',fontWeight:600}}>Zones</span>
-        </div>
-
-        <div style={{flex:1,overflowY:'auto',paddingRight:4}}>
-          {allZones.map((z) => {
-            const active = selectedZones.includes(z);
-            const ct = countByZone.get(z) || 0;
-            return (
-              <div key={z} style={{border:'1px solid '+(active?'#3b82f6':'#e5e7eb22'),borderRadius:8,marginBottom:8,background:'rgba(255,255,255,0.05)'}}>
-                <button onClick={() => setActiveZone(z)} style={{ width:'100%',textAlign:'left',padding:'10px 14px',fontSize:13,color:active?'#000000ff':'#000000ff',fontWeight:active?600:400,background:'transparent',border:'none',cursor:'pointer' }}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                    <span>Zone {z}</span>
-                    <span style={{fontSize:11,padding:'2px 8px',borderRadius:999,background:'rgba(255,255,255,0.12)',color:'#000000ff'}}>{ct}</span>
-                  </div>
-                </button>
-                <div style={{display:'flex',gap:6,padding:'0 10px 10px'}}>
-                  <button onClick={() => setActiveZone(z)} title="존 상세 보기" style={{flex:1,padding:'6px 0',borderRadius:8,fontSize:12,background:'#39306b',color:'#fff',border:'1px solid #3b82f6',cursor:'pointer'}}>Details</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Zone filter checkboxes */}
-        <div style={{marginTop:'auto',paddingTop:18}}>
-          <div style={{marginBottom:10, fontSize:13, color:'#000000ff', fontWeight:600}}>Zone Filter</div>
-          <form style={{display:'flex',flexDirection:'column',gap:6,marginBottom:10}}>
-            {allZones.map((z) => (
-              <label key={z} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#000000ff',cursor:'pointer'}}>
-                <input type="checkbox" checked={selectedZones.includes(z)} onChange={() => toggleZone(z)} style={{accentColor:'#2563eb',width:16,height:16,margin:0}} />
-                <span>Zone {z} <span style={{fontSize:11,marginLeft:4,color:'#000000ff'}}>({countByZone.get(z) || 0})</span></span>
-              </label>
-            ))}
-          </form>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-            <button onClick={selectAll}  style={{flex:1,padding:'8px 0',borderRadius:8,fontSize:13,background:'rgba(255,255,255,0.10)',color:'#F0EDFD',border:'1px solid rgba(255,255,255,0.10)',cursor:'pointer'}}>All</button>
-            <button onClick={selectNone} style={{flex:1,padding:'8px 0',borderRadius:8,fontSize:13,background:'rgba(255,255,255,0.10)',color:'#F0EDFD',border:'1px solid rgba(255,255,255,0.10)',cursor:'pointer'}}>None</button>
+    <Card sx={{
+      width: '100%',
+      height: 'calc(100vh - 120px)',
+      bgcolor: 'background.paper',
+      borderRadius: 2,
+      boxShadow: 3,
+      overflow: 'hidden'
+    }}>
+      <CardContent sx={{ p: 2, height: '100%', display: 'flex', gap: 2 }}>
+        {/* 왼쪽 툴바 */}
+        <Card sx={{
+          width: 280,
+          flex: 'none',
+          bgcolor: '#f0edfd',
+          color: '#000',
+          border: '1px solid #d0c9f0',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          borderRadius: '20px',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }}>
+            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, fontSize: '1rem', color: '#000000ff' }}>
+              Network Topology
+            </Typography>
+            <div style={{height:1, background:'rgba(0,0,0,0.10)', margin:'6px 0 10px'}} />
+          {/* 링크 유형 */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: '#000000ff' }}>Link Type</Typography>
           </div>
-          <div style={{marginTop:4,fontSize:12,color:'#000000ff'}}>{filtered.nodes.length} nodes • {filtered.links.length} links</div>
-        </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:14}}>
+            <button onClick={()=>{ setLinkTypeFilter('physical'); }} style={{ padding:'7px 0',borderRadius:8,fontSize:12, background:(view==="physical" || linkTypeFilter==='physical')?'#2563ebcc':'rgba(240,237,253, 1)', color:'#000000ff',border:'1px solid',cursor:'pointer' }} title="물리 링크만 보기">Physical</button>
+            <button onClick={()=>{ setLinkTypeFilter('logical'); }} style={{ padding:'7px 0',borderRadius:8,fontSize:12, background:(view==="logical" || linkTypeFilter==='logical')?'#2563ebcc':'rgba(240,237,253, 1)', color:'#000000ff',border:'1px solid',cursor:'pointer' }} title="논리 링크(점선)만 보기">Logical</button>
+          </div>
+          {/* 뷰 초기화 */}
+          <div style={{display:'flex',gap:8,marginBottom:12}}>
+            <button onClick={() => { setSelected(null); setSelectedZones(allZones); setLinkTypeFilter('all'); const core = graph.nodes.find((n) => n.kind === "core"); if (core && fgRef.current) { const distance = 150; const zFixed = 640; const distRatio = 1 + distance / Math.hypot(core.x || 1, core.y || 1, core.z || 1); fgRef.current.cameraPosition({ x: (core.x || 1) * distRatio, y: (core.y || 1) * distRatio, z: zFixed }, core, 800); } }} style={{flex:1,padding:'7px 0', borderRadius:8,fontSize:13,background:'#39306b',color:'#fff',border:'1px solid #3b82f6',cursor:'pointer'}}>뷰 초기화</button>
+          </div>
+          {/* Zones 목록 */}
+          <div style={{display:'flex',alignItems:'center',gap:8,margin:'8px 0 10px'}}>
+            <div style={{width:12,height:12,borderRadius:6,background:'#60a5fa',boxShadow:'0 0 4px #60a5fa'}}></div>
+            <Typography variant="body1" sx={{ fontWeight: 600, color: '#000000ff' }}>Zones</Typography>
+          </div>
+
+          <div style={{flex:1,overflowY:'auto',paddingRight:4}}>
+            {allZones.map((z) => {
+              const active = selectedZones.includes(z);
+              const ct = countByZone.get(z) || 0;
+              return (
+                <div key={z} style={{border:'1px solid '+(active?'#3b82f6':'#e5e7eb22'),borderRadius:8,marginBottom:8,background:'rgba(255,255,255,0.05)'}}>
+                  <button onClick={() => setActiveZone(z)} style={{ width:'100%',textAlign:'left',padding:'10px 14px',fontSize:13,color:'#000000ff',fontWeight:active?600:400,background:'transparent',border:'none',cursor:'pointer' }}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                      <span>Zone {z}</span>
+                      <span style={{fontSize:11,padding:'2px 8px',borderRadius:999,background:'rgba(255,255,255,0.12)',color:'#000000ff'}}>{ct}</span>
+                    </div>
+                  </button>
+                  <div style={{display:'flex',gap:6,padding:'0 10px 10px'}}>
+                    <button onClick={() => setActiveZone(z)} title="존 상세 보기" style={{flex:1,padding:'6px 0',borderRadius:8,fontSize:12,background:'#39306b',color:'#fff',border:'1px solid #3b82f6',cursor:'pointer'}}>Details</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Zone filter checkboxes */}
+          <div style={{marginTop:'auto',paddingTop:18}}>
+            <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#000000ff' }}>Zone Filter</Typography>
+            <form style={{display:'flex',flexDirection:'column',gap:6,marginBottom:10}}>
+              {allZones.map((z) => (
+                <label key={z} style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#000000ff',cursor:'pointer'}}>
+                  <input type="checkbox" checked={selectedZones.includes(z)} onChange={() => toggleZone(z)} style={{accentColor:'#2563eb',width:16,height:16,margin:0}} />
+                  <span>Zone {z} <span style={{fontSize:11,marginLeft:4,color:'#000000ff'}}>({countByZone.get(z) || 0})</span></span>
+                </label>
+              ))}
+            </form>
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+              <button onClick={selectAll}  style={{flex:1,padding:'8px 0',borderRadius:8,fontSize:13,background:'rgba(255,255,255,0.10)',color:'#F0EDFD',border:'1px solid rgba(255,255,255,0.10)',cursor:'pointer'}}>All</button>
+              <button onClick={selectNone} style={{flex:1,padding:'8px 0',borderRadius:8,fontSize:13,background:'rgba(255,255,255,0.10)',color:'#F0EDFD',border:'1px solid rgba(255,255,255,0.10)',cursor:'pointer'}}>None</button>
+            </div>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#000000ff' }}>
+              {filtered.nodes.length} nodes • {filtered.links.length} links
+            </Typography>
+          </div>
         </CardContent>
       </Card>
 
       {/* 그래프 영역 */}
-      <main ref={mainGraphContainerRef} style={{
-        flex:1,
-        height:'100%',
-        position:'relative',
-        background:'#856affff',
-        overflow:'hidden',
-        borderRadius:'20px',
-        boxShadow:'0 2px 8px rgba(57, 48, 107, 0.07)',
-        marginRight:'8px',
+      <Card sx={{
+        flex: 1,
+        height: '100%',
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: '20px',
+        boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
+        background: '#856affff'
       }}>
-        <Suspense fallback={
-          <div style={{position:'absolute',left:0,top:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <div style={{background:'rgba(0,0,0,0.6)',color:'#fff',padding:'12px 18px',borderRadius:8,backdropFilter:'blur(4px)'}}>
-              Loading Graph...
-            </div>
+        <div ref={mainGraphContainerRef} style={{
+          width: '100%',
+          height: '100%',
+          position: 'relative'
+        }}>
+          <Suspense fallback={
+            <div style={{position:'absolute',left:0,top:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <div style={{background:'rgba(0,0,0,0.6)',color:'#fff',padding:'12px 18px',borderRadius:8,backdropFilter:'blur(4px)'}}>
+                Loading Graph...
+              </div>
           </div>
         }>
-          <ForceGraph3D
-          ref={fgRef}
-          graphData={filtered}
-          backgroundColor="#F0EDFD" // 3D 그래프 시각화 배경색 부분 
-          width={containerSize.width}
-          height={containerSize.height}
+            <ForceGraph3D
+            ref={fgRef}
+            graphData={filtered}
+            backgroundColor="#F0EDFD"
+            width={containerSize.width}
+            height={containerSize.height}
           nodeThreeObject={nodeThreeObject}
           nodeThreeObjectExtend
           linkThreeObject={linkThreeObject}
@@ -902,59 +918,60 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
           cooldownTicks={30}
           d3AlphaDecay={0.05}
           d3VelocityDecay={0.4}
-        />
-        </Suspense>
-        {loading && (
-          <div style={{position:'absolute',left:0,top:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
-            <div style={{background:'rgba(0,0,0,0.6)',color:'#fff',padding:'12px 18px',borderRadius:8,backdropFilter:'blur(4px)'}}>Loading…</div>
-          </div>
-        )}
-
-        {/* 컨테이너 리사이즈 또는 데이터 변경 시 그래프 중앙 정렬 유지 */}
-        {useEffect(()=>{
-          const recenter = () => { try { fgRef.current && fgRef.current.zoomToFit(600, 40); } catch {} };
-          // 데이터 로딩 이후
-          if (filtered.nodes?.length || filtered.links?.length) requestAnimationFrame(recenter);
-          const el = mainGraphContainerRef.current;
-          let ro;
-          if (el && typeof ResizeObserver !== 'undefined') {
-            ro = new ResizeObserver(() => requestAnimationFrame(recenter));
-            ro.observe(el);
-          } else {
-            window.addEventListener('resize', recenter);
-          }
-          return () => {
-            if (ro && el) ro.unobserve(el);
-            window.removeEventListener('resize', recenter);
-          };
-        }, [filtered])}
-
-        {/* Zone 상세를 메인 그래프 영역 안에서 오버레이로 렌더링 (메인 좌표계 정렬) */}
-        {activeZone !== null && (
-          <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', zIndex:60}}>
-            {/* 클릭 시 닫히는 반투명 배경 (메인 영역 전체) */}
-            <div onClick={() => setActiveZone(null)} style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.6)'}} />
-            {/* 콘텐츠는 주변에 여백을 두어 바깥 클릭 닫기가 가능하도록 함 */}
-            <div
-              onClick={(e)=>e.stopPropagation()}
-              style={{
-                position:'relative',
-                width:'calc(100% - 48px)',
-                height:'calc(100% - 48px)',
-                margin:'24px',
-                background:'#0b0f14',
-                borderRadius:12,
-                boxShadow:'0 12px 40px rgba(0,0,0,0.8)',
-                overflow:'hidden',
-                border:'1px solid rgba(255,255,255,0.04)'
-              }}>
-              <Suspense fallback={<div style={{color:'#fff',padding:20}}>Loading...</div>}>
-                <ZonePage zone={activeZone} onBack={() => setActiveZone(null)} onInspectorChange={onInspectorChange} setEventLogs={setEventLogs} />
-              </Suspense>
+          />
+          </Suspense>
+          {loading && (
+            <div style={{position:'absolute',left:0,top:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
+              <div style={{background:'rgba(0,0,0,0.6)',color:'#fff',padding:'12px 18px',borderRadius:8,backdropFilter:'blur(4px)'}}>Loading…</div>
             </div>
-          </div>
-        )}
-      </main>
+          )}
+
+          {/* 컨테이너 리사이즈 또는 데이터 변경 시 그래프 중앙 정렬 유지 */}
+            {useEffect(()=>{
+            const recenter = () => { try { fgRef.current && fgRef.current.zoomToFit(600, 40); } catch {} };
+            // 데이터 로딩 이후
+            if (filtered.nodes?.length || filtered.links?.length) requestAnimationFrame(recenter);
+            const el = mainGraphContainerRef.current;
+            let ro;
+            if (el && typeof ResizeObserver !== 'undefined') {
+              ro = new ResizeObserver(() => requestAnimationFrame(recenter));
+              ro.observe(el);
+            } else {
+              window.addEventListener('resize', recenter);
+            }
+            return () => {
+              if (ro && el) ro.unobserve(el);
+              window.removeEventListener('resize', recenter);
+            };
+          }, [filtered])}
+
+          {/* Zone 상세를 메인 그래프 영역 안에서 오버레이로 렌더링 (메인 좌표계 정렬) */}
+          {activeZone !== null && (
+            <div style={{position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', zIndex:60}}>
+              {/* 클릭 시 닫히는 반투명 배경 (메인 영역 전체) */}
+              <div onClick={() => setActiveZone(null)} style={{position:'absolute', inset:0, background:'rgba(0,0,0,0.6)'}} />
+              {/* 콘텐츠는 주변에 여백을 두어 바깥 클릭 닫기가 가능하도록 함 */}
+              <div
+                onClick={(e)=>e.stopPropagation()}
+                style={{
+                  position:'relative',
+                  width:'calc(100% - 48px)',
+                  height:'calc(100% - 48px)',
+                  margin:'24px',
+                  background:'#0b0f14',
+                  borderRadius:12,
+                  boxShadow:'0 12px 40px rgba(0,0,0,0.8)',
+                  overflow:'hidden',
+                  border:'1px solid rgba(255,255,255,0.04)'
+                }}>
+                <Suspense fallback={<div style={{color:'#fff',padding:20}}>Loading...</div>}>
+                  <ZonePage zone={activeZone} onBack={() => setActiveZone(null)} onInspectorChange={onInspectorChange} setEventLogs={setEventLogs} />
+                </Suspense>
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* 우측 이벤트 로그 패널 */}
       <Suspense fallback={<div style={{width:280}}></div>}>
@@ -962,7 +979,8 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
       </Suspense>
 
       {/* Zone 상세 오버레이는 메인 내부에서 렌더됨 */}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 

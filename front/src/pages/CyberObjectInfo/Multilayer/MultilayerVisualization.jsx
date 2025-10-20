@@ -534,19 +534,32 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   }, [pulse, visible, selectedId, adj]);
 
   return (
-  <div ref={containerRef} style={{ display: 'flex', width: '100%', height: 'calc(100vh - 120px)', gap: '24px', padding: '16px' }}>
-      {/* 메인 컨텐츠 영역 */}
-      <div style={{ flex: 1, minWidth: 0, height: '100%' }}>
-        <div style={{ width: '100%', height: '100%', minHeight: 600, color: '#fff', display: 'flex', flexDirection: 'row' }}>
-          <div ref={graphContainerRef} style={{
-            flex: 1,
-            position: 'relative',
-            overflow: 'hidden',
-            borderRadius: '20px',
-            // boxShadow removed
-            marginRight: '8px',
-            background: '#0b1220',
-          }}>
+    <Card ref={containerRef} sx={{
+      width: '100%',
+      height: 'calc(100vh - 120px)',
+      bgcolor: 'background.paper',
+      borderRadius: 2,
+      boxShadow: 3,
+      overflow: 'hidden'
+    }}>
+      <CardContent sx={{ p: 2, height: '100%', display: 'flex', gap: 2 }}>
+        {/* 메인 컨텐츠 영역 */}
+        <div style={{ flex: 1, minWidth: 0, height: '100%' }}>
+          <div style={{ width: '100%', height: '100%', minHeight: 600, color: '#fff', display: 'flex', flexDirection: 'row' }}>
+            <Card sx={{
+              flex: 1,
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: '20px',
+              boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
+              background: '#0b1220',
+              mr: 1
+            }}>
+              <div ref={graphContainerRef} style={{
+                width: '100%',
+                height: '100%',
+                position: 'relative'
+              }}>
             {/* 툴바 */}
             <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: 'rgba(57,48,107,0.7)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 12 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontSize: 12 }}>
@@ -616,12 +629,14 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
             <div style={{background:'rgba(0,0,0,0.6)',color:'#fff',padding:'12px 18px',borderRadius:8,backdropFilter:'blur(4px)'}}>Loading…</div>
           </div>
         )}
+              </div>
+            </Card>
           </div>
         </div>
-      </div>
 
-     {/* 우측 이벤트 로그 패널 */}
-      <ThreelayerLog eventLogs={eventLogs} />
-    </div>
+        {/* 우측 이벤트 로그 패널 */}
+        <ThreelayerLog eventLogs={eventLogs} />
+      </CardContent>
+    </Card>
   );
 }
