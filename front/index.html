@@ -6,10 +6,21 @@
   <link rel="icon" href="/src/assets/images/Sejong.png?v=2" />
   <link rel="apple-touch-icon" href="/src/assets/images/Sejong.png?v=2" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
   <meta name="theme-color" content="#000000" />
   <meta name="description" content="세종대학교-스텔스 정보 수집 및 가시화" />
   <title>세종대학교-스텔스 정보 수집 및 가시화</title>
+  
+  <!-- GitHub Pages SPA redirect script -->
+  <script>
+    (function() {
+      var redirect = sessionStorage.redirect;
+      delete sessionStorage.redirect;
+      if (redirect && redirect !== location.href) {
+        history.replaceState(null, null, redirect);
+      }
+    })();
+  </script>
   
   <!-- Preconnect to external domains for faster loading -->
   <link rel="preconnect" href="https://cesium.com" crossorigin>

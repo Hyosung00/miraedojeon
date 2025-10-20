@@ -117,6 +117,14 @@ export default defineConfig(({ mode }) => {
           {
             src: 'node_modules/cesium/Build/Cesium/Widgets',
             dest: 'cesium'
+          },
+          {
+            src: 'public/404.html',
+            dest: ''
+          },
+          {
+            src: 'public/.nojekyll',
+            dest: ''
           }
         ]
       })
