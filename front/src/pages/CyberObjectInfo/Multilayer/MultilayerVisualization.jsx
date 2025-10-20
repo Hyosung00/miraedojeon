@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Card, CardContent, Typography } from '@mui/material';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
+import ThreelayerLog from './3layer_Log.jsx';
 
 // ===================== 상수 =====================
 const STATUS = ['up', 'down', 'unknown'];
@@ -497,9 +499,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
               ip: dstNode.ip,
               __labels: [dstNode.layer, dstNode.type],
               __id: dstNode.id,
-              index: dstNode.index,
-              __indexColor: dstNode.color,
-              color: dstNode.color
+              index: dstNode.index
             } : null,
             edge: {
               sourceIP: sid,
@@ -543,7 +543,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
             position: 'relative',
             overflow: 'hidden',
             borderRadius: '20px',
-            boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
+            // boxShadow removed
             marginRight: '8px',
             background: '#0b1220',
           }}>
@@ -620,109 +620,8 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
         </div>
       </div>
 
-      {/* 우측 이벤트 로그 패널 */}
-      <aside style={{
-        minWidth: '350px',
-        width: '300px',
-        background: '#f0edfd',
-        color: '#000',
-        padding: '20px',
-        boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-        borderRadius: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        overflowY: 'auto',
-        flexShrink: 0,
-        height: '100%',
-      }}>
-        <div style={{ fontSize: '1.2em', fontWeight: 700, color: '#39306b', marginBottom: '12px' }}>
-          이벤트 로그
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {eventLogs.length === 0 ? (
-            <div style={{ color: '#666', fontSize: '14px', padding: '10px' }}>
-              노드를 클릭하면 이벤트 로그가 표시됩니다.
-            </div>
-          ) : (
-            eventLogs.map((log, idx) => (
-              <div key={idx} style={{
-                padding: '10px',
-                marginBottom: '8px',
-                background: 'rgba(57, 48, 107, 0.1)',
-                borderRadius: '8px',
-                fontSize: '13px',
-                color: '#333'
-              }}>
-                {log.message && <div style={{ fontWeight: 600, marginBottom: '4px', color: '#222' }}>{log.message}</div>}
-                {log.nodeInfo && (
-                  <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
-                    Layer: {log.nodeInfo.layer} | Type: {log.nodeInfo.type}
-                  </div>
-                )}
-
-                {/* 연결된 노드 개수 */}
-                {log.connectedCount !== undefined && (
-                  <div style={{ marginTop: '8px', marginBottom: '8px', color: '#222' }}>
-                    연결된 노드 개수: {log.connectedCount}
-                    {Array.isArray(log.connectedIps) && log.connectedIps.length > 0 && (
-                      <details style={{ marginTop: '4px', color: '#222' }}>
-                        <summary style={{ cursor: 'pointer', color: '#1976d2', fontWeight: 'bold' }}>연결된 노드 IP 목록 보기</summary>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {log.connectedIps.map((ip, i) => (
-                            <li key={ip + i} style={{ color: '#222' }}>{ip}</li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
-                  </div>
-                )}
-
-                {/* dbInfo 배열 출력 */}
-                {Array.isArray(log.dbInfo) && log.dbInfo.length > 0 && log.dbInfo.map((info, i) => (
-                  <div key={i} style={{ margin: '8px 0', color: '#222' }}>
-                    {info.src_IP && (
-                      <div style={{ marginBottom: '12px', color: '#222' }}>
-                        <strong>Source IP</strong>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {Object.entries(info.src_IP)
-                            .filter(([key]) => ["ip", "__labels", "__id", "id", "index"].includes(key))
-                            .map(([key, value]) => (
-                              <li key={key} style={{ color: '#222' }}><b>{key}:</b> {String(value)}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                    {info.dst_IP && (
-                      <div style={{ marginBottom: '12px', color: '#222' }}>
-                        <strong>Destination IP</strong>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {Object.entries(info.dst_IP)
-                            .filter(([key]) => ["ip", "__labels", "__id", "id", "__indexColor", "color", "index"].includes(key))
-                            .map(([key, value]) => (
-                              <li key={key} style={{ color: '#222' }}><b>{key}:</b> {String(value)}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                    {info.edge && (
-                      <div style={{ marginBottom: '12px', color: '#222' }}>
-                        <strong>Edge Info</strong>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {Object.entries(info.edge)
-                            .map(([key, value]) => (
-                              <li key={key} style={{ color: '#222' }}><b>{key}:</b> {String(value)}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))
-          )}
-        </div>
-      </aside>
+     {/* 우측 이벤트 로그 패널 */}
+      <ThreelayerLog eventLogs={eventLogs} />
     </div>
   );
 }

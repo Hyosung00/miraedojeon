@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { Card, CardContent, Typography } from '@mui/material';
 import ForceGraph3D from "react-force-graph-3d";
 import * as THREE from "three";
 import ZonePage from "./ZonePage";
+import InternalLog from "./Internal_Log";
 
 // 간단한 뷰 캐시: view -> { nodes, links }
 const VIEW_CACHE = new Map();
@@ -366,25 +368,44 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
   // node Inspector
   useEffect(() => {
     const inspectorJsx = (
-      <div className="h-[78vh] rounded-xl bg-white/95 p-3 overflow-auto">
-        <h2 className="text-sm font-semibold mb-2">Node</h2>
+      <div
+        style={{
+          height: '78vh',
+          borderRadius: 16,
+          background: 'linear-gradient(180deg, rgba(128,90,213,0.12), rgba(99,102,241,0.10))',
+          padding: 12,
+          overflow: 'auto',
+          border: '1px solid rgba(124,58,237,0.25)',
+          boxShadow: '0 6px 20px rgba(91,76,155,0.18)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, color: '#3b2c6b', margin: 0 }}>Node</h2>
+          {selected && (
+            <span style={{ fontSize: 11, color: '#6d4dd6', background: 'rgba(109,77,214,0.12)', padding: '2px 8px', borderRadius: 999 }}>
+              Zone {String(normalizeZoneVal(selected.zone))}
+            </span>
+          )}
+        </div>
         {selected ? (
-          <table className="w-full text-xs">
-            <tbody>
-              {["label","kind","ip","subnet","zone","id"].map((key) => (
-                <tr key={key} className="border-b border-gray-200/80">
-                  <td className="py-1.5 font-medium text-gray-500">{key}</td>
-                  <td className="py-1.5 text-right font-mono break-all">{String(selected[key] ?? "")}</td>
+          <div style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(124,58,237,0.18)', borderRadius: 12, padding: 10 }}>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+              <tbody>
+                {["label","kind","ip","subnet","zone","id"].map((key) => (
+                  <tr key={key} style={{ borderBottom: '1px solid rgba(124,58,237,0.12)' }}>
+                    <td style={{ padding: '6px 4px', fontWeight: 600, color: '#6553a7' }}>{key}</td>
+                    <td style={{ padding: '6px 4px', textAlign: 'right', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', color: '#2a2050', wordBreak: 'break-all' }}>{String(selected[key] ?? '')}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td style={{ padding: '6px 4px', fontWeight: 600, color: '#6553a7' }}>이웃연결수</td>
+                  <td style={{ padding: '6px 4px', textAlign: 'right', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', color: '#2a2050' }}>{adjacency.get(selected.id)?.size ?? 0}</td>
                 </tr>
-              ))}
-              <tr className="border-b border-gray-200/80">
-                <td className="py-1.5 font-medium text-gray-500">이웃연결수</td>
-                <td className="py-1.5 text-right font-mono break-all">{adjacency.get(selected.id)?.size ?? 0}</td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <p className="text-gray-500"></p>
+          <div style={{ color: '#5e5a7f', fontSize: 12 }}>노드를 클릭하면 상세 정보가 표시됩니다.</div>
         )}
       </div>
     );
@@ -631,21 +652,22 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
 
   return (
     <div style={{display:'flex',width:'100%',height:'calc(100vh - 120px)',gap:'24px',padding:'16px'}}>
-      {/* 왼쪽 툴바 */}
-      <aside style={{
-        width:280,
-        flex:'none',
-        background:'#f0edfd',
-        backdropFilter:'blur(6px)',
-        padding:16,
-        display:'flex',
-        flexDirection:'column',
-        borderRadius:'20px',
-        boxShadow:'0 2px 8px rgba(57, 48, 107, 0.07)',
-        marginRight:'8px',
-        height:'100%',
+      {/* 왼쪽 툴바 (카드 스타일) */}
+      <Card sx={{
+        width: 280,
+        flex: 'none',
+        bgcolor: '#f0edfd',
+        color: '#000',
+        border: '1px solid #d0c9f0',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        borderRadius: '20px',
+        mr: '8px',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column'
       }}>
-  <div style={{height:1, background:'rgba(255,255,255,0.10)', margin:'6px 0 10px'}} />
+        <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <div style={{height:1, background:'rgba(0,0,0,0.10)', margin:'6px 0 10px'}} />
         {/* 링크 유형 */}
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
           <span style={{fontSize:13, color:'#000000ff'}}>Link Type</span>
@@ -701,7 +723,8 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
           </div>
           <div style={{marginTop:4,fontSize:12,color:'#000000ff'}}>{filtered.nodes.length} nodes • {filtered.links.length} links</div>
         </div>
-      </aside>
+        </CardContent>
+      </Card>
 
       {/* 그래프 영역 */}
       <main ref={mainGraphContainerRef} style={{
@@ -784,9 +807,7 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
                       ip: dstNode.ip,
                       __labels: [dstNode.kind],
                       __id: dstNode.id,
-                      index: dstNode.zone,
-                      __indexColor: dstNode.color,
-                      color: dstNode.color
+                      index: dstNode.zone
                     } : null,
                     edge: {
                       sourceIP: sid,
@@ -869,103 +890,7 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
       </main>
 
       {/* 우측 이벤트 로그 패널 */}
-      <aside style={{
-        minWidth: '350px',
-        width: '300px',
-        background: '#f0edfd',
-        color: '#000',
-        padding: '20px',
-        boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-        borderRadius: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        overflowY: 'auto',
-        flexShrink: 0,
-        height:'100%',
-      }}>
-        <div style={{ fontSize: '1.2em', fontWeight: 700, color: '#39306b', marginBottom: '12px' }}>
-          이벤트 로그
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {eventLogs.length === 0 ? (
-            <div style={{ color: '#666', fontSize: '14px', padding: '10px' }}>
-              노드를 클릭하면 이벤트 로그가 표시됩니다.
-            </div>
-          ) : (
-            eventLogs.map((log, idx) => (
-              <div key={idx} style={{
-                padding: '10px',
-                marginBottom: '8px',
-                background: 'rgba(57, 48, 107, 0.1)',
-                borderRadius: '8px',
-                fontSize: '13px',
-                color: '#333'
-              }}>
-                {log.message && <div style={{ fontWeight: 600, marginBottom: '4px', color: '#222' }}>{log.message}</div>}
-                
-                {/* 연결된 노드 개수 */}
-                {log.connectedCount !== undefined && (
-                  <div style={{ marginTop: '8px', marginBottom: '8px', color: '#222' }}>
-                    연결된 노드 개수: {log.connectedCount}
-                    {Array.isArray(log.connectedIps) && log.connectedIps.length > 0 && (
-                      <details style={{ marginTop: '4px', color: '#222' }}>
-                        <summary style={{ cursor: 'pointer', color: '#1976d2', fontWeight: 'bold' }}>연결된 노드 IP 목록 보기</summary>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {log.connectedIps.map((ip, i) => (
-                            <li key={ip + i} style={{ color: '#222' }}>{ip}</li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
-                  </div>
-                )}
-
-                {/* dbInfo 배열 출력 */}
-                {Array.isArray(log.dbInfo) && log.dbInfo.length > 0 && log.dbInfo.map((info, i) => (
-                  <div key={i} style={{ margin: '8px 0', color: '#222' }}>
-                    {info.src_IP && (
-                      <div style={{ marginBottom: '12px', color: '#222' }}>
-                        <strong>Source IP</strong>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {Object.entries(info.src_IP)
-                            .filter(([key]) => ["ip", "__labels", "__id", "id", "index"].includes(key))
-                            .map(([key, value]) => (
-                              <li key={key} style={{ color: '#222' }}><b>{key}:</b> {String(value)}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                    {info.dst_IP && (
-                      <div style={{ marginBottom: '12px', color: '#222' }}>
-                        <strong>Destination IP</strong>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {Object.entries(info.dst_IP)
-                            .filter(([key]) => ["ip", "__labels", "__id", "id", "__indexColor", "color", "index"].includes(key))
-                            .map(([key, value]) => (
-                              <li key={key} style={{ color: '#222' }}><b>{key}:</b> {String(value)}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                    {info.edge && (
-                      <div style={{ marginBottom: '12px', color: '#222' }}>
-                        <strong>Edge Info</strong>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {Object.entries(info.edge)
-                            .map(([key, value]) => (
-                              <li key={key} style={{ color: '#222' }}><b>{key}:</b> {String(value)}</li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))
-          )}
-        </div>
-      </aside>
+      <InternalLog eventLogs={eventLogs} />
 
       {/* Zone 상세 오버레이는 메인 내부에서 렌더됨 */}
     </div>

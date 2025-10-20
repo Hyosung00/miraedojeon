@@ -23,40 +23,45 @@ function TargetLog({ logs }) {
               )}
             </div>
           )}
-          {/* dbInfo 배열이 있을 경우, 기존 하단 방식으로 출력 */}
+          {/* dbInfo 배열 출력 - 하나의 카드로 통합 */}
           {Array.isArray(log.dbInfo) && log.dbInfo.length > 0 && log.dbInfo.map((info, i) => (
-            <div key={i} style={{ margin: '8px 0', color: '#222' }}>
+            <div key={i} style={{ margin: '8px 0', background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(124,58,237,0.18)', borderRadius: 10, padding: '12px', color: '#222' }}>
+              {/* Source IP */}
               {info.src_IP && (
-                <div style={{ marginBottom: '16px', color: '#222' }}>
-                  <strong>Source IP</strong>
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <strong style={{ color: '#3b2c6b' }}>Source IP</strong>
+                  <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
                     {Object.entries(info.src_IP)
                       .filter(([key]) => ["ip", "__labels", "__id", "id", "index"].includes(key))
                       .map(([key, value]) => (
-                        <li key={key} style={{ color: '#222' }}><b>{key}:</b> {String(value)}</li>
+                        <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
                       ))}
                   </ul>
                 </div>
               )}
+              
+              {/* Destination IP */}
               {info.dst_IP && (
-                <div style={{ marginBottom: '16px', color: '#222' }}>
-                  <strong>Destination IP</strong>
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <strong style={{ color: '#3b2c6b' }}>Destination IP</strong>
+                  <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
                     {Object.entries(info.dst_IP)
                       .filter(([key]) => ["ip", "__labels", "__id", "id", "__indexColor", "color", "index"].includes(key))
                       .map(([key, value]) => (
-                        <li key={key} style={{ color: '#222' }}><b>{key}:</b> {String(value)}</li>
+                        <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
                       ))}
                   </ul>
                 </div>
               )}
+              
+              {/* Edge Info */}
               {info.edge && (
-                <div style={{ marginBottom: '16px' }}>
-                  <strong>Edge Info</strong>
-                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                <div>
+                  <strong style={{ color: '#3b2c6b' }}>Edge Info</strong>
+                  <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
                     {Object.entries(info.edge)
                       .map(([key, value]) => (
-                        <li key={key}><b>{key}:</b> {String(value)}</li>
+                        <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
                       ))}
                   </ul>
                 </div>
