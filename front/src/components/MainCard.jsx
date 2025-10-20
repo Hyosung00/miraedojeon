@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, memo } from 'react';
 
 // material-ui
 import Card from '@mui/material/Card';
@@ -85,4 +85,4 @@ const MainCard = forwardRef(function MainCard(
   );
 });
 
-export default MainCard;
+export default memo(MainCard);

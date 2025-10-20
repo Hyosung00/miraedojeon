@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import { Card, CardContent, Typography } from '@mui/material';
 
-function InternalLog({ eventLogs = [] }) {
+const InternalLog = memo(({ eventLogs = [] }) => {
   return (
       <Card elevation={0} sx={{
         minWidth: 350,
@@ -118,6 +118,8 @@ function InternalLog({ eventLogs = [] }) {
         </CardContent>
       </Card>
     );
-}
+});
+
+InternalLog.displayName = 'InternalLog';
 
 export default InternalLog;

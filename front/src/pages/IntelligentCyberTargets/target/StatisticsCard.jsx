@@ -1,5 +1,6 @@
+import React from "react";
 
-const StatisticsCard = ({ dbTitle, dbValue, dbSubtext, className }) => {
+const StatisticsCard = React.memo(({ dbTitle, dbValue, dbSubtext, className }) => {
   const title = dbTitle || "Default Title";
   const value = dbValue || "Default Value";
   const subtext = dbSubtext || "Default Subtext";
@@ -11,6 +12,8 @@ const StatisticsCard = ({ dbTitle, dbValue, dbSubtext, className }) => {
       <div className="statistics-card-subtext">{subtext}</div>
     </div>
   );
-};
+});
+
+StatisticsCard.displayName = 'StatisticsCard';
 
 export default StatisticsCard;

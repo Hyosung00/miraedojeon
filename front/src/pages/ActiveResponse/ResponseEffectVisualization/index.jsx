@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useLocation } from 'react-router-dom';
 
-export default function ResponseEffectVisualization() {
+const ResponseEffectVisualization = memo(() => {
   const location = useLocation();
   const selectedNode = location.state?.selectedNode;
   if (!selectedNode) {
@@ -48,4 +48,8 @@ export default function ResponseEffectVisualization() {
       </div>
     </div>
   );
-}
+});
+
+ResponseEffectVisualization.displayName = 'ResponseEffectVisualization';
+
+export default ResponseEffectVisualization;

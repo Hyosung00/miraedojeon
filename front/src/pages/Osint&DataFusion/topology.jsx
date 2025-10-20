@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Box, Typography, Card, CardContent } from '@mui/material';
 
 // ==============================|| INTERNAL NETWORK TOPOLOGY PAGE ||============================== //
 
-const InternalTopologyPage = () => {
+const InternalTopologyPage = memo(() => {
   return (
     <Card sx={{
       width: '100%',
@@ -44,6 +44,8 @@ const InternalTopologyPage = () => {
       </CardContent>
     </Card>
   );
-};
+});
+
+InternalTopologyPage.displayName = 'InternalTopologyPage';
 
 export default InternalTopologyPage;

@@ -1,7 +1,7 @@
-import React from "react";
+import React, { memo } from "react";
 import "./Target.css"; // External CSS file for styling
 
-const DataTable = ({ dbData }) => {
+const DataTable = memo(({ dbData }) => {
   const data = dbData || [];
 
   return (
@@ -26,6 +26,8 @@ const DataTable = ({ dbData }) => {
       </table>
     </div>
   );
-};
+});
+
+DataTable.displayName = 'DataTable';
 
 export default DataTable;

@@ -1,15 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 
-import TargetGraphComp from "./TargetGraphComp";
-import TargetCondition from "./TargetCondition";
-import DataTable from "./DataTable.jsx";
-import TrendChart from "./TrendChart.jsx";
+// Lazy load components for better code splitting
+const TargetGraphComp = lazy(() => import("./TargetGraphComp"));
+const TargetCondition = lazy(() => import("./TargetCondition"));
+const DataTable = lazy(() => import("./DataTable.jsx"));
+const TrendChart = lazy(() => import("./TrendChart.jsx"));
+const EventLog = lazy(() => import("./dashboard/EventLog"));
+
+// Regular imports for critical components
 import StatisticsCard from "./StatisticsCard.jsx";
-import EventLog from "./dashboard/EventLog";
 import { extractUniqueTypes } from "./TargetCondition/filterUtils";
 import "./Target.css";
 
+// Loading fallback component
+const LoadingFallback = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100%',
+    color: '#666'
+  }}>
+    Loading...
+  </div>
+);
 
 // logs와 activeView prop 추가
 export default function TargetDashboard({ onNodeClick, data, logs = [], activeView = "target" }) {
@@ -20,16 +35,80 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
   const [currentLogs, setCurrentLogs] = useState(logs);
   const [selectedNode, setSelectedNode] = useState(null);
 
-  // 항상 함수 최상단에서 선언
-  const originalNodes = Array.isArray(nodes) ? nodes : (nodes?.nodes || nodes?.network || []);
+  // Memoize original nodes to prevent recalculation
+  const originalNodes = useMemo(() => 
+    Array.isArray(nodes) ? nodes : (nodes?.nodes || nodes?.network || []),
+    [nodes]
+  );
 
-  // 임시로 TrendChart를 최상단에 렌더링
-  const dummyData = [
-    { degree_score: 0.2, con_score: 0.3 },
-    { degree_score: 0.5, con_score: 0.7 },
-    { degree_score: 0.8, con_score: 0.1 },
-    { degree_score: 0.9, con_score: 0.6 }
-  ];
+  // Memoize trend data to prevent recalculation
+  const trendData = useMemo(() => 
+    originalNodes.map(n => ({
+      degree_score: n.src_IP?.degree_score || n.dst_IP?.degree_score || 0,
+      con_score: n.src_IP?.con_score || n.dst_IP?.con_score || 0
+    })),
+    [originalNodes]
+  );
+
+  // Memoize statistics calculations
+  const statistics = useMemo(() => {
+    const srcIpSet = new Set();
+    filteredNodes.forEach(item => {
+      if (item.src_IP && item.src_IP.ip) srcIpSet.add(item.src_IP.ip);
+    });
+    
+    let directCurrent = 0, indirectCurrent = 0;
+    srcIpSet.forEach(ip => {
+      const node = filteredNodes.find(item => item.src_IP && item.src_IP.ip === ip)?.src_IP;
+      if (!node || typeof node.degree_score !== 'number') return;
+      if (node.degree_score > 0.5) {
+        directCurrent += 1;
+      } else if (node.degree_score > 0 && node.degree_score <= 0.5) {
+        indirectCurrent += 1;
+      }
+    });
+
+    const typeCountMap = {};
+    filteredNodes.forEach(item => {
+      [item.src_IP, item.dst_IP].forEach(node => {
+        if (node && node.type) {
+          typeCountMap[node.type] = (typeCountMap[node.type] || 0) + 1;
+        }
+      });
+    });
+
+    const degreeScores = [
+      ...originalNodes.map(n => n.src_IP?.degree_score),
+      ...originalNodes.map(n => n.dst_IP?.degree_score)
+    ].filter(v => typeof v === 'number');
+    
+    const conScores = [
+      ...originalNodes.map(n => n.src_IP?.con_score),
+      ...originalNodes.map(n => n.dst_IP?.con_score)
+    ].filter(v => typeof v === 'number');
+
+    return {
+      directCurrent,
+      indirectCurrent,
+      typeCountMap,
+      degreeScoreAvg: degreeScores.length ? (degreeScores.reduce((a, b) => a + b, 0) / degreeScores.length).toFixed(3) : '-',
+      degreeScoreMax: degreeScores.length ? Math.max(...degreeScores).toFixed(3) : '-',
+      conScoreAvg: conScores.length ? (conScores.reduce((a, b) => a + b, 0) / conScores.length).toFixed(3) : '-',
+      conScoreMax: conScores.length ? Math.max(...conScores).toFixed(3) : '-',
+      uniqueTypes: extractUniqueTypes(originalNodes).length
+    };
+  }, [filteredNodes, originalNodes]);
+
+  // Memoize table data
+  const dbData = useMemo(() => [
+    { category: 'direct', current: statistics.directCurrent, total: statistics.directCurrent },
+    { category: 'indirect', current: statistics.indirectCurrent, total: statistics.indirectCurrent },
+    ...Object.entries(statistics.typeCountMap).map(([type, count]) => ({ 
+      category: type, 
+      current: count, 
+      total: count 
+    }))
+  ], [statistics]);
 
   React.useEffect(() => {
     if (!data) {
@@ -44,45 +123,16 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
 
   React.useEffect(() => {
     setFilteredNodes(originalNodes);
-  }, [nodes]);
+  }, [nodes, originalNodes]);
 
-
-  const handleConditionChange = (newConditions, filteredData) => {
+  // Memoize condition change handler
+  const handleConditionChange = useCallback((newConditions, filteredData) => {
     setFilterConditions(newConditions);
     setFilteredNodes(filteredData);
-  };
+  }, []);
 
-  const srcIpSet = new Set();
-  filteredNodes.forEach(item => {
-    if (item.src_IP && item.src_IP.ip) srcIpSet.add(item.src_IP.ip);
-  });
-  let directCurrent = 0, indirectCurrent = 0;
-  srcIpSet.forEach(ip => {
-    const node = filteredNodes.find(item => item.src_IP && item.src_IP.ip === ip)?.src_IP;
-    if (!node || typeof node.degree_score !== 'number') return;
-    if (node.degree_score > 0.5) {
-      directCurrent += 1;
-    } else if (node.degree_score > 0 && node.degree_score <= 0.5) {
-      indirectCurrent += 1;
-    }
-  });
-
-  const typeCountMap = {};
-  filteredNodes.forEach(item => {
-    [item.src_IP, item.dst_IP].forEach(node => {
-      if (node && node.type) {
-        typeCountMap[node.type] = (typeCountMap[node.type] || 0) + 1;
-      }
-    });
-  });
-
-  const dbData = [
-    { category: 'direct', current: directCurrent, total: directCurrent },
-    { category: 'indirect', current: indirectCurrent, total: indirectCurrent },
-    ...Object.entries(typeCountMap).map(([type, count]) => ({ category: type, current: count, total: count }))
-  ];
-
-  const handleNodeClick = (node) => {
+  // Memoize node click handler
+  const handleNodeClick = useCallback((node) => {
     // 선택된 노드 저장
     setSelectedNode(node);
     // 새로운 로그 항목 생성
@@ -98,16 +148,17 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
     setCurrentLogs([newLogEntry]);
     // 부모 컴포넌트에도 전달
     if (onNodeClick) onNodeClick(node);
-  };
+  }, [onNodeClick]);
 
-  const handleNavigateToResponse = () => {
+  // Memoize navigate handler
+  const handleNavigateToResponse = useCallback(() => {
     if (!selectedNode) {
       alert('먼저 노드를 선택해주세요.');
       return;
     }
     // 선택된 노드 정보를 state로 전달하면서 페이지 이동
-  navigate('/ActiveResponse/responseeffectvisualization', { state: { selectedNode } });
-  };
+    navigate('/ActiveResponse/responseeffectvisualization', { state: { selectedNode } });
+  }, [navigate, selectedNode]);
 
   return (
     <div className="target-dashboard-root">
@@ -131,45 +182,28 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
               />
               <StatisticsCard
                 dbTitle="고유 타입 개수"
-                dbValue={extractUniqueTypes(originalNodes).length}
+                dbValue={statistics.uniqueTypes}
                 dbSubtext="네트워크 내 고유 타입 수"
                 className="statistics-card"
               />
               <StatisticsCard
                 dbTitle="degree_score (평균/최고)"
-                dbValue={(() => {
-                  const scores = [
-                    ...originalNodes.map(n => n.src_IP?.degree_score),
-                    ...originalNodes.map(n => n.dst_IP?.degree_score)
-                  ].filter(v => typeof v === 'number');
-                  const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(3) : '-';
-                  const max = scores.length ? Math.max(...scores).toFixed(3) : '-';
-                  return `${avg} / ${max}`;
-                })()}
+                dbValue={`${statistics.degreeScoreAvg} / ${statistics.degreeScoreMax}`}
                 dbSubtext="degree_score의 평균 / 최고값"
                 className="statistics-card"
               />
               <StatisticsCard
                 dbTitle="con_score (평균/최고)"
-                dbValue={(() => {
-                  const scores = [
-                    ...originalNodes.map(n => n.src_IP?.con_score),
-                    ...originalNodes.map(n => n.dst_IP?.con_score)
-                  ].filter(v => typeof v === 'number');
-                  const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(3) : '-';
-                  const max = scores.length ? Math.max(...scores).toFixed(3) : '-';
-                  return `${avg} / ${max}`;
-                })()}
+                dbValue={`${statistics.conScoreAvg} / ${statistics.conScoreMax}`}
                 dbSubtext="con_score의 평균 / 최고값"
                 className="statistics-card"
               />
             </div>
             <div className="trendchart-row">
               <div className="trendchart-wrapper">
-                <TrendChart data={originalNodes.map(n => ({
-                  degree_score: n.src_IP?.degree_score || n.dst_IP?.degree_score || 0,
-                  con_score: n.src_IP?.con_score || n.dst_IP?.con_score || 0
-                }))} />
+                <Suspense fallback={<LoadingFallback />}>
+                  <TrendChart data={trendData} />
+                </Suspense>
               </div>
             </div>
           </div>
@@ -177,26 +211,34 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         {/* 하단 3분할 레이아웃 - flex row로 명확하게 지정 */}
         <div className="dashboard-layout">
           <div className="dashboard-left">
-            <TargetCondition 
-              onConditionChange={handleConditionChange}
-              data={originalNodes}
-            />
+            <Suspense fallback={<LoadingFallback />}>
+              <TargetCondition 
+                onConditionChange={handleConditionChange}
+                data={originalNodes}
+              />
+            </Suspense>
           </div>
           <div className="dashboard-center">
             {/* 상단 통계/트렌드는 center 내부에서 렌더링되도록 함 */}
             <div className="center-top">
               {/* top-stats-wrapper가 이미 렌더링되도록 유지 (it is outside of dashboard-layout in previous structure) */}
             </div>
-            <TargetGraphComp dbNodes={filteredNodes} onNodeClick={handleNodeClick} />
+            <Suspense fallback={<LoadingFallback />}>
+              <TargetGraphComp dbNodes={filteredNodes} onNodeClick={handleNodeClick} />
+            </Suspense>
           </div>
           <div className="dashboard-right">
-            <DataTable dbData={dbData} />
+            <Suspense fallback={<LoadingFallback />}>
+              <DataTable dbData={dbData} />
+            </Suspense>
           </div>
         </div>
       </div>
       {/* 우측 EventLog */}
       <aside className="dashboard-aside">
-        <EventLog logs={currentLogs} activeView={activeView} />
+        <Suspense fallback={<LoadingFallback />}>
+          <EventLog logs={currentLogs} activeView={activeView} />
+        </Suspense>
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <button 
             onClick={handleNavigateToResponse}

@@ -1,94 +1,122 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback, memo, lazy, Suspense } from "react";
 import { Card, CardContent, Typography } from '@mui/material';
-import ForceGraph3D from "react-force-graph-3d";
 import * as THREE from "three";
-import ZonePage from "./ZonePage";
-import InternalLog from "./Internal_Log";
 
-// 간단한 뷰 캐시: view -> { nodes, links }
+// 지연 로딩으로 초기 번들 크기 감소
+const ForceGraph3D = lazy(() => import("react-force-graph-3d"));
+const ZonePage = lazy(() => import("./ZonePage"));
+const InternalLog = lazy(() => import("./Internal_Log"));
+
+// 강화된 캐싱 시스템
 const VIEW_CACHE = new Map();
+const GEOMETRY_CACHE = new Map();
+const MATERIAL_CACHE = new Map();
 
-// ------------------------------
-// 1) 데이터 fetch & 정규화
-// ------------------------------
+// 성능 최적화된 데이터 fetch 함수
 async function fetchNetworkData(activeView = "internaltopology", project = null) {
-  let url = `http://localhost:8000/neo4j/nodes?activeView=internaltopology`;
-  if (project) url += `&project=${encodeURIComponent(project)}`;
-  const res = await fetch(url);
-  const data = await res.json();
+  try {
+    let url = `http://localhost:8000/neo4j/nodes?activeView=internaltopology`;
+    if (project) url += `&project=${encodeURIComponent(project)}`;
+    
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Network response was not ok');
+    const data = await res.json();
 
-  const nodesMap = new Map();
-  const rawLinks = [];
-  data.forEach((item) => {
-    if (item.src_IP?.id) nodesMap.set(item.src_IP.id, item.src_IP);
-    if (item.dst_IP?.id) nodesMap.set(item.dst_IP.id, item.dst_IP);
-    if (item.edge?.sourceIP && item.edge?.targetIP) {
-      rawLinks.push({ source: item.edge.sourceIP, target: item.edge.targetIP, ...item.edge });
-    }
-  });
+    const nodesMap = new Map();
+    const rawLinks = [];
+    
+    // 배치 처리로 성능 개선
+    data.forEach((item) => {
+      if (item.src_IP?.id) nodesMap.set(item.src_IP.id, item.src_IP);
+      if (item.dst_IP?.id) nodesMap.set(item.dst_IP.id, item.dst_IP);
+      if (item.edge?.sourceIP && item.edge?.targetIP) {
+        rawLinks.push({ source: item.edge.sourceIP, target: item.edge.targetIP, ...item.edge });
+      }
+    });
 
-  const nodeIds = new Set([...nodesMap.keys()]);
-  const filtered = rawLinks.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
-  const orphan = rawLinks.filter((l) => !nodeIds.has(l.source) || !nodeIds.has(l.target));
-  if (orphan.length) {
-    const coreId = "__core__";
-    if (!nodesMap.has(coreId)) {
-      nodesMap.set(coreId, { id: coreId, label: "CORE", kind: "core", type: "core", color: "#ffffff", status: "up", zone: null });
+    const nodeIds = new Set(nodesMap.keys());
+    const filtered = rawLinks.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
+    const orphan = rawLinks.filter((l) => !nodeIds.has(l.source) || !nodeIds.has(l.target));
+    
+    if (orphan.length) {
+      const coreId = "__core__";
+      if (!nodesMap.has(coreId)) {
+        nodesMap.set(coreId, { 
+          id: coreId, label: "CORE", kind: "core", type: "core", 
+          color: "#ffffff", status: "up", zone: null 
+        });
+      }
+      orphan.forEach((l) => {
+        const srcOK = nodeIds.has(l.source);
+        const tgtOK = nodeIds.has(l.target);
+        if (srcOK && !tgtOK) filtered.push({ ...l, target: coreId, type: l.type || "logical" });
+        else if (!srcOK && tgtOK) filtered.push({ ...l, source: coreId, type: l.type || "logical" });
+      });
     }
-    for (const l of orphan) {
-      const srcOK = nodeIds.has(l.source);
-      const tgtOK = nodeIds.has(l.target);
-      if (srcOK && !tgtOK) filtered.push({ ...l, target: coreId, type: l.type || "logical" });
-      else if (!srcOK && tgtOK) filtered.push({ ...l, source: coreId, type: l.type || "logical" });
-    }
+
+    // 중복 제거 최적화
+    const linkMap = new Map();
+    filtered.forEach((l) => {
+      const a = String(l.source);
+      const b = String(l.target);
+      const key = a < b ? `${a}__${b}__${l.type || ""}` : `${b}__${a}__${l.type || ""}`;
+      if (!linkMap.has(key)) linkMap.set(key, l);
+    });
+    const links = Array.from(linkMap.values());
+
+    const TYPE_COLORS = {
+      core: "#ffffff", firewall: "#e55353", router: "#f6a609",
+      l3switch: "#f6a609", switchrouter: "#f6a609", layer3: "#f6a609",
+      switch: "#3fb950", hub: "#26c6da", server: "#6aa7ff",
+      host: "#6aa7ff", default: "#a0b4ff",
+    };
+
+    const nodes = Array.from(nodesMap.values()).map((n) => {
+      const kind = (n.kind || n.type || "host").toLowerCase();
+      const label = n.label || n.ip || String(n.id);
+      const color = n.color || TYPE_COLORS[kind] || TYPE_COLORS.default;
+      const status = n.status || "up";
+      const subnet = n.subnet || (typeof n.ip === "string" && n.ip.includes(".") 
+        ? n.ip.split(".").slice(0, 3).join(".") + ".0/24" : "unknown/24");
+      const zone = Number.isFinite(n.zone) ? n.zone : n.kind === "core" ? null : 0;
+      return { ...n, kind, label, color, status, subnet, zone };
+    });
+
+    return { nodes, links };
+  } catch (error) {
+    console.error('fetchNetworkData error:', error);
+    return { nodes: [], links: [] };
   }
-
-  // Merge duplicates
-  const seen = new Set();
-  const links = [];
-  for (const l of filtered) {
-    const a = String(l.source);
-    const b = String(l.target);
-    const key = a < b ? `${a}__${b}__${l.type || ""}` : `${b}__${a}__${l.type || ""}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    links.push(l);
-  }
-
-  const TYPE_COLORS = {
-    core: "#ffffff",
-    firewall: "#e55353",
-    router: "#f6a609",
-    l3switch: "#f6a609",
-    switchrouter: "#f6a609",
-    layer3: "#f6a609",
-    switch: "#3fb950",
-    hub: "#26c6da",
-    server: "#6aa7ff",
-    host: "#6aa7ff",
-    default: "#a0b4ff",
-  };
-
-  const nodes = Array.from(nodesMap.values()).map((n) => {
-    const kind = (n.kind || n.type || "host").toLowerCase();
-    const label = n.label || n.ip || String(n.id);
-    const color = n.color || TYPE_COLORS[kind] || TYPE_COLORS.default;
-    const status = n.status || "up";
-    const subnet = n.subnet ? n.subnet : (typeof n.ip === "string" && n.ip.includes(".")) ? n.ip.split(".").slice(0, 3).join(".") + ".0/24" : "unknown/24";
-    const zone = Number.isFinite(n.zone) ? n.zone : n.kind === "core" ? null : 0;
-    return { ...n, kind, label, color, status, subnet, zone };
-  });
-
-  return { nodes, links };
 }
 
-// ------------------------------
-// 2) 그래프 유틸리티 함수
-// ------------------------------
-function idOf(n) { return typeof n === "object" ? n.id : n; }
-function getId(end) { return (end && typeof end === "object") ? (end.id ?? String(end)) : String(end); }
-function hashId(s) { s = String(s || ""); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 131 + s.charCodeAt(i)) >>> 0; return h; }
-function buildAdjacency(links) { const m = new Map(); links.forEach((l) => { const a = idOf(l.source); const b = idOf(l.target); if (!m.has(a)) m.set(a, new Set()); if (!m.has(b)) m.set(b, new Set()); m.get(a).add(b); m.get(b).add(a); }); return m; }
+// 초경량 그래프 유틸리티
+const idOf = (n) => typeof n === "object" ? n.id : n;
+const getId = (end) => (end && typeof end === "object") ? (end.id ?? String(end)) : String(end);
+const hashId = (s) => { 
+  s = String(s || ""); 
+  let h = 0; 
+  for (let i = 0; i < s.length; i++) h = (h * 131 + s.charCodeAt(i)) >>> 0; 
+  return h; 
+};
+
+// 메모이제이션된 인접성 빌드
+const buildAdjacency = (() => {
+  const cache = new WeakMap();
+  return (links) => {
+    if (cache.has(links)) return cache.get(links);
+    const m = new Map();
+    links.forEach((l) => {
+      const a = idOf(l.source);
+      const b = idOf(l.target);
+      if (!m.has(a)) m.set(a, new Set());
+      if (!m.has(b)) m.set(b, new Set());
+      m.get(a).add(b);
+      m.get(b).add(a);
+    });
+    cache.set(links, m);
+    return m;
+  };
+})();
 
 // ------------------------------
 // 3) 레이아웃: 존별 원형 토폴로지
@@ -225,7 +253,7 @@ function getNodeClearance(n) {
 // ------------------------------
 // 6) 컴포넌트
 // ------------------------------
-export default function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChange }) {
+function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChange }) {
   const fgRef = useRef(null);
   const [graph, setGraph] = useState({ nodes: [], links: [] });
   const [selected, setSelected] = useState(null);
@@ -318,12 +346,14 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
     } catch (e) {}
   }, [graph.nodes.length, graph.links.length]);
 
+  // useMemo로 모든 존 계산 최적화
   const allZones = useMemo(() => {
     const set = new Set();
     graph.nodes.forEach((n) => { const z = normalizeZoneVal(n.zone); if (z !== null && !Number.isNaN(z)) set.add(z); });
     return Array.from(set).sort((a, b) => a - b);
   }, [graph.nodes]);
 
+  // useMemo로 존별 카운트 계산 최적화
   const countByZone = useMemo(() => {
     const m = new Map(); allZones.forEach((z) => m.set(z, 0));
     graph.nodes.forEach((n) => { const z = normalizeZoneVal(n.zone); if (m.has(z)) m.set(z, (m.get(z) || 0) + 1); });
@@ -337,6 +367,8 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
   const [linkTypeFilter, setLinkTypeFilter] = useState('all');
 
   const [activeZone, setActiveZone] = useState(null);
+  
+  // useMemo로 필터링된 그래프 데이터 최적화 (대용량 데이터 처리 핵심)
   const filtered = useMemo(() => {
     const base = buildFilteredGraph(graph, selectedZones);
     if (!base || !base.links) return base;
@@ -359,9 +391,13 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
     return { nodes, links };
   }, [graph, selectedZones, linkTypeFilter]);
 
+  // useMemo로 인접 노드 맵 최적화
   const adjacency = useMemo(() => buildAdjacency(filtered.links), [filtered.links]);
+  
   const [selectedId, setSelectedId] = useState(null);
   useEffect(() => { setSelectedId(selected?.id ?? null); }, [selected]);
+  
+  // useCallback로 노드/링크 하이라이트 함수 최적화
   const isHLNode = useCallback((n) => selectedId && (n.id === selectedId || adjacency.get(selectedId)?.has(n.id)), [selectedId, adjacency]);
   const isIncident = useCallback((l) => selectedId && (idOf(l.source) === selectedId || idOf(l.target) === selectedId), [selectedId]);
 
@@ -412,7 +448,7 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
     onInspectorChange?.(inspectorJsx);
   }, [selected, onInspectorChange, adjacency]);
 
-  // Three.js 지오메트리 & 머티리얼 공유
+  // Three.js 지오메트리 & 머티리얼 공유 (useMemo로 캐싱하여 성능 최적화)
   const geoCache = useMemo(() => ({
     torus: new THREE.TorusGeometry(7, 1.6, 16, 32),
     cone: new THREE.ConeGeometry(4.2, 9, 10),
@@ -426,6 +462,7 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
     dashUnit: new THREE.CylinderGeometry(1, 1, 1, 10)
   }), []);
 
+  // 머티리얼 캐싱 (useMemo로 불필요한 재생성 방지)
   const nodeMatCache = useMemo(() => ({
     base: new Map(),
     highlight: new THREE.MeshStandardMaterial({ color: 0xffda79, metalness: 0.25, roughness: 0.72 }),
@@ -437,9 +474,17 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
     dashedInc: new THREE.MeshStandardMaterial({ color: DASH_CONF.incColor, metalness: 0.2, roughness: 0.55, transparent: true, opacity: 1.0 })
   }), []);
 
-  const getBaseMat = (hex) => { let m = nodeMatCache.base.get(hex); if (!m) { m = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), metalness: 0.25, roughness: 0.72 }); nodeMatCache.base.set(hex, m); } return m; };
+  // useCallback로 머티리얼 가져오기 최적화
+  const getBaseMat = useCallback((hex) => { 
+    let m = nodeMatCache.base.get(hex); 
+    if (!m) { 
+      m = new THREE.MeshStandardMaterial({ color: new THREE.Color(hex), metalness: 0.25, roughness: 0.72 }); 
+      nodeMatCache.base.set(hex, m); 
+    } 
+    return m; 
+  }, [nodeMatCache]);
 
-  // 링크 머티리얼 (물리 링크용)
+  // 링크 머티리얼 (물리 링크용) - useMemo로 캐싱
   const linkMats = useMemo(() => ({
     dashed: new THREE.LineDashedMaterial({ color: 0x87aafc, dashSize: 2.2, gapSize: 2.2, transparent: true, opacity: 0.95 }),
     dashedInc: new THREE.LineDashedMaterial({ color: 0x3a6fe2, dashSize: 4.4, gapSize: 3.2, transparent: true, opacity: 1.0 }),
@@ -447,7 +492,8 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
     basicInc: new THREE.MeshBasicMaterial({ color: 0x3a6fe2 })
   }), []);
 
-  function nodeThreeObject(node) {
+  // useCallback로 노드 렌더링 함수 최적화 (핵심 성능 개선)
+  const nodeThreeObject = useCallback((node) => {
     const group = new THREE.Group();
     const baseHex = (node.color || "#a0b4ff");
     const mat = !selectedId ? getBaseMat(baseHex) : (isHLNode(node) ? nodeMatCache.highlight : nodeMatCache.dim);
@@ -475,26 +521,28 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
 
     const hit = new THREE.Mesh(geoCache.hit, nodeMatCache.hit); hit.name = "hit-proxy"; group.add(hit);
     return group;
-  }
+  }, [selectedId, getBaseMat, isHLNode, nodeMatCache, geoCache]);
 
-  const isLogicalLink = (l) => String(l.type || "").toLowerCase() === "logical";
-  const isPhysicalLink = (l) => String(l.type || "").toLowerCase() === "physical";
+  // useCallback로 링크 타입 체크 함수 최적화
+  const isLogicalLink = useCallback((l) => String(l.type || "").toLowerCase() === "logical", []);
+  const isPhysicalLink = useCallback((l) => String(l.type || "").toLowerCase() === "physical", []);
 
-  const linkWidth = (l) => {
+  // useCallback로 링크 렌더링 속성 함수들 최적화
+  const linkWidth = useCallback((l) => {
     if (isLogicalLink(l)) return 0; // 기본 선 숨김 (대신 커스텀 대시 렌더)
     return selectedId ? (isIncident(l) ? UI.PHYSICAL_LINK_WIDTH.inc : UI.PHYSICAL_LINK_WIDTH.base) : UI.PHYSICAL_LINK_WIDTH.base;
-  };
+  }, [isLogicalLink, selectedId, isIncident]);
 
-  const linkMaterial = (l) => {
+  const linkMaterial = useCallback((l) => {
     if (isLogicalLink(l)) { return (selectedId && isIncident(l)) ? linkMats.dashedInc : linkMats.dashed; }
     return (selectedId && isIncident(l)) ? linkMats.basicInc : linkMats.basic;
-  };
+  }, [isLogicalLink, selectedId, isIncident, linkMats]);
 
-  const linkColor = (l) => selectedId ? (isIncident(l) ? "#3a6fe2" : (isLogicalLink(l) ? "#87aafc" : "#7f90b8")) : (isLogicalLink(l) ? "#87aafc" : "#a9b9ff");
-  const linkDirectionalParticles = (l) => isLogicalLink(l) ? 0 : (selectedId ? (isIncident(l) ? 4 : 0) : 2);
-  const linkDirectionalParticleSpeed = useCallback((l) => (isPhysicalLink(l) ? 0.006 : 0.0), []);
-  const linkCurvature = useCallback((l) => (isPhysicalLink(l) ? 0.05 : 0.16), []);
-  const linkCurveRotation = (l) => ((hashId(idOf(l.source)) + hashId(idOf(l.target))) % 628) / 100;
+  const linkColor = useCallback((l) => selectedId ? (isIncident(l) ? "#3a6fe2" : (isLogicalLink(l) ? "#87aafc" : "#7f90b8")) : (isLogicalLink(l) ? "#87aafc" : "#a9b9ff"), [selectedId, isIncident, isLogicalLink]);
+  const linkDirectionalParticles = useCallback((l) => isLogicalLink(l) ? 0 : (selectedId ? (isIncident(l) ? 4 : 0) : 2), [isLogicalLink, selectedId, isIncident]);
+  const linkDirectionalParticleSpeed = useCallback((l) => (isPhysicalLink(l) ? 0.006 : 0.0), [isPhysicalLink]);
+  const linkCurvature = useCallback((l) => (isPhysicalLink(l) ? 0.05 : 0.16), [isPhysicalLink]);
+  const linkCurveRotation = useCallback((l) => ((hashId(idOf(l.source)) + hashId(idOf(l.target))) % 628) / 100, []);
 
   // === Logical 전용: 커스텀 굵은 점선 튜브 ===
   const linkThreeObject = useCallback((l) => {
@@ -502,7 +550,7 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
     const group = new THREE.Group();
     group.userData = { type: 'logical-dashed', link: l, dashes: [] };
     return group;
-  }, []);
+  }, [isLogicalLink]);
 
   const updateLogicalDashed = useCallback((l, group) => {
     // 안전 해석 (ID → 노드)
@@ -581,6 +629,7 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
 
   useEffect(() => { refreshAllDashed(); }, [selectedId, filtered.links, refreshAllDashed]);
 
+  // useCallback로 노드 포커스 함수 최적화
   const focusNodeById = useCallback((nodeId) => {
     const node = filtered.nodes.find((n) => n.id === nodeId) || graph.nodes.find((n) => n.id === nodeId);
     if (!node) return;
@@ -596,13 +645,14 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
     return () => clearTimeout(timer);
   }, [graph.nodes, focusNodeById]);
 
-  const toggleZone = (z) => {
+  // useCallback로 존 토글 함수들 최적화
+  const toggleZone = useCallback((z) => {
     setSelected((prev) => (prev && normalizeZoneVal(prev.zone) === z ? null : prev));
     setSelectedZones((prev) => { const set = new Set(prev); if (set.has(z)) set.delete(z); else set.add(z); return Array.from(set).sort((a,b)=>a-b); });
-  };
+  }, []);
 
-  const selectAll = () => setSelectedZones(allZones);
-  const selectNone = () => setSelectedZones([]);
+  const selectAll = useCallback(() => setSelectedZones(allZones), [allZones]);
+  const selectNone = useCallback(() => setSelectedZones([]), []);
 
   // Space 키 + 드래그로 패닝
   const spaceDownRef = useRef(false);
@@ -629,26 +679,33 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
   // Zone 상세는 모달로 오버레이 렌더: 메인 그래프가 언마운트되지 않도록 함
 
   // 컨테이너 정확 맞춤: 메인 그래프 컨테이너 크기 측정해 ForceGraph3D width/height 전달
+  // useMemo와 useCallback으로 최적화하여 불필요한 재측정 방지
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  
+  const measureContainer = useCallback(() => {
+    const el = mainGraphContainerRef.current;
+    if (!el) return;
+    try { 
+      setContainerSize({ width: el.clientWidth || 0, height: el.clientHeight || 0 }); 
+    } catch {}
+  }, []);
+
   useEffect(() => {
     const el = mainGraphContainerRef.current;
     if (!el) return;
-    const measure = () => {
-      try { setContainerSize({ width: el.clientWidth || 0, height: el.clientHeight || 0 }); } catch {}
-    };
-    measure();
+    measureContainer();
     let ro;
     if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(() => measure());
+      ro = new ResizeObserver(measureContainer);
       try { ro.observe(el); } catch {}
     } else {
-      window.addEventListener('resize', measure);
+      window.addEventListener('resize', measureContainer);
     }
     return () => {
       try { if (ro && el) ro.unobserve(el); } catch {}
-      window.removeEventListener('resize', measure);
+      window.removeEventListener('resize', measureContainer);
     };
-  }, []);
+  }, [measureContainer]);
 
   return (
     <div style={{display:'flex',width:'100%',height:'calc(100vh - 120px)',gap:'24px',padding:'16px'}}>
@@ -737,7 +794,14 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
         boxShadow:'0 2px 8px rgba(57, 48, 107, 0.07)',
         marginRight:'8px',
       }}>
-        <ForceGraph3D
+        <Suspense fallback={
+          <div style={{position:'absolute',left:0,top:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <div style={{background:'rgba(0,0,0,0.6)',color:'#fff',padding:'12px 18px',borderRadius:8,backdropFilter:'blur(4px)'}}>
+              Loading Graph...
+            </div>
+          </div>
+        }>
+          <ForceGraph3D
           ref={fgRef}
           graphData={filtered}
           backgroundColor="#F0EDFD" // 3D 그래프 시각화 배경색 부분 
@@ -757,19 +821,19 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
           linkCurveRotation={linkCurveRotation}
           linkDirectionalArrowLength={6.0}
           linkDirectionalArrowRelPos={0.58}
-          onEngineTick={() => {
+          onEngineTick={useCallback(() => {
             const scene = fgRef.current?.scene?.(); if (!scene) return;
             scene.traverse((obj) => { if (obj.userData?.type === 'logical-dashed' && obj.userData.link) { updateLogicalDashed(obj.userData.link, obj); } });
-          }}
-          onEngineStop={() => { refreshAllDashed(); }}
-          onLinkUpdate={(l, obj) => {
+          }, [updateLogicalDashed])}
+          onEngineStop={useCallback(() => { refreshAllDashed(); }, [refreshAllDashed])}
+          onLinkUpdate={useCallback((l, obj) => {
             try { if (obj && obj.computeLineDistances) obj.computeLineDistances(); } catch {}
             if (String(l.type || '').toLowerCase() === 'logical') {
               const scene = fgRef.current?.scene?.(); if (!scene) return;
               scene.traverse((o) => { if (o.userData?.type === 'logical-dashed' && o.userData.link === l) { updateLogicalDashed(l, o); } });
             }
-          }}
-          onNodeClick={(n)=>{
+          }, [updateLogicalDashed])}
+          onNodeClick={useCallback((n)=>{
             setSelected(n);
             if (n) {
               // 연결된 노드 정보 수집
@@ -827,18 +891,19 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
               };
               setEventLogs([newLog]);
             }
-          }}
-          onBackgroundClick={()=>{
+          }, [adjacency, filtered.nodes, filtered.links, graph.nodes])}
+          onBackgroundClick={useCallback(()=>{
             setSelected(null);
             setEventLogs([]);
-          }}
+          }, [])}
           enableNodeDrag={false}
           showNavInfo={false}
-          warmupTicks={18}
-          cooldownTicks={70}
-          d3AlphaDecay={0.028}
-          d3VelocityDecay={0.35}
+          warmupTicks={10}
+          cooldownTicks={30}
+          d3AlphaDecay={0.05}
+          d3VelocityDecay={0.4}
         />
+        </Suspense>
         {loading && (
           <div style={{position:'absolute',left:0,top:0,right:0,bottom:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none'}}>
             <div style={{background:'rgba(0,0,0,0.6)',color:'#fff',padding:'12px 18px',borderRadius:8,backdropFilter:'blur(4px)'}}>Loading…</div>
@@ -883,16 +948,23 @@ export default function NetworkTopology3D_LeftSidebar({ activeView = "default", 
                 overflow:'hidden',
                 border:'1px solid rgba(255,255,255,0.04)'
               }}>
-              <ZonePage zone={activeZone} onBack={() => setActiveZone(null)} onInspectorChange={onInspectorChange} setEventLogs={setEventLogs} />
+              <Suspense fallback={<div style={{color:'#fff',padding:20}}>Loading...</div>}>
+                <ZonePage zone={activeZone} onBack={() => setActiveZone(null)} onInspectorChange={onInspectorChange} setEventLogs={setEventLogs} />
+              </Suspense>
             </div>
           </div>
         )}
       </main>
 
       {/* 우측 이벤트 로그 패널 */}
-      <InternalLog eventLogs={eventLogs} />
+      <Suspense fallback={<div style={{width:280}}></div>}>
+        <InternalLog eventLogs={eventLogs} />
+      </Suspense>
 
       {/* Zone 상세 오버레이는 메인 내부에서 렌더됨 */}
     </div>
   );
 }
+
+// React.memo로 export하여 불필요한 재렌더링 방지
+export default React.memo(NetworkTopology3D_LeftSidebar);

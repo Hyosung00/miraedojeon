@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import * as Cesium from 'cesium';
 import { Box, Typography, Card, CardContent, Grid, IconButton, Slider } from '@mui/material';
 import { ClusterOutlined } from '@ant-design/icons';
@@ -1096,13 +1096,18 @@ const EarthGlobe = () => {
   }
 
   return (
-    <Card sx={{
-      width: '100%',
-      height: 'calc(100vh - 120px)',
-      bgcolor: 'background.paper',
-      boxShadow: 3,
-      m: 0
-    }}>
+    <Card 
+      component="main"
+      role="main"
+      aria-label="3D 지구본 기반 사이버 공격 시각화"
+      sx={{
+        width: '100%',
+        height: 'calc(100vh - 120px)',
+        bgcolor: 'background.paper',
+        boxShadow: 3,
+        m: 0
+      }}
+    >
       <CardContent sx={{
         p: 1,
         height: '100%',
@@ -1113,18 +1118,24 @@ const EarthGlobe = () => {
         overflow: 'hidden'
       }}>
         {/* 지구본 영역 */}
-        <Card sx={{
-          flex: 1,
-          position: 'relative',
-          overflow: 'hidden',
-          height: '100%',
-          bgcolor: '#000',
-          border: '1px solid #333',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-        }}>
+        <Card 
+          component="section"
+          aria-label="3D 지구본 영역"
+          sx={{
+            flex: 1,
+            position: 'relative',
+            overflow: 'hidden',
+            height: '100%',
+            bgcolor: '#000',
+            border: '1px solid #333',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+          }}
+        >
           <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 } }}>
             <div
               ref={cesiumContainer}
+              role="img"
+              aria-label="사이버 공격 경로를 표시하는 3D 지구본"
               style={{
                 width: '100%',
                 height: '100%'
@@ -1132,6 +1143,9 @@ const EarthGlobe = () => {
             />
             {!isLoaded && (
               <Box
+                role="status"
+                aria-live="polite"
+                aria-label="지구본 로딩 중"
                 sx={{
                   position: 'absolute',
                   top: 0,
@@ -1170,29 +1184,41 @@ const EarthGlobe = () => {
         </Card>
 
         {/* 공격 현황 패널 */}
-        <Box sx={{
-          width: { xs: '100%', lg: 350 },
-          maxWidth: { xs: '100%', lg: 400 },
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 2,
-          height: '100%',
-          overflow: 'hidden'
-        }}>
+        <Box 
+          component="aside"
+          aria-label="공격 현황 패널"
+          sx={{
+            width: { xs: '100%', lg: 350 },
+            maxWidth: { xs: '100%', lg: 400 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            height: '100%',
+            overflow: 'hidden'
+          }}
+        >
           {/* 실시간 통계 */}
-          <Card sx={{
-            bgcolor: '#f0edfd',
-            color: '#333',
-            border: '1px solid #d0c9f0',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            minHeight: 0,
-            flexShrink: 0
-          }}>
+          <Card 
+            component="section"
+            aria-label="실시간 공격 통계"
+            sx={{
+              bgcolor: '#f0edfd',
+              color: '#333',
+              border: '1px solid #d0c9f0',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              minHeight: 0,
+              flexShrink: 0
+            }}
+          >
             <CardContent>
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ color: '#7c3aed', fontWeight: 'bold' }}>
+                    <Typography 
+                      variant="h4" 
+                      sx={{ color: '#7c3aed', fontWeight: 'bold' }}
+                      aria-label={`총 작전 수 ${attackStats.total}개`}
+                    >
                       {attackStats.total}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
@@ -1202,7 +1228,11 @@ const EarthGlobe = () => {
                 </Grid>
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography variant="h4" sx={{ color: '#9333ea', fontWeight: 'bold' }}>
+                    <Typography 
+                      variant="h4" 
+                      sx={{ color: '#9333ea', fontWeight: 'bold' }}
+                      aria-label={`활성 작전 ${attackStats.active}개`}
+                    >
                       {attackStats.active}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
@@ -1215,16 +1245,20 @@ const EarthGlobe = () => {
           </Card>
 
           {/* 최근 공격 목록 */}
-          <Card sx={{
-            bgcolor: 'transparent',
-            color: '#333',
-            flex: 1,
-            minHeight: 0,
-            border: 'none',
-            boxShadow: 'none',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
+          <Card 
+            component="section"
+            aria-label="최근 공격 목록"
+            sx={{
+              bgcolor: 'transparent',
+              color: '#333',
+              flex: 1,
+              minHeight: 0,
+              border: 'none',
+              boxShadow: 'none',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
             <CardContent sx={{
               height: '100%',
               display: 'flex',
@@ -1234,6 +1268,8 @@ const EarthGlobe = () => {
             }}>
               <Box
                 ref={logListRef}
+                role="list"
+                aria-label="공격 로그 목록"
                 sx={{
                   flex: 1,
                   overflow: 'auto',
@@ -1245,6 +1281,10 @@ const EarthGlobe = () => {
                   id={`log-${attack.id}`}
                   key={attack.id}
                   data-attack-id={attack.id}
+                  role="listitem"
+                  tabIndex={0}
+                  aria-label={`공격 정보: ${attack.type}, ${attack.source.name}에서 ${attack.target.name}로, 출발지 IP ${attack.source.ip}`}
+                  aria-selected={selectedAttackId === attack.id || selectedBuildingAttacks.includes(attack.id)}
                   sx={{
                     p: 1,
                     mb: 1,
@@ -1306,6 +1346,8 @@ const EarthGlobe = () => {
                   {/* 내부망 이동 아이콘 */}
                   <IconButton
                     size="small"
+                    aria-label="내부망 토폴로지로 이동"
+                    title="내부망 토폴로지로 이동"
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate('/ExtInt/internaltopology');
@@ -1334,16 +1376,24 @@ const EarthGlobe = () => {
           </Card>
 
           {/* 시간 필터링 컨트롤 */}
-          <Card sx={{
-            bgcolor: '#f0edfd',
-            color: '#333',
-            border: '1px solid #d0c9f0',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            flexShrink: 0,
-            minHeight: 0
-          }}>
+          <Card 
+            component="section"
+            aria-label="날짜 범위 필터링 컨트롤"
+            sx={{
+              bgcolor: '#f0edfd',
+              color: '#333',
+              border: '1px solid #d0c9f0',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              flexShrink: 0,
+              minHeight: 0
+            }}
+          >
             <CardContent>
-              <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold', color: '#7c3aed' }}>
+              <Typography 
+                variant="body2" 
+                component="h3"
+                sx={{ mb: 1, fontWeight: 'bold', color: '#7c3aed' }}
+              >
                 날짜 범위 필터링
               </Typography>
               <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
@@ -1356,6 +1406,7 @@ const EarthGlobe = () => {
                 })()}
               </Typography>
               <Slider
+                aria-label="날짜 범위 선택"
                 value={timeRange}
                 onChange={(_, newValue) => setTimeRange(newValue)}
                 min={0}
@@ -1411,25 +1462,38 @@ const EarthGlobe = () => {
           </Card>
 
           {/* 범례 */}
-          <Card sx={{
-            bgcolor: '#f0edfd',
-            color: '#222',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            flexShrink: 0,
-            minHeight: 0
-          }}>
+          <Card 
+            component="section"
+            aria-label="지도 범례"
+            sx={{
+              bgcolor: '#f0edfd',
+              color: '#222',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              flexShrink: 0,
+              minHeight: 0
+            }}
+          >
             <CardContent>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FFFF00', border: '2px solid #FF0000' }} />
+              <Box component="ul" role="list" sx={{ display: 'flex', flexDirection: 'column', gap: 1, listStyle: 'none', p: 0, m: 0 }}>
+                <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box 
+                    aria-hidden="true"
+                    sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FFFF00', border: '2px solid #FF0000' }} 
+                  />
                   <Typography variant="caption" sx={{ color: '#222' }}>공격 출발지</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#00FFFF', border: '2px solid #0000FF' }} />
+                <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box 
+                    aria-hidden="true"
+                    sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#00FFFF', border: '2px solid #0000FF' }} 
+                  />
                   <Typography variant="caption" sx={{ color: '#222' }}>공격 목표지</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 20, height: 2, bgcolor: '#FF0000', borderRadius: 1, boxShadow: '0 0 4px #FF0000' }} />
+                <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box 
+                    aria-hidden="true"
+                    sx={{ width: 20, height: 2, bgcolor: '#FF0000', borderRadius: 1, boxShadow: '0 0 4px #FF0000' }} 
+                  />
                   <Typography variant="caption" sx={{ color: '#222' }}>🔴 사이버 작전</Typography>
                 </Box>
               </Box>
@@ -1441,4 +1505,4 @@ const EarthGlobe = () => {
   );
 };
 
-export default EarthGlobe;
+export default memo(EarthGlobe);

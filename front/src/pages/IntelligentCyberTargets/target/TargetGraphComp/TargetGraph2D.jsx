@@ -1,11 +1,10 @@
-
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import { Network } from "vis-network/standalone";
 import "../Target.css";
 import getNodeImage from './TargetImage';
 import { getEdgeStyle } from './edgeStyleUtils';
 
-const TargetGraph2D = ({ dbNodes = [], onNodeClick, filterConditions }) => {
+const TargetGraph2D = React.memo(({ dbNodes = [], onNodeClick, filterConditions }) => {
   const containerRef = useRef(null);
   const networkRef = useRef(null);
 
@@ -151,6 +150,8 @@ const TargetGraph2D = ({ dbNodes = [], onNodeClick, filterConditions }) => {
   return (
     <div className="target-graph-canvas" ref={containerRef} />
   );
-};
+});
+
+TargetGraph2D.displayName = 'TargetGraph2D';
 
 export default TargetGraph2D;

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "concurrently \"node mongoDB_server.js\" \"py -m uvicorn Neo4j_server:app --reload --port 8000\"",
     "dev": "nodemon mongoDB_server.js",
-    "pyserver": "py -m uvicorn Neo4j_server:app --reload --port 8000"
+    "pyserver": "py -m uvicorn Neo4j_server:app --reload --port 8000",
+    "build": "echo 'No build step required for backend JS. Use npm start.'"
   },
   "dependencies": {
     "concurrently": "^9.2.1",

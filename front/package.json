@@ -10,7 +10,8 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "vite build",
+    "build": "vite build --outDir ../build",
+    "build:prod": "vite build --mode production",
     "build-stage": "env-cmd -f .env.qa vite build",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\"",
@@ -30,6 +31,7 @@
     "@fontsource/roboto": "5.1.1",
     "@googlemaps/js-api-loader": "^1.16.10",
     "@mui/base": "5.0.0-beta.69",
+    "@mui/icons-material": "^6.4.1",
     "@mui/lab": "6.0.0-beta.24",
     "@mui/material": "6.4.1",
     "@mui/system": "6.4.1",
@@ -59,7 +61,7 @@
     "recharts": "^3.2.1",
     "simplebar-react": "3.3.0",
     "swr": "2.3.0",
-  "three": "^0.159.0",
+    "three": "^0.159.0",
     "vis-network": "^10.0.2",
     "vite": "6.0.11",
     "vite-jsconfig-paths": "2.0.1",
@@ -99,6 +101,8 @@
     "knip": "5.45.0",
     "prettier": "3.4.2",
     "prettier-eslint-cli": "8.0.1",
+    "terser": "^5.36.0",
+    "vite-plugin-compression": "^0.5.1",
     "vite-plugin-static-copy": "^3.1.2"
   },
   "packageManager": "yarn@4.6.0"

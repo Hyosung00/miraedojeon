@@ -1,6 +1,5 @@
+import React, { useMemo } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-
-
 
 function normalizeScores(data) {
   // degree_score + con_score 계산
@@ -21,21 +20,23 @@ function getHistogram(normalizedScores) {
   return bins.map((count, i) => ({ range: `${(i/10).toFixed(1)}-${((i+1)/10).toFixed(1)}`, count }));
 }
 
+const TrendChart = React.memo(({ data }) => {
+  // Memoize calculations
+  const { histogram, lineData } = useMemo(() => {
+    if (!Array.isArray(data) || data.length === 0) {
+      return { histogram: [], lineData: [] };
+    }
+    
+    const normalizedScores = normalizeScores(data);
+    const histogram = getHistogram(normalizedScores);
+    
+    // 분포 곡선용 데이터
+    const lineData = normalizedScores
+      .map((score, idx) => ({ idx, score }))
+      .sort((a, b) => a.score - b.score);
 
-const TrendChart = ({ data }) => {
-  if (!Array.isArray(data) || data.length === 0) {
-    console.log("TrendChart: No data available");
-  }
-  
-  const normalizedScores = normalizeScores(data);
-  const histogram = getHistogram(normalizedScores);
-  
-  console.log("TrendChart histogram:", histogram);
-  console.log("TrendChart normalizedScores:", normalizedScores);
-  // 분포 곡선용 데이터
-  const lineData = normalizedScores
-    .map((score, idx) => ({ idx, score }))
-    .sort((a, b) => a.score - b.score);
+    return { histogram, lineData };
+  }, [data]);
 
   return (
     <div className="TrendChartContainer">
@@ -65,6 +66,8 @@ const TrendChart = ({ data }) => {
       </div>
     </div>
   );
-};
+});
+
+TrendChart.displayName = 'TrendChart';
 
 export default TrendChart;
