@@ -101,6 +101,7 @@
     "knip": "5.45.0",
     "prettier": "3.4.2",
     "prettier-eslint-cli": "8.0.1",
+    "sass-embedded": "^1.93.2",
     "terser": "^5.36.0",
     "vite-plugin-compression": "^0.5.1",
     "vite-plugin-static-copy": "^3.1.2"
