@@ -20,7 +20,7 @@ const viewLabelMap = {
 	responseEffectVisualization: "능동대응책 효과/경로 가시화"
 };
 
-function EventLog({ logs, activeView }) {
+function EventLog({ logs, activeView, selectedNode }) {
 	const title = viewLabelMap[activeView] || "Event Log";
 	const safeLogs = Array.isArray(logs) ? logs : [];
 
@@ -30,7 +30,7 @@ function EventLog({ logs, activeView }) {
 			{(!logs || (Array.isArray(logs) && logs.length === 0)) ? (
 				<div className="eventlog-empty">로그가 존재하지 않음.</div>
 			) : (
-				activeView === "target" ? <TargetLog logs={safeLogs} />
+				activeView === "target" ? <TargetLog logs={safeLogs} selectedNode={selectedNode} />
 				: activeView === "externalInternal" ? <ExternalLog logs={safeLogs} />
 				: activeView === "internalNetworkVisualization" ? <InternalLog logs={safeLogs} />
 				: activeView === "anomalyDetection" ? <ActiveLog logs={safeLogs} />

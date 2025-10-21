@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 // ==================== 상수 정의 ====================
 const API_CONFIG = {
-  BASE_URL: 'http://localhost:5000',
+  BASE_URL: '',
   ENDPOINTS: {
     NORTH_KOREA_ATTACKS: '/api/north-korea-attacks'
   },

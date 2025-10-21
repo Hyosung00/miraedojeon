@@ -184,20 +184,6 @@ const TargetCondition = ({ onConditionChange, data }) => {
             초기화
           </button>
         </div>
-
-        {/* 현재 활성 필터 표시 */}
-        {filters.isActive && (
-          <div className="active-filters">
-            <h4>적용된 필터:</h4>
-            <ul>
-              {filters.minConnections && <li>최소 연결 수: {filters.minConnections}개</li>}
-              {filters.maxConnections && <li>최대 연결 수: {filters.maxConnections}개</li>}
-              {filters.minTargetScore && <li>최소 Target Score: {filters.minTargetScore}</li>}
-              {filters.maxTargetScore && <li>최대 Target Score: {filters.maxTargetScore}</li>}
-              {filters.nodeTypes.length > 0 && <li>노드 유형: {filters.nodeTypes.join(', ')}</li>}
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );

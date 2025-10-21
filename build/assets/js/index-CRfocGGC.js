@@ -1,0 +1,1 @@
+import{j as r}from"./mui-vendor-DRsyA_VI.js";import"./react-vendor-CP5_hn_0.js";function e(){return r.jsxs("div",{children:[r.jsx("h1",{children:"TargetPrioity Component"}),r.jsx("p",{children:"이 컴포넌트의 원래 코드를 복구해야 합니다."})]})}export{e as default};

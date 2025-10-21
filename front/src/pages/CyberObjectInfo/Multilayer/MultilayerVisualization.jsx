@@ -30,6 +30,41 @@ const PROJECT_FILTER = 'multi-layer'; // 또는 null
 // ===================== 유틸 =====================
 const isCrossLayer = (a, b) => a.layer !== b.layer;
 
+// CVE 추출 유틸
+function extractCVE(node) {
+  if (!node) return [];
+  const toArray = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
+  const out = new Set();
+  const pullFromObject = (obj) => {
+    if (!obj || typeof obj !== 'object') return '';
+    return (
+      obj.cve || obj.CVE || obj.id || obj.value || obj.name || obj.key || obj.description || ''
+    );
+  };
+  const cveRegex = /CVE-\d{4}-\d+/gi;
+  const addVals = (vals) => {
+    toArray(vals).forEach((x) => {
+      const raw = typeof x === 'string' ? x : pullFromObject(x);
+      const s = String(raw || '').trim();
+      if (!s) return;
+      const matches = s.match(cveRegex);
+      if (matches) matches.forEach((m) => out.add(m.toUpperCase()));
+      else if (s.toUpperCase().includes('CVE')) out.add(s.toUpperCase());
+    });
+  };
+  addVals(node.cve);
+  addVals(node.CVE);
+  addVals(node.cves);
+  addVals(node.CVEs);
+  addVals(node.cve_list);
+  addVals(node.vulns);
+  addVals(node.vulnerabilities);
+  addVals(node.vulnerability);
+  addVals(node.tags);
+  addVals(node.description);
+  return Array.from(out);
+}
+
 // ===================== 정규화: Node/Edge =====================
 function normalizeNode(raw) {
   // __labels / layer 속성 기반으로 레이어 판정
@@ -57,6 +92,17 @@ function normalizeNode(raw) {
     hostname: raw.hostname,
     os: raw.os,
     subnet: raw.subnet,
+  // ensure optional fields propagate for EventLog rendering
+  dns: raw.dns,
+  gateway: raw.gateway,
+  description: raw.description,
+  value: raw.value,
+  key: raw.key,
+  cve: raw.cve,
+  cves: raw.cves,
+  cve_list: raw.cve_list,
+  vulns: raw.vulns,
+  vulnerabilities: raw.vulnerabilities,
     service_name: raw.service_name,
     proto: raw.proto,
     port: raw.port,
@@ -350,7 +396,6 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
       window.removeEventListener('resize', recenter);
     };
   }, [graphData]);
-
   // ForceGraph3D를 감싸는 컨테이너의 실제 픽셀 크기를 측정하여 width/height로 전달
   useEffect(() => {
     const el = graphContainerRef.current;
@@ -490,6 +535,15 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
             src_IP: srcNode ? {
               id: srcNode.id,
               ip: srcNode.ip,
+              name: srcNode.label || srcNode.hostname || srcNode.name || srcNode.user_name || srcNode.service_name || srcNode.id,
+              type: srcNode.type,
+              subnet: srcNode.subnet,
+              dns: srcNode.dns,
+              gateway: srcNode.gateway,
+              description: srcNode.description || srcNode.service_name,
+              cve: extractCVE(srcNode),
+              value: srcNode.value,
+              key: srcNode.key,
               __labels: [srcNode.layer, srcNode.type],
               __id: srcNode.id,
               index: srcNode.index
@@ -497,6 +551,11 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
             dst_IP: dstNode ? {
               id: dstNode.id,
               ip: dstNode.ip,
+              name: dstNode.label || dstNode.hostname || dstNode.name || dstNode.user_name || dstNode.service_name || dstNode.id,
+              description: dstNode.description || dstNode.service_name,
+              cve: extractCVE(dstNode),
+              value: dstNode.value,
+              key: dstNode.key,
               __labels: [dstNode.layer, dstNode.type],
               __id: dstNode.id,
               index: dstNode.index
@@ -505,6 +564,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
               sourceIP: sid,
               targetIP: tid,
               kind: link.kind,
+              rel: link.kind,
               assumed: link.assumed,
               confidence: link.confidence
             }

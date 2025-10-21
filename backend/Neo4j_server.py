@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
@@ -344,3 +344,264 @@ def neo4j_ping():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+# === OffensiveStrategy.jsx 기반 API ===
+
+@app.get("/neo4j/topology")
+def get_device_topology():
+    """
+    Device 토폴로지(노드/엣지) 반환
+    """
+    neo4j = Neo4jConnector(URI, USERNAME, PASSWORD)
+    query = '''
+        MATCH (d:Device{project:"facility"})
+        OPTIONAL MATCH (d)-[r:CONNECTED{project:"facility"}]-(d2:Device{project:"facility"})
+        RETURN d, r, d2
+    '''
+    try:
+        nodes_map = {}
+        edges_map = {}
+
+        def id_of(entity):
+            if not entity:
+                return None
+            # Neo4j Python driver uses 'identity' property, not 'id'
+            if hasattr(entity, 'id'):
+                idval = entity.id
+                # Integer conversion for Neo4j integer types
+                if hasattr(idval, '__int__'):
+                    return int(idval)
+                return idval
+            return None
+
+        def label_of(entity):
+            if not entity:
+                return ""
+            try:
+                props = dict(entity) if hasattr(entity, '__iter__') else {}
+            except:
+                props = {}
+            
+            # Safely get labels
+            labels = []
+            if hasattr(entity, 'labels'):
+                try:
+                    labels = list(entity.labels)
+                except:
+                    pass
+            
+            first_label = labels[0] if labels else None
+            return props.get('name') or props.get('label') or first_label or props.get('id') or str(id_of(entity) or '')
+
+        with neo4j.driver.session(database=DBNAME) as session:
+            result = session.run(query)
+            for rec in result:
+                d = rec.get("d")
+                r = rec.get("r")
+                d2 = rec.get("d2")
+
+                dId = id_of(d)
+                if d and dId is not None and dId not in nodes_map:
+                    # Safely extract properties
+                    try:
+                        d_props = dict(d) if d else {}
+                    except:
+                        d_props = {}
+                    
+                    nodes_map[dId] = {
+                        "id": dId,
+                        "label": label_of(d),
+                        "elementId": getattr(d, 'element_id', None),
+                        "group": "Device",
+                        "title": str(d_props),
+                        "shape": "dot",
+                        "size": 12,
+                        "color": {"background": "#2B7CE9", "border": "#205AAA"}
+                    }
+
+                if d2:
+                    d2Id = id_of(d2)
+                    if d2Id is not None and d2Id not in nodes_map:
+                        # Safely extract properties
+                        try:
+                            d2_props = dict(d2) if d2 else {}
+                        except:
+                            d2_props = {}
+                        
+                        nodes_map[d2Id] = {
+                            "id": d2Id,
+                            "label": label_of(d2),
+                            "elementId": getattr(d2, 'element_id', None),
+                            "group": "Device",
+                            "title": str(d2_props),
+                            "shape": "dot",
+                            "size": 12,
+                            "color": {"background": "#2B7CE9", "border": "#205AAA"}
+                        }
+                    if r and dId is not None and d2Id is not None:
+                        a, b = min(dId, d2Id), max(dId, d2Id)
+                        edgeKey = f"{a}-{b}"
+                        if edgeKey not in edges_map:
+                            edges_map[edgeKey] = {
+                                "id": edgeKey,
+                                "from": a,
+                                "to": b,
+                                "color": {"color": "#848484"},
+                                "width": 1
+                            }
+        return JSONResponse(content={
+            "nodes": list(nodes_map.values()),
+            "edges": list(edges_map.values())
+        })
+    finally:
+        neo4j.close()
+
+
+@app.get("/neo4j/attack-graph")
+def get_attack_graph(deviceElementId: str = Query(..., description="선택된 device의 elementId")):
+    """
+    공격 그래프(노드/엣지) 반환. deviceElementId는 반드시 전달해야 함.
+    """
+    print(f"[attack-graph] Received deviceElementId: {deviceElementId}")
+    neo4j = Neo4jConnector(URI, USERNAME, PASSWORD)
+    
+    def id_of(entity):
+        if not entity:
+            return None
+        if hasattr(entity, 'id'):
+            idval = entity.id
+            if hasattr(idval, '__int__'):
+                return int(idval)
+            return idval
+        return None
+    
+    def label_of(entity):
+        if not entity:
+            return ""
+        try:
+            props = dict(entity) if hasattr(entity, '__iter__') else {}
+        except:
+            props = {}
+        
+        labels = []
+        if hasattr(entity, 'labels'):
+            try:
+                labels = list(entity.labels)
+            except:
+                pass
+        
+        first_label = labels[0] if labels else None
+        return props.get('name') or props.get('label') or first_label or props.get('id') or str(id_of(entity) or '')
+    
+    try:
+        # deviceElementId로 노드 찾기 (element_id 또는 id 속성)
+        query_find_target = '''
+            MATCH (target:Device {project: 'facility'})
+            WHERE elementId(target) = $elementId OR target.id = $elementId
+            RETURN target
+            LIMIT 1
+        '''
+        
+        target_node = None
+        with neo4j.driver.session(database=DBNAME) as session:
+            result = session.run(query_find_target, elementId=deviceElementId)
+            record = result.single()
+            if record:
+                target_node = record.get("target")
+                print(f"[attack-graph] Found target node")
+        
+        if not target_node:
+            print(f"[attack-graph] No target node found for deviceElementId: {deviceElementId}")
+            return JSONResponse(content={
+                "nodes": [],
+                "edges": [],
+                "allStartNodes": [],
+                "targetNodeId": None,
+                "error": f"No target node found for: {deviceElementId}"
+            })
+        
+        targetId = id_of(target_node)
+        print(f"[attack-graph] Target node ID: {targetId}")
+        
+        # 연결된 노드들 찾기
+        query = '''
+            MATCH (target:Device {project: 'facility'})
+            WHERE id(target) = $targetId
+            MATCH (start:Device {project: 'facility'})-[:CONNECTED*1..3]-(target)
+            WHERE start <> target
+            RETURN DISTINCT start, target
+            LIMIT 50
+        '''
+        
+        nodes_map = {}
+        allStartNodes = set()
+        
+        with neo4j.driver.session(database=DBNAME) as session:
+            result = session.run(query, targetId=targetId)
+            
+            # target 노드 먼저 추가
+            try:
+                target_props = dict(target_node) if target_node else {}
+            except:
+                target_props = {}
+            
+            nodes_map[targetId] = {
+                "id": targetId,
+                "label": label_of(target_node),
+                "group": "TargetPhysical",
+                "title": str(target_props),
+                "shape": "dot",
+                "size": 25,
+                "color": {"background": "#FF0000", "border": "#CC0000"},
+                "properties": target_props
+            }
+            
+            for rec in result:
+                start = rec.get("start")
+                startId = id_of(start)
+                
+                if startId and startId not in nodes_map:
+                    allStartNodes.add(startId)
+                    try:
+                        start_props = dict(start) if start else {}
+                    except:
+                        start_props = {}
+                    
+                    nodes_map[startId] = {
+                        "id": startId,
+                        "label": label_of(start),
+                        "group": "StartPhysical",
+                        "title": str(start_props),
+                        "shape": "dot",
+                        "size": 20,
+                        "color": {"background": "#00FF00", "border": "#00CC00"},
+                        "properties": start_props
+                    }
+            
+            # 엣지 생성 (모든 start 노드를 target에 연결)
+            edges = []
+            for startId in allStartNodes:
+                edgeKey = f"{min(startId, targetId)}-{max(startId, targetId)}"
+                edges.append({
+                    "id": edgeKey,
+                    "from": startId,
+                    "to": targetId,
+                    "color": {"color": "#848484"},
+                    "width": 2,
+                    "title": "Connected"
+                })
+        
+        result_data = {
+            "nodes": list(nodes_map.values()),
+            "edges": edges,
+            "allStartNodes": list(allStartNodes),
+            "targetNodeId": targetId
+        }
+        print(f"[attack-graph] Returning {len(result_data['nodes'])} nodes and {len(result_data['edges'])} edges")
+        print(f"[attack-graph] Start nodes: {allStartNodes}")
+        print(f"[attack-graph] Target node ID: {targetId}")
+        
+        return JSONResponse(content=result_data)
+    finally:
+        neo4j.close()
