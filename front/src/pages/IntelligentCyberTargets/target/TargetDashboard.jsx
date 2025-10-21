@@ -113,7 +113,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
 
   React.useEffect(() => {
     if (!data) {
-      fetch("http://localhost:8000/neo4j/nodes?activeView=target")
+      fetch("/neo4j/nodes?activeView=target")
         .then(res => res.json())
         .then(setNodes)
         .catch(() => setNodes([]));
@@ -545,47 +545,8 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
               '&:last-child': { pb: 2 }
             }}>
               <Suspense fallback={<LoadingFallback />}>
-                <EventLog logs={currentLogs} activeView={activeView} />
+                <EventLog logs={currentLogs} activeView={activeView} selectedNode={selectedNode} />
               </Suspense>
-            </CardContent>
-          </Card>
-
-          {/* 대응 효과 분석 버튼 */}
-          <Card 
-            component="section"
-            aria-label="대응 효과 분석 버튼 영역"
-            sx={{
-              bgcolor: 'transparent', // 배경 제거
-              boxShadow: 'none', // 그림자 제거
-              flexShrink: 0
-            }}
-          >
-            <CardContent sx={{ p: 0 }}> {/* 패딩 제거 */}
-              <Box
-                component="button"
-                onClick={handleNavigateToResponse}
-                disabled={!selectedNode}
-                aria-label="대응 효과 분석으로 이동"
-                sx={{
-                  width: '100%',
-                  padding: '12px 24px',
-                  backgroundColor: selectedNode ? '#39306b' : '#ccc',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: selectedNode ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s ease',
-                  '&:hover:not(:disabled)': {
-                    backgroundColor: '#2a1f5a',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 4px 12px rgba(57, 48, 107, 0.3)'
-                  }
-                }}
-              >
-                대응 효과 분석
-              </Box>
             </CardContent>
           </Card>
         </Box>

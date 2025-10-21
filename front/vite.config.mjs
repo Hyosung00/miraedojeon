@@ -14,7 +14,19 @@ export default defineConfig(({ mode }) => {
     server: {
       open: true,
       port: PORT,
-      host: true
+      host: true,
+      proxy: {
+        '/neo4j': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false
+        },
+        '/api': {
+          target: 'http://localhost:5000',
+          changeOrigin: true,
+          secure: false
+        }
+      }
     },
     preview: {
       open: true,
