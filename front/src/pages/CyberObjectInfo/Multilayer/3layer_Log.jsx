@@ -66,48 +66,192 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                     mt: 1
                   }}>
                     <CardContent sx={{ py: 1.25, px: 1.5 }}>
-                      {/* Source IP */}
-                      {info.src_IP && (
-                        <div style={{ marginBottom: '12px' }}>
-                          <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Source IP</Typography>
-                          <ul style={{ margin: 0, paddingLeft: 16 }}>
-                                {(() => {
-                                  const filtered = Object.entries(info.src_IP)
-                                    .filter(([key]) => ["subnet", "ip", "__labels", "id"].includes(key));
-                                  return filtered.map(([key, value]) => (
-                                    <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                                  ));
-                                })()}
-                          </ul>
-                        </div>
-                      )}
-                      
-                      {/* Destination IP */}
-                      {info.dst_IP && (
-                        <div style={{ marginBottom: '12px' }}>
-                          <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Destination IP</Typography>
-                          <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {Object.entries(info.dst_IP)
-                              .filter(([key]) => ["ip", "__labels", "id"].includes(key))
-                              .map(([key, value]) => (
-                                <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      )}
-                      
-                      {/* Edge Info */}
-                      {info.edge && (
-                        <div>
-                          <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Edge Info</Typography>
-                          <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {Object.entries(info.edge)
-                              .map(([key, value]) => (
-                                <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                              ))}
-                          </ul>
-                        </div>
-                      )}
+                      {(() => {
+                        const srcLabel = String(info?.src_IP?.__labels?.[0] || '').toLowerCase();
+                        const srcIsPhysical = srcLabel === 'physical';
+                        const srcIsLogical = srcLabel === 'logical';
+                        if (srcIsPhysical) {
+                          return (
+                            <>
+                              {/* Src Node (physical) */}
+                              {info.src_IP && (
+                                <div style={{ marginBottom: '12px' }}>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Src Node</Typography>
+                                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                    {[
+                                      ['name', info.src_IP.name],
+                                      ['type', info.src_IP.type],
+                                      ['ip', info.src_IP.ip],
+                                      ['subnet', info.src_IP.subnet],
+                                      ['dns', info.src_IP.dns],
+                                      ['gateway', info.src_IP.gateway]
+                                    ].filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => (
+                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {String(v)}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Dst Node (logical-like) */}
+                              {info.dst_IP && (
+                                <div style={{ marginBottom: '12px' }}>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Dst Node</Typography>
+                                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                    {[
+                                      ['name', info.dst_IP.name],
+                                      ['description', info.dst_IP.description],
+                                      ['cve', info.dst_IP.cve]
+                                    ].filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => (
+                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {String(v)}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Edge (rel, SrcID, targetID) */}
+                              {info.edge && (
+                                <div>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Edge Info</Typography>
+                                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                    {[
+                                      ['rel', info.edge.rel || info.edge.kind],
+                                      ['SrcID', info.edge.sourceIP],
+                                      ['TargetID', info.edge.targetIP]
+                                    ].map(([k, v]) => {
+                                      const display = Array.isArray(v) ? v.join(', ') : String(v);
+                                      return (
+                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                      );
+                                    })}
+                                  </ul>
+                                </div>
+                              )}
+                            </>
+                          );
+                        }
+
+                        // Logical src mapping
+                        if (srcIsLogical) {
+                          return (
+                            <>
+                              {/* Src Node (logical) */}
+                              {info.src_IP && (
+                                <div style={{ marginBottom: '12px' }}>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Src Node</Typography>
+                                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                    {[
+                                      ['name', info.src_IP.name],
+                                      ['description', info.src_IP.description],
+                                      ['cve', info.src_IP.cve]
+                                    ].filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => {
+                                      const display = Array.isArray(v) ? v.join(', ') : String(v);
+                                      return (
+                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                      );
+                                    })}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Dst Node (logical) - KV vs Entity 구분 */}
+                              {info.dst_IP && (
+                                <div style={{ marginBottom: '12px' }}>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Dst Node</Typography>
+                                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                    {(() => {
+                                      const isKV = info.dst_IP.key !== undefined || info.dst_IP.value !== undefined;
+                                      const pairs = isKV
+                                        ? [
+                                            ['id', info.dst_IP.id],
+                                            ['key', info.dst_IP.key],
+                                            ['value', info.dst_IP.value]
+                                          ]
+                                        : [
+                                            ['name', info.dst_IP.name],
+                                            ['description', info.dst_IP.description],
+                                            ['cve', info.dst_IP.cve]
+                                          ];
+                                      return pairs
+                                        .filter(([, v]) => v !== undefined && v !== null && v !== '')
+                                        .map(([k, v]) => {
+                                          const display = Array.isArray(v) ? v.join(', ') : String(v);
+                                          return (
+                                            <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                          );
+                                        });
+                                    })()}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Edge (rel, SrcID, targetID) */}
+                              {info.edge && (
+                                <div>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Edge Info</Typography>
+                                  <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                    {[
+                                      ['rel', info.edge.rel || info.edge.kind],
+                                      ['SrcID', info.edge.sourceIP],
+                                      ['TargetID', info.edge.targetIP]
+                                    ].map(([k, v]) => {
+                                      const display = Array.isArray(v) ? v.join(', ') : String(v);
+                                      return (
+                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                      );
+                                    })}
+                                  </ul>
+                                </div>
+                              )}
+                            </>
+                          );
+                        }
+
+                        // Default: show minimal IDs when type unknown
+                        return (
+                          <>
+                            {info.src_IP && (
+                              <div style={{ marginBottom: '12px' }}>
+                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Src Node</Typography>
+                                <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                  {[['id', info.src_IP.id]].map(([k, v]) => (
+                                    <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {String(v)}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {info.dst_IP && (
+                              <div style={{ marginBottom: '12px' }}>
+                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Dst Node</Typography>
+                                <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                  {[['id', info.dst_IP.id]].map(([k, v]) => {
+                                    const display = Array.isArray(v) ? v.join(', ') : String(v);
+                                    return (
+                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            )}
+                            {info.edge && (
+                              <div>
+                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Edge Info</Typography>
+                                <ul style={{ margin: 0, paddingLeft: 16 }}>
+                                  {[
+                                    ['rel', info.edge.rel || info.edge.kind],
+                                    ['SrcID', info.edge.sourceIP],
+                                    ['TargetID', info.edge.targetIP]
+                                  ].map(([k, v]) => {
+                                    const display = Array.isArray(v) ? v.join(', ') : String(v);
+                                    return (
+                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 ))}

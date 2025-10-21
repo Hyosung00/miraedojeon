@@ -288,6 +288,8 @@ export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs
           src_IP: srcNode ? {
             id: srcNode.id,
             ip: srcNode.ip,
+            subnet: srcNode.subnet,
+            gateway: srcNode.gateway,
             __labels: [srcNode.kind],
             __id: srcNode.id,
             index: srcNode.zone
@@ -295,6 +297,8 @@ export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs
           dst_IP: dstNode ? {
             id: dstNode.id,
             ip: dstNode.ip,
+            subnet: dstNode.subnet,
+            gateway: dstNode.gateway,
             __labels: [dstNode.kind],
             __id: dstNode.id,
             index: dstNode.zone,

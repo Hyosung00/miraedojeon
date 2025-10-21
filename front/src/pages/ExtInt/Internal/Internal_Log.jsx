@@ -68,7 +68,7 @@ function InternalLog({ eventLogs = [] }) {
                       <strong style={{ color: '#3b2c6b' }}>Source IP</strong>
                       <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
                         {Object.entries(info.src_IP)
-                          .filter(([key]) => ["ip", "__labels", "id"].includes(key))
+                          .filter(([key, value]) => ["ip", "subnet", "gateway", "__labels", "id"].includes(key) && value !== undefined && value !== null && value !== '')
                           .map(([key, value]) => (
                             <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
                           ))}
@@ -82,7 +82,7 @@ function InternalLog({ eventLogs = [] }) {
                       <strong style={{ color: '#3b2c6b' }}>Destination IP</strong>
                       <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
                         {Object.entries(info.dst_IP)
-                          .filter(([key]) => ["ip", "__labels", "id"].includes(key))
+                          .filter(([key, value]) => ["ip", "subnet", "gateway", "__labels", "id"].includes(key) && value !== undefined && value !== null && value !== '')
                           .map(([key, value]) => (
                             <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
                           ))}
@@ -97,9 +97,12 @@ function InternalLog({ eventLogs = [] }) {
                       <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
                         {Object.entries(info.edge)
                           .filter(([key]) => !["count"].includes(key))
-                          .map(([key, value]) => (
-                            <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                          ))}
+                          .map(([key, value]) => {
+                            const label = key === 'sourceIP' ? 'SrcID' : key === 'targetIP' ? 'targetID' : key;
+                            return (
+                              <li key={label} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{label}:</b> {String(value)}</li>
+                            );
+                          })}
                       </ul>
                     </div>
                   )}

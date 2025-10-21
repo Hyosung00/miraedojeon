@@ -726,7 +726,17 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                       .filter(ip => ip);
                     const dbInfo = filtered.links
                       .filter(link => { const sid = typeof link.source === 'object' ? link.source.id : link.source; const tid = typeof link.target === 'object' ? link.target.id : link.target; return sid === n.id || tid === n.id; })
-                      .map(link => { const sid = typeof link.source === 'object' ? link.source.id : link.source; const tid = typeof link.target === 'object' ? link.target.id : link.target; const srcNode = filtered.nodes.find(node => node.id === sid) || graph.nodes.find(node => node.id === sid); const dstNode = filtered.nodes.find(node => node.id === tid) || graph.nodes.find(node => node.id === tid); return { src_IP: srcNode ? { id: srcNode.id, ip: srcNode.ip, __labels: [srcNode.kind], __id: srcNode.id, index: srcNode.zone } : null, dst_IP: dstNode ? { id: dstNode.id, ip: dstNode.ip, __labels: [dstNode.kind], __id: dstNode.id, index: dstNode.zone } : null, edge: { sourceIP: sid, targetIP: tid, type: link.type, count: link.count } }; });
+                      .map(link => {
+                        const sid = typeof link.source === 'object' ? link.source.id : link.source;
+                        const tid = typeof link.target === 'object' ? link.target.id : link.target;
+                        const srcNode = filtered.nodes.find(node => node.id === sid) || graph.nodes.find(node => node.id === sid);
+                        const dstNode = filtered.nodes.find(node => node.id === tid) || graph.nodes.find(node => node.id === tid);
+                        return {
+                          src_IP: srcNode ? { id: srcNode.id, ip: srcNode.ip, subnet: srcNode.subnet, gateway: srcNode.gateway, __labels: [srcNode.kind], __id: srcNode.id, index: srcNode.zone } : null,
+                          dst_IP: dstNode ? { id: dstNode.id, ip: dstNode.ip, subnet: dstNode.subnet, gateway: dstNode.gateway, __labels: [dstNode.kind], __id: dstNode.id, index: dstNode.zone } : null,
+                          edge: { sourceIP: sid, targetIP: tid, type: link.type, count: link.count }
+                        };
+                      });
                     const newLog = { message: `노드 선택: ${n.label || n.id}`, nodeInfo: { kind: n.kind, zone: n.zone, ip: n.ip }, connectedCount: connectedNodes.size, connectedIps, dbInfo };
                     setEventLogs([newLog]);
                   }
