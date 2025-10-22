@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, CardContent, Typography } from '@mui/material';
+import { Card, CardContent, Typography, IconButton } from '@mui/material';
+import { ClusterOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
 import ThreelayerLog from './3layer_Log.jsx';
@@ -288,6 +290,7 @@ function ConnList({ listType, selectedId, visible, byId, adj }) {
 
 // ===================== 메인 컴포넌트 =====================
 export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspectorChange = () => {} }) {
+  const navigate = useNavigate();
   const fgRef = useRef();
   const containerRef = useRef(null);
   const graphContainerRef = useRef(null);
@@ -620,6 +623,31 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
                 height: '100%',
                 position: 'relative'
               }}>
+                {/* /ExtInt/TimeSeriesVisualization 이동 버튼 */}
+                <IconButton
+                  size="small"
+                  aria-label="시계열 기반 이상 탐지로 이동"
+                  title="시계열 기반 이상 탐지로 이동"
+                  onClick={() => navigate('/ExtInt/TimeSeriesVisualization')}
+                  sx={{
+                    position: 'absolute',
+                    top: 16,
+                    right: 16,
+                    zIndex: 1000,
+                    bgcolor: 'rgba(124,58,237,0.8)',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    width: 32,
+                    height: 32,
+                    boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+                    '&:hover': {
+                      bgcolor: '#9333ea',
+                      color: '#fff',
+                    },
+                  }}
+                >
+                  <ClusterOutlined style={{ fontSize: 18 }} />
+                </IconButton>
             {/* 툴바 */}
             <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: 'rgba(57,48,107,0.7)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 12 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontSize: 12 }}>
@@ -628,31 +656,37 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
             {['physical','logical','persona'].map(id => (
               <label key={id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <input type="checkbox" checked={layerFilter[id]} onChange={(e)=>setLayerFilter(v=>({...v,[id]:e.target.checked}))} />
-                <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 2, background: LAYER_COLORS[id] }} />
-                  <span>{id}</span>
-                </span>
+                  <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 2, background: LAYER_COLORS[id] }} />
+                    <span style={{ color: LAYER_COLORS[id], fontWeight: 700 }}>{id}</span>
+                  </span>
               </label>
             ))}
             <span style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>assumed</span>
-              <select value={assumedFilter} onChange={(e)=>setAssumedFilter(e.target.value)} style={{ background: 'rgba(20,20,20,0.7)', color:'#fff', border:'1px solid rgba(128,128,128,0.5)', borderRadius: 6, padding: '2px 4px' }}>
-                <option value="all">all</option>
-                <option value="true">true</option>
-                <option value="false">false</option>
-              </select>
-            </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ color: '#fbbf24', fontWeight: 700 }}>assumed</span>
+                <select value={assumedFilter} onChange={(e)=>setAssumedFilter(e.target.value)} style={{ background: 'rgba(20,20,20,0.7)', color:'#fbbf24', border:'1px solid rgba(128,128,128,0.5)', borderRadius: 6, padding: '2px 4px', fontWeight: 700 }}>
+                  <option value="all" style={{ color: '#fbbf24' }}>all</option>
+                  <option value="true" style={{ color: '#fbbf24' }}>true</option>
+                  <option value="false" style={{ color: '#fbbf24' }}>false</option>
+                </select>
+              </label>
             <span style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span>status</span>
-              {STATUS.map(s => (
-                <label key={s} style={{ display:'flex', alignItems:'center', gap:6 }}>
-                  <input type="checkbox" checked={statusFilter.has(s)} onChange={(e)=>{const nxt=new Set(statusFilter); e.target.checked?nxt.add(s):nxt.delete(s); setStatusFilter(nxt);}} />
-                  <span style={{ textTransform: 'uppercase' }}>{s}</span>
-                </label>
-              ))}
-            </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ color: '#38bdf8', fontWeight: 700 }}>status</span>
+                {STATUS.map(s => {
+                  let color = '#e5e7eb';
+                  if (s === 'UP') color = '#22c55e';
+                  else if (s === 'DOWN') color = '#ef4444';
+                  else if (s === 'UNKNOWN') color = '#fbbf24';
+                  return (
+                    <label key={s} style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <input type="checkbox" checked={statusFilter.has(s)} onChange={(e)=>{const nxt=new Set(statusFilter); e.target.checked?nxt.add(s):nxt.delete(s); setStatusFilter(nxt);}} />
+                      <span style={{ textTransform: 'uppercase', color, fontWeight: 700 }}>{s}</span>
+                    </label>
+                  );
+                })}
+              </div>
             <span style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
             <button onClick={()=>setPulse(p=>!p)} style={{ padding:'4px 8px', borderRadius:6, background: pulse ? '#3b82f6' : '#F0EDFD', color:'#000', border:'1px solid rgba(128,128,128,0.5)' }}>{pulse ? '펄스 ON' : '펄스 OFF'}</button>
             <button onClick={() => { setSearch(''); setLayerFilter({ physical: true, logical: true, persona: true }); setAssumedFilter('all'); setStatusFilter(new Set(STATUS)); }} style={{ padding:'4px 8px', borderRadius:6, background:'#F0EDFD', color:'#000', border:'1px solid rgba(128,128,128,0.5)' }}>필터 초기화</button>

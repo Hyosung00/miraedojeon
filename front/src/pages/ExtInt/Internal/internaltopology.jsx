@@ -425,7 +425,6 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
 
     const s = estimateNodeScale(node);
     mesh.scale.set(s, s, s);
-    // 그림자 비활성화 (GPU 부하↓)
     mesh.castShadow = false; mesh.receiveShadow = false;
     group.add(mesh);
 
@@ -618,10 +617,21 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             {/* 뷰 초기화 */}
             <div className="view-reset-container">
               <button onClick={() => {
-                setSelected(null); setSelectedZones(allZones); setLinkTypeFilter('all');
-                const core = graph.nodes.find((n) => n.kind === "core"); if (core && fgRef.current) {
-                  const distance = 150; const zFixed = 640; const distRatio = 1 + distance / Math.hypot(core.x || 1, core.y || 1, core.z || 1);
-                  fgRef.current.cameraPosition({ x: (core.x || 1) * distRatio, y: (core.y || 1) * distRatio, z: zFixed }, core, 800);
+                setSelected(null);
+                setSelectedZones(allZones);
+                setLinkTypeFilter('all');
+                const core = graph.nodes.find((n) => n.kind === "core");
+                if (fgRef.current) {
+                  // zFixed 값을 더 크게해서 전체가 더 작게 보이도록 zoom out
+                  const zFixed = 2400;
+                  if (core) {
+                    const distance = 150;
+                    const distRatio = 1 + distance / Math.hypot(core.x || 1, core.y || 1, core.z || 1);
+                    fgRef.current.cameraPosition({ x: (core.x || 1) * distRatio, y: (core.y || 1) * distRatio, z: zFixed }, core, 800);
+                  } else {
+                    fgRef.current.cameraPosition({ x: 0, y: 0, z: zFixed }, null, 800);
+                  }
+                  fgRef.current.resumeAnimation?.();
                 }
               }}>뷰 초기화</button>
             </div>

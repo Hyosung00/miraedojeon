@@ -1,7 +1,11 @@
 import React from "react";
-import { Card, CardContent, Typography } from '@mui/material';
+import { Card, CardContent, Typography, IconButton } from '@mui/material';
+import { ClusterOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 
 function InternalLog({ eventLogs = [] }) {
+  const navigate = useNavigate();
+
   return (
     <Card sx={{
       minWidth: 350,
@@ -61,7 +65,34 @@ function InternalLog({ eventLogs = [] }) {
 
               {/* dbInfo 배열 출력 - 하나의 카드로 통합 */}
               {Array.isArray(log.dbInfo) && log.dbInfo.length > 0 && log.dbInfo.map((info, i) => (
-                <div key={i} style={{ margin: '8px 0', background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(124,58,237,0.18)', borderRadius: 10, padding: '12px', color: '#2a2050' }}>
+                <div key={i} style={{ margin: '8px 0', background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(124,58,237,0.18)', borderRadius: 10, padding: '12px', color: '#2a2050', position: 'relative' }}>
+                  {/* 내부망 이동 아이콘 */}
+                  <IconButton
+                    size="small"
+                    aria-label="타겟 대시보드로 이동"
+                    title="타겟 대시보드로 이동"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate('/target/targetDashboard');
+                    }}
+                    sx={{
+                      position: 'absolute',
+                      top: 4,
+                      right: 4,
+                      color: '#7c3aed',
+                      bgcolor: 'rgba(124,58,237,0.1)',
+                      border: '1px solid rgba(124,58,237,0.3)',
+                      '&:hover': {
+                        bgcolor: 'rgba(124,58,237,0.2)',
+                        color: '#9333ea'
+                      },
+                      width: 24,
+                      height: 24
+                    }}
+                  >
+                    <ClusterOutlined style={{ fontSize: 12 }} />
+                  </IconButton>
+                  
                   {/* Source IP */}
                   {info.src_IP && (
                     <div style={{ marginBottom: '12px' }}>

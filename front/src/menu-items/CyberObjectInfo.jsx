@@ -1,10 +1,10 @@
 // assets
-import { DashboardOutlined, DotChartOutlined } from '@ant-design/icons';
+import { DashboardOutlined, FundOutlined } from '@ant-design/icons';
 
 // icons
 const icons = {
   DashboardOutlined,
-  DotChartOutlined
+  FundOutlined
 };
 
 // ==============================|| MENU ITEMS - DASHBOARD ||============================== //
@@ -27,7 +27,7 @@ const dashboard = {
       title: '사이버 3계층 멀티레이어 가시화',
       type: 'item',
       url: '/CyberObjectInfo/MultilayerVisualization',
-      icon: icons.DotChartOutlined
+      icon: icons.FundOutlined
     }
   ]
 };

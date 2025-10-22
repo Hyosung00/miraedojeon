@@ -1,6 +1,7 @@
 // material-ui
 import { alpha, useTheme } from '@mui/material/styles';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid2';
 import List from '@mui/material/List';
@@ -9,8 +10,9 @@ import ListItemText from '@mui/material/ListItemText';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
-import { Card, CardContent } from '@mui/material';
+import { Card, CardContent, IconButton } from '@mui/material';
 import { LineChart } from '@mui/x-charts/LineChart';
+import { ClusterOutlined } from '@ant-design/icons';
 
 // project imports
 import MainCard from 'components/MainCard';
@@ -137,18 +139,33 @@ function CyberOperationChart({ view }) {
 
 export default function DashboardDefault() {
   const [view, setView] = useState('monthly');
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    navigate('/Osint&DataFusion/GeoIP');
+  };
 
   return (
     <Grid container rowSpacing={2} columnSpacing={2.75}>
       {/* row 1 - Statistics Cards */}
       <Grid size={12}>
-        <Card sx={{
-          bgcolor: 'background.paper',
-          boxShadow: 2,
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider'
-        }}>
+        <Card 
+          onClick={handleCardClick}
+          sx={{
+            bgcolor: 'background.paper',
+            boxShadow: 2,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              boxShadow: 4,
+              transform: 'translateY(-2px)',
+              borderColor: 'primary.main'
+            }
+          }}
+        >
           <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
             <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', fontWeight: 'bold', mb: 1.5 }}>
               📊 실시간 네트워크 통계
@@ -172,14 +189,24 @@ export default function DashboardDefault() {
       </Grid>
       {/* row 2 - Visitor Stats */}
       <Grid size={{ xs: 12, md: 6}} >
-        <Card sx={{
-          bgcolor: 'background.paper',
-          boxShadow: 2,
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          height: '100%'
-        }}>
+        <Card 
+          onClick={handleCardClick}
+          sx={{
+            bgcolor: 'background.paper',
+            boxShadow: 2,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            height: '100%',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              boxShadow: 4,
+              transform: 'translateY(-2px)',
+              borderColor: 'primary.main'
+            }
+          }}
+        >
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', fontWeight: 'bold', mb: 1 }}>
               📈 사이버 작전 통계
@@ -216,14 +243,25 @@ export default function DashboardDefault() {
       </Grid>
 
       <Grid size={{ xs: 12, md: 6 }} >
-        <Card sx={{
-          bgcolor: 'background.paper',
-          boxShadow: 2,
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          height: '100%'
-        }}>
+        <Card 
+          onClick={handleCardClick}
+          sx={{
+            bgcolor: 'background.paper',
+            boxShadow: 2,
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'divider',
+            height: '100%',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            position: 'relative',
+            '&:hover': {
+              boxShadow: 4,
+              transform: 'translateY(-2px)',
+              borderColor: 'primary.main'
+            }
+          }}
+        >
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', fontWeight: 'bold', mb: 1 }}>
               📋 보안 분석 리포트
@@ -248,8 +286,6 @@ export default function DashboardDefault() {
           </CardContent>
         </Card>
       </Grid>
-
-
     </Grid>
   );
 }

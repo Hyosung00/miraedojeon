@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import * as Cesium from 'cesium';
 import { Box, Typography, Card, CardContent, Grid, IconButton, Slider } from '@mui/material';
-import { ClusterOutlined } from '@ant-design/icons';
+import { FundOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 // ==================== 상수 정의 ====================
@@ -728,10 +728,10 @@ const TwoDPage = () => {
     clearAllHighlights();
 
     // 클릭된 건물을 타겟으로 하는 모든 공격 찾기
-    const clickedBuildingName = entityId.includes('target')
+    const isTargetClick = entityId.includes('target');
+    const clickedBuildingName = isTargetClick
       ? clickedAttack.target.building.name
       : clickedAttack.source.building.name;
-    const isTargetClick = entityId.includes('target');
 
     const relatedAttacks = isTargetClick
       ? attacks.filter(attack => attack.target.building.name === clickedBuildingName)
@@ -1140,7 +1140,32 @@ const TwoDPage = () => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
           }}
         >
-          <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 } }}>
+          <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 }, position: 'relative' }}>
+            {/* MultilayerVisualization 이동 버튼 */}
+            <IconButton
+              size="small"
+              aria-label="3D 멀티레이어로 이동"
+              title="3D 멀티레이어로 이동"
+              onClick={() => navigate('/CyberObjectInfo/MultilayerVisualization')}
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 165,
+                zIndex: 1000,
+                bgcolor: 'rgba(124,58,237,0.8)',
+                color: '#fff',
+                borderRadius: '50%',
+                width: 32,
+                height: 32,
+                boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+                '&:hover': {
+                  bgcolor: '#9333ea',
+                  color: '#fff',
+                },
+              }}
+            >
+              <FundOutlined style={{ fontSize: 18 }} />
+            </IconButton>
             <div
               ref={cesiumContainer}
               role="img"
@@ -1376,7 +1401,7 @@ const TwoDPage = () => {
                       height: 24
                     }}
                   >
-                    <ClusterOutlined style={{ fontSize: 12 }} />
+                    <FundOutlined style={{ fontSize: 12 }} />
                   </IconButton>
                 </Box>
               ))}

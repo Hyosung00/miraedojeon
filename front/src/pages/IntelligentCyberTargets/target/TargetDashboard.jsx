@@ -113,7 +113,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
 
   React.useEffect(() => {
     if (!data) {
-      fetch("/neo4j/nodes?activeView=target")
+      fetch("http://localhost:8000/neo4j/nodes?activeView=target")
         .then(res => res.json())
         .then(setNodes)
         .catch(() => setNodes([]));

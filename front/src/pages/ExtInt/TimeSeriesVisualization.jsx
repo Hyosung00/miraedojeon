@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import * as Cesium from 'cesium';
-import { Box, Typography, Card, CardContent, Grid, IconButton, Slider } from '@mui/material';
-import { ClusterOutlined } from '@ant-design/icons';
+import { Box, Typography, Card, CardContent, Grid, IconButton, Slider, Button } from '@mui/material';
+import { ClusterOutlined, GlobalOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 // ==================== 상수 정의 ====================

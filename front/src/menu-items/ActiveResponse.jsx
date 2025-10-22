@@ -1,13 +1,13 @@
 // assets
 import {
-  ClusterOutlined,
-  NodeIndexOutlined
+  FileExclamationOutlined,
+  AimOutlined
 } from '@ant-design/icons';
 
 // icons
 const icons = {
-  ClusterOutlined,
-  NodeIndexOutlined
+  FileExclamationOutlined,
+  AimOutlined
 };
 
 // ==============================|| MENU ITEMS - INTERNAL NETWORK ||============================== //
@@ -22,14 +22,14 @@ const internalNetwork = {
       title: '위험 노출도 및 공격 가능도 측정',
       type: 'item',
       url: '/ActiveResponse/threatanalysis',
-      icon: icons.ClusterOutlined
+      icon: icons.FileExclamationOutlined
     },
     {
       id: 'ResponseEffectvisualization',
       title: '능동 대응책 대응 효과/경로 가시화',
       type: 'item',
       url: '/ActiveResponse/responseeffectvisualization',
-      icon: icons.ClusterOutlined
+      icon: icons.AimOutlined
     }
   ]
 };

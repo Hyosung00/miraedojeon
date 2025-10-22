@@ -1,15 +1,13 @@
 // assets
 import {
-  GlobalOutlined,
-  RadarChartOutlined,
-  DotChartOutlined
+  QuestionOutlined,
+  DatabaseOutlined
 } from '@ant-design/icons';
 
 // icons
 const icons = {
-  GlobalOutlined,
-  RadarChartOutlined,
-  DotChartOutlined
+  QuestionOutlined,
+  DatabaseOutlined
 };
 
 // ==============================|| MENU ITEMS - EXTERNAL NETWORK ||============================== //
@@ -24,14 +22,14 @@ const externalNetwork = {
       title: 'OSINT 정보 수집',
       type: 'item',
         url: '/Osint&DataFusion/GeoIP',
-      icon: icons.RadarChartOutlined
+      icon: icons.QuestionOutlined
     },
     { // 융합 데이터베이스 구축
       id: 'FusionDB',
       title: '융합 데이터베이스 구축',
       type: 'item',
         url: '/Osint&DataFusion/FusionDB',
-      icon: icons.DotChartOutlined
+      icon: icons.DatabaseOutlined
     }
   ]
 };

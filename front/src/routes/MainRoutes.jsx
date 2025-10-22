@@ -18,7 +18,6 @@ const CyberMultilayer = Loadable(lazy(() => import('pages/CyberObjectInfo/Multil
 // External & Internal
 const TimeSeriesVisualization = Loadable(lazy(() => import('pages/ExtInt/TimeSeriesVisualization')));
 const InternalNetwork = Loadable(lazy(() => import('pages/ExtInt/Internal')));
-const ExternalNetwork = Loadable(lazy(() => import('pages/ExtInt/External')));
 
 // IntelligentCyberTargets
 const TargetDashboard = Loadable(lazy(() => import('pages/IntelligentCyberTargets/target')));
@@ -59,8 +58,7 @@ const MainRoutes = {
       path: 'ExtInt',
       children: [
         { path: 'TimeSeriesVisualization', element: <TimeSeriesVisualization /> },
-        { path: 'internaltopology', element: <InternalNetwork /> },
-        { path: 'externaltopology', element: <ExternalNetwork /> }
+        { path: 'internaltopology', element: <InternalNetwork /> }
       ]
     },
     {
