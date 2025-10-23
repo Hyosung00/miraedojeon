@@ -49,7 +49,7 @@ const FusionDBConsole = ({ open = true, isPopup = false }) => {
     setDisplayText(''); // 로드 시작 전 텍스트 초기화
     try {
       // 백엔드 API에서 파일 내용 가져오기
-      const response = await fetch('/api/read-info-file?file=내부망.txt');
+      const response = await fetch('/api/read-info-file?file=inter.txt');
       const text = await response.text();
       animateText(text);
     } catch (error) {
