@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 
-const INFO_DIR = path.join(__dirname, '../Console');
+const INFO_DIR = path.join(__dirname, 'front/public/Console');
 
 // 파일 내용 반환 API
 router.get('/api/read-info-file', (req, res) => {
