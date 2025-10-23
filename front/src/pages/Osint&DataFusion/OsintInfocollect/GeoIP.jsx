@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import * as Cesium from 'cesium';
 import { Box, Typography, Card, CardContent, Grid, IconButton, Slider, Dialog, DialogContent, DialogTitle } from '@mui/material';
-import { FundOutlined, DatabaseOutlined } from '@ant-design/icons';
+import { FundOutlined, DatabaseOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import FusionDBConsole from '../FusionDB/FusionDB';
 
@@ -1586,7 +1586,32 @@ const TwoDPage = () => {
           }
         }}
       >
-        <DialogContent sx={{ p: 0, height: '100%' }}>
+        <DialogTitle sx={{ 
+          m: 0, 
+          p: 2, 
+          bgcolor: '#f0edfd',
+          borderBottom: '2px solid #39306b',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography variant="h6" sx={{ color: '#39306b', fontWeight: 'bold' }}>
+            융합 데이터베이스 구축
+          </Typography>
+          <IconButton
+            aria-label="닫기"
+            onClick={() => setFusionDBOpen(false)}
+            sx={{
+              color: '#39306b',
+              '&:hover': {
+                bgcolor: 'rgba(57, 48, 107, 0.1)'
+              }
+            }}
+          >
+            <CloseOutlined />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, height: 'calc(100% - 64px)' }}>
           <FusionDBConsole open={fusionDBOpen} />
         </DialogContent>
       </Dialog>

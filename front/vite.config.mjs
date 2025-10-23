@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
       CESIUM_BASE_URL: JSON.stringify('/cesium/')
     },
     build: {
-      outDir: '../build',
+      outDir: '../../Hyosung00.github.io',
       // Production 빌드 최적화
       minify: 'terser',
       terserOptions: {
