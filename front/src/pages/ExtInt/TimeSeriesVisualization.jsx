@@ -1176,7 +1176,7 @@ const EarthGlobe = () => {
                 fontSize: 10
               }}>
                 <Typography variant="caption" color="inherit">
-                  🌍 실제 위성 데이터
+                  🌍 시계열 기반 이상탐지 
                 </Typography>
               </Box>
             )}

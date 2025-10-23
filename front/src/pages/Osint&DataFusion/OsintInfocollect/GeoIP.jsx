@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import * as Cesium from 'cesium';
-import { Box, Typography, Card, CardContent, Grid, IconButton, Slider } from '@mui/material';
-import { FundOutlined } from '@ant-design/icons';
+import { Box, Typography, Card, CardContent, Grid, IconButton, Slider, Dialog, DialogContent, DialogTitle } from '@mui/material';
+import { FundOutlined, DatabaseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import FusionDBConsole from '../FusionDB/FusionDB';
 
 // ==================== 상수 정의 ====================
 const API_CONFIG = {
@@ -256,6 +257,9 @@ const TwoDPage = () => {
   const [error, setError] = useState(null);
   const [attacks, setAttacks] = useState([]);
 
+  // FusionDB 팝업 상태
+  const [fusionDBOpen, setFusionDBOpen] = useState(false);
+
   // 날짜 및 시간 필터링 상태
   const [allAttacks, setAllAttacks] = useState([]); // 전체 데이터 저장 (일주일, 하루당 20개 = 총 140개)
   const [timeRange, setTimeRange] = useState([0, 7]); // 시간 범위 (일 단위, 0일~7일)
@@ -426,15 +430,15 @@ const TwoDPage = () => {
           // UI 요소들 정리
           animation: false,
           baseLayerPicker: true,
-          fullscreenButton: true,
+          fullscreenButton: false,
           geocoder: true,
-          homeButton: true,
+          homeButton: false,
           infoBox: true,
           sceneModePicker: false,
           scene3DOnly: false, // 2D 모드 지원
           selectionIndicator: true,
           timeline: false,
-          navigationHelpButton: true,
+          navigationHelpButton: false,
           navigationInstructionsInitiallyVisible: false,
 
           // 고품질 지형 데이터 사용
@@ -1210,9 +1214,40 @@ const TwoDPage = () => {
                 fontSize: 10
               }}>
                 <Typography variant="caption" color="inherit">
-                  🗺️ 2D 평면 지도
+                  🗺️ Osint 정보 수집
                 </Typography>
               </Box>
+            )}
+
+            {/* FusionDB 팝업 버튼 */}
+            {isLoaded && (
+              <IconButton
+                size="small"
+                aria-label="융합 데이터베이스 열기"
+                title="융합 데이터베이스 열기"
+                onClick={() => setFusionDBOpen(true)}
+                sx={{
+                  position: 'absolute',
+                  bottom: 5,
+                  left: '98.5%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 1000,
+                  bgcolor: 'rgba(124,58,237,0.8)',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: 48,
+                  height: 48,
+                  boxShadow: '0 4px 12px rgba(124,58,237,0.5)',
+                  '&:hover': {
+                    bgcolor: '#9333ea',
+                    color: '#fff',
+                    transform: 'translateX(-50%) scale(1.1)',
+                  },
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <DatabaseOutlined style={{ fontSize: 24 }} />
+              </IconButton>
             )}
           </CardContent>
         </Card>
@@ -1536,6 +1571,25 @@ const TwoDPage = () => {
           </Card>
         </Box>
       </CardContent>
+
+      {/* FusionDB 팝업 다이얼로그 */}
+      <Dialog
+        open={fusionDBOpen}
+        onClose={() => setFusionDBOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '80vh',
+            maxHeight: '80vh',
+            m: 0
+          }
+        }}
+      >
+        <DialogContent sx={{ p: 0, height: '100%' }}>
+          <FusionDBConsole open={fusionDBOpen} />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

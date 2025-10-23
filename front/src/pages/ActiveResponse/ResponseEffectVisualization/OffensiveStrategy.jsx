@@ -1,12 +1,13 @@
 // src/OffensiveStrategy.jsx
 import { useState, useEffect, useRef } from "react";
-
 import { DataSet } from "vis-data";
 import { Network } from "vis-network/standalone";
+
 import "vis-network/styles/vis-network.css";
-import "./OffensiveStrategy.css";
-
-
+import "./OS.css";
+import { Card, CardContent, IconButton, Dialog, DialogContent } from '@mui/material';
+import { AreaChartOutlined } from '@ant-design/icons';
+import TreatAnalysis from '../ThreatAnalysis/TreatAnalysis';
 
 function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   // topology: Device 노드들을 표시 (좌측하단)
@@ -23,6 +24,9 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
   // 선택된 시작 노드
   const [selectedStartNode, setSelectedStartNode] = useState(null);
+  
+  // 팝업 상태 관리
+  const [treatAnalysisOpen, setTreatAnalysisOpen] = useState(false);
 
   // internal fallback when parent does not control deviceElementId
   const [internalSelected, setInternalSelected] = useState(null);
@@ -120,10 +124,13 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     const nodes = new DataSet(nodesToShow);
     const edges = new DataSet(edgesToShow);
     const data = { nodes, edges };
-    const options = {
+    const options = { // Vis-network (왼쪽 하단의 topology) 노드 설정
       interaction: { hover: true, multiselect: false },
-      nodes: { font: { color: "#ffffff", size: 10 } },
-      physics: { stabilization: true }
+      nodes: { font: { color: "#39306b", size: 20 } },
+      physics: { stabilization: true },
+      autoResize: true,
+      height: '100%',
+      width: '100%'
     };
 
     topologyNetRef.current = new Network(topologyRef.current, data, options);
@@ -257,9 +264,12 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     const edges = new DataSet(edgesToShow);
     const data = { nodes, edges };
 
-    const options = {
+    const options = { // 여기가 중앙 Vis-network 노드 설정
       interaction: { hover: true, multiselect: false },
-      nodes: { font: { color: "#ffffff" } },
+      nodes: { font: { color: "#39306b" } },
+      autoResize: true,
+      height: '100%',
+      width: '100%',
       ...(isFiltered ? {
         layout: {
           hierarchical: {
@@ -281,6 +291,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         }
       }
     };
+
     attackNetRef.current = new Network(attackRef.current, data, options);
 
     // 시작 노드 클릭 이벤트만 활성화
@@ -302,55 +313,174 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     };
   }, [attackGraphData, selectedStartNode]);
 
+  // Resize observer to keep vis-network canvas in sync with container size
+  useEffect(() => {
+    if (!attackRef.current) return;
+    const el = attackRef.current;
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0]?.contentRect;
+      if (!cr) return;
+      if (attackNetRef.current) {
+        const w = Math.max(1, Math.floor(cr.width));
+        const h = Math.max(1, Math.floor(cr.height));
+        try {
+          attackNetRef.current.setSize(`${w}px`, `${h}px`);
+          attackNetRef.current.redraw();
+        } catch {}
+      }
+    });
+    ro.observe(el);
+    return () => {
+      try { ro.disconnect(); } catch {}
+    };
+  }, [attackGraphData, selectedStartNode]);
+
+  // Resize observer for topology panel when visible
+  useEffect(() => {
+    if (topologyMinimized || !topologyRef.current) return;
+    const el = topologyRef.current;
+    const ro = new ResizeObserver((entries) => {
+      const cr = entries[0]?.contentRect;
+      if (!cr) return;
+      if (topologyNetRef.current) {
+        const w = Math.max(1, Math.floor(cr.width));
+        const h = Math.max(1, Math.floor(cr.height));
+        try {
+          topologyNetRef.current.setSize(`${w}px`, `${h}px`);
+          topologyNetRef.current.redraw();
+        } catch {}
+      }
+    });
+    ro.observe(el);
+    return () => {
+      try { ro.disconnect(); } catch {}
+    };
+  }, [topologyMinimized, topologyData]);
+
+  // styles
+
+
   return (
-      <>
-        <div className="attackContainer">
-          <div className="header">
-            <div>
-              {loadingAttack
-                ? "Loading attack graph..."
-                : effectiveElementId
-                  ? `Attack target: ${effectiveElementId}${selectedStartNode ? ' (Start node selected)' : ''}`
-                  : "No attack target selected"}
+    <Card sx={{ width: '100%', height: 'calc(100vh - 120px)' }}>
+      <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 }, position: 'relative' }}>
+        <div className="offensive-root">
+          <div className="offensive-main">
+            <div className="offensive-attack">
+              <div className="offensive-attack-header">
+                <div>
+                  {loadingAttack
+                    ? "Loading attack graph..."
+                    : effectiveElementId
+                      ? `Attack target: ${effectiveElementId}${selectedStartNode ? ' (Start node selected)' : ''}`
+                      : "No attack target selected"}
+                </div>
+                {selectedStartNode && (
+                  <button
+                    onClick={() => setSelectedStartNode(null)}
+                    className="offensive-btn offensive-btn-small"
+                  >
+                    Show All Start Nodes
+                  </button>
+                )}
+              </div>
+              <div ref={attackRef} className="offensive-attack-canvas" />
             </div>
-            {selectedStartNode && (
-              <button
-                onClick={() => setSelectedStartNode(null)}
-                className="showAllButton"
-              >
-                Show All Start Nodes
-              </button>
+
+            {!topologyMinimized ? (
+                <div className="offensive-topology">
+                  <div className="offensive-topology-header">
+                    <span className="offensive-topology-title">
+                      {selectedStartNode ? "Attack Path" : "Device Topology"}
+                    </span>
+                    <button
+                      onClick={() => setTopologyMinimized(true)}
+                      className="offensive-btn-topology"
+                    >
+                      -
+                    </button>
+                  </div>
+                  <div ref={topologyRef} className="offensive-topology-canvas" />
+                </div>
+            ) : (
+                <div className="offensive-topology-minimized">
+                  <button
+                    onClick={() => setTopologyMinimized(false)}
+                    className="offensive-btn"
+                  >
+                    + {selectedStartNode ? "Attack Path" : "Topology"}
+                  </button>
+                </div>
             )}
           </div>
-          <div ref={attackRef} className="attackGraph" />
         </div>
 
-        {!topologyMinimized ? (
-            <div className="topologyPanel">
-              <div className="topologyHeader">
-                <span className="topologyTitle">
-                  {selectedStartNode ? "Attack Path" : "Device Topology"}
-                </span>
-                <button
-                  onClick={() => setTopologyMinimized(true)}
-                  className="minimizeButton"
-                >
-                  -
-                </button>
-              </div>
-              <div ref={topologyRef} className="topologyGraph" />
-            </div>
-        ) : (
-            <div className="minimizedWrapper">
-              <button
-                onClick={() => setTopologyMinimized(false)}
-                className="expandButton"
-              >
-                + {selectedStartNode ? "Attack Path" : "Topology"}
-              </button>
-            </div>
-        )}
-      </>
+        {/* 오른쪽 하단 팝업 버튼 */}
+        <IconButton
+          size="small"
+          aria-label="위험 노출도 및 공격 가능도 측정"
+          title="위험 노출도 및 공격 가능도 측정"
+          onClick={() => setTreatAnalysisOpen(true)}
+          sx={{
+            position: 'absolute',
+            bottom: 40,
+            right: 40,
+            zIndex: 1000,
+            bgcolor: 'rgba(124,58,237,0.8)',
+            color: '#fff',
+            borderRadius: '50%',
+            width: 48,
+            height: 48,
+            boxShadow: '0 4px 12px rgba(124,58,237,0.5)',
+            '&:hover': {
+              bgcolor: '#9333ea',
+              color: '#fff',
+              transform: 'scale(1.1)',
+            },
+            transition: 'all 0.3s ease'
+          }}
+        >
+          <AreaChartOutlined style={{ fontSize: 24 }} />
+        </IconButton>
+
+        {/* 위험 노출도 및 공격 가능도 측정 팝업 */}
+        <Dialog
+          open={treatAnalysisOpen}
+          onClose={() => setTreatAnalysisOpen(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              height: '70vh',
+              maxHeight: '70vh',
+              m: 0,
+              position: 'relative',
+              overflow: 'hidden'
+            }
+          }}
+        >
+          <IconButton
+            onClick={() => setTreatAnalysisOpen(false)}
+            sx={{
+              position: 'absolute',
+              right: 23,
+              top: 8.5,
+              color: '#000000ff',
+              zIndex: 1,
+              bgcolor: '#cac7d4ff',
+              '&:hover': {
+                bgcolor: '#39306b',
+                color: '#ffffffff'
+              }
+            }}
+          >
+            ✕
+          </IconButton>
+          <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
+            <TreatAnalysis open={treatAnalysisOpen} isPopup={true} />
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
   );
 }
 

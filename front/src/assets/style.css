@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: url('/Font/NotoSansKR-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
 * {
   -webkit-tap-highlight-color: transparent;
+  font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif;
 }

@@ -290,7 +290,6 @@ function ConnList({ listType, selectedId, visible, byId, adj }) {
 
 // ===================== 메인 컴포넌트 =====================
 export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspectorChange = () => {} }) {
-  const navigate = useNavigate();
   const fgRef = useRef();
   const containerRef = useRef(null);
   const graphContainerRef = useRef(null);
@@ -628,7 +627,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
                   size="small"
                   aria-label="시계열 기반 이상 탐지로 이동"
                   title="시계열 기반 이상 탐지로 이동"
-                  onClick={() => navigate('/ExtInt/TimeSeriesVisualization')}
+                  onClick={() => window.location.href = '/ExtInt/TimeSeriesVisualization'}
                   sx={{
                     position: 'absolute',
                     top: 16,

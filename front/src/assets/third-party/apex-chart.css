@@ -1,3 +1,14 @@
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: url('/Font/NotoSansKR-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+* {
+  font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif;
+}
+
 .apexcharts-legend-series {
   gap: 8px;
 }

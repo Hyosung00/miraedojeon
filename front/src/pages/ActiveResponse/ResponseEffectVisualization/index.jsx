@@ -26,9 +26,7 @@ const ResponseEffectVisualization = memo(() => {
   
   
   return (
-    <div style={{ height: '100vh', width: '100vw' }}>
-      <OffensiveStrategy deviceElementId={deviceElementId} />
-    </div>
+    <OffensiveStrategy deviceElementId={deviceElementId} />
   );
 });
 

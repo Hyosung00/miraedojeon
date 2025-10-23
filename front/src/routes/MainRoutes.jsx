@@ -22,7 +22,7 @@ const InternalNetwork = Loadable(lazy(() => import('pages/ExtInt/Internal')));
 // IntelligentCyberTargets
 const TargetDashboard = Loadable(lazy(() => import('pages/IntelligentCyberTargets/target')));
 const TargetIdentification = Loadable(lazy(() => import('pages/IntelligentCyberTargets/TargetIdentification')));
-const TargetPrioity = Loadable(lazy(() => import('pages/IntelligentCyberTargets/TargetPrioity')));
+const TargetPriority = Loadable(lazy(() => import('pages/IntelligentCyberTargets/TargetPriority')));
 
 // ActiveResponse
 const ResponseEffectVisualization = Loadable(lazy(() => import('pages/ActiveResponse/ResponseEffectVisualization')));
@@ -66,7 +66,7 @@ const MainRoutes = {
       children: [
         { path: 'targetDashboard', element: <TargetDashboard /> },
         { path: 'targetIdentification', element: <TargetIdentification /> },
-        { path: 'priorityVisualization', element: <TargetPrioity /> }
+        { path: 'priorityVisualization', element: <TargetPriority /> }
       ]
     },
     {

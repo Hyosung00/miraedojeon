@@ -5,7 +5,7 @@ const headerTitles = {
   "/dashboard/default": "대시보드",
   "/CyberObjectInfo/MultilayerVisualization": "사이버 3계층 멀티레이어 가시화",
   "/Osint&DataFusion/GeoIP": "OSINT 정보 수집",
-  "/Osint&Data Fusion/FusionDB": "융합 데이터베이스 구축",
+  "/Osint&DataFusion/FusionDB": "융합 데이터베이스 구축",
   "/ExtInt/TimeSeriesVisualization": "시계열 기반 이상탐지",
   "/ExtInt/internaltopology": "내부망 기본맵 가시화",
   "/ExtInt/externaltopology": "외부망 토폴로지",

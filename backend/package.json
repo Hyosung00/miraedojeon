@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Backend API for North Korea attack data",
-  "main": "server.js",
+  "main": "mongoDB_server.js",
   "scripts": {
     "start": "concurrently \"node mongoDB_server.js\" \"py -m uvicorn Neo4j_server:app --reload --port 8000\"",
     "dev": "nodemon mongoDB_server.js",

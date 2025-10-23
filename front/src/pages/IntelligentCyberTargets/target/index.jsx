@@ -1,1 +1,3 @@
-export { default } from './TargetDashboard';
+import TargetDashboard from './TargetDashboard';
+export default TargetDashboard;
+

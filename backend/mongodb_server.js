@@ -3,11 +3,13 @@ const { MongoClient } = require('mongodb');
 const cors = require('cors');
 
 const app = express();
+const readInfoApi = require('./readInfoApi');
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(readInfoApi);
 
 // MongoDB 접속 정보
 const MONGO_URI = "mongodb+srv://lovea:milab123@cluster0.zvlayyo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";

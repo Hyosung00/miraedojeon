@@ -253,7 +253,7 @@ const [isLoaded, setIsLoaded] = useState(false);
             gap: 4px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
             z-index: 1000;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif;
           `;
 
           // 2D 버튼

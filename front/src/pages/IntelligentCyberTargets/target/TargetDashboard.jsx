@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, Box, Grid, Typography } from "@mui/material";
+import { Card, CardContent, Box, Grid, Typography, IconButton, Dialog, DialogContent } from "@mui/material";
+import { PushpinOutlined, AreaChartOutlined } from '@ant-design/icons';
 
 // Lazy load components for better code splitting
 const TargetGraphComp = lazy(() => import("./TargetGraphComp"));
@@ -12,6 +13,8 @@ const EventLog = lazy(() => import("./dashboard/EventLog"));
 // Regular imports for critical components
 import StatisticsCard from "./StatisticsCard.jsx";
 import { extractUniqueTypes } from "./TargetCondition/filterUtils";
+import TargetIdentification from "../TargetIdentification/index";
+import TargetPriority from "../TargetPriority/index";
 import "./Target.css";
 
 // Loading fallback component
@@ -35,6 +38,10 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
   const [filterConditions, setFilterConditions] = useState({});
   const [currentLogs, setCurrentLogs] = useState(logs);
   const [selectedNode, setSelectedNode] = useState(null);
+  
+  // 팝업 상태 관리
+  const [targetIdentificationOpen, setTargetIdentificationOpen] = useState(false);
+  const [targetPriorityOpen, setTargetPriorityOpen] = useState(false);
 
   // Memoize original nodes to prevent recalculation
   const originalNodes = useMemo(() => 
@@ -551,6 +558,137 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
           </Card>
         </Box>
       </CardContent>
+
+      {/* 오른쪽 하단 팝업 버튼들 */}
+      <IconButton
+        size="small"
+        aria-label="네트워크 구조 분석 및 표적 식별"
+        title="네트워크 구조 분석 및 표적 식별"
+        onClick={() => setTargetIdentificationOpen(true)}
+        sx={{
+          position: 'absolute',
+          bottom: 40,
+          right: 100,
+          zIndex: 1000,
+          bgcolor: 'rgba(124,58,237,0.8)',
+          color: '#fff',
+          borderRadius: '50%',
+          width: 48,
+          height: 48,
+          boxShadow: '0 4px 12px rgba(124,58,237,0.5)',
+          '&:hover': {
+            bgcolor: '#9333ea',
+            color: '#fff',
+            transform: 'scale(1.1)',
+          },
+          transition: 'all 0.3s ease'
+        }}
+      >
+        <PushpinOutlined style={{ fontSize: 24 }} />
+      </IconButton>
+
+      <IconButton
+        size="small"
+        aria-label="핵심 표적 점수 분석"
+        title="핵심 표적 점수 분석"
+        onClick={() => setTargetPriorityOpen(true)}
+        sx={{
+          position: 'absolute',
+          bottom: 40,
+          right: 40,
+          zIndex: 1000,
+          bgcolor: 'rgba(124,58,237,0.8)',
+          color: '#fff',
+          borderRadius: '50%',
+          width: 48,
+          height: 48,
+          boxShadow: '0 4px 12px rgba(124,58,237,0.5)',
+          '&:hover': {
+            bgcolor: '#9333ea',
+            color: '#fff',
+            transform: 'scale(1.1)',
+          },
+          transition: 'all 0.3s ease'
+        }}
+      >
+        <AreaChartOutlined style={{ fontSize: 24 }} />
+      </IconButton>
+
+      {/* 네트워크 구조 분석 팝업 */}
+      <Dialog
+        open={targetIdentificationOpen}
+        onClose={() => setTargetIdentificationOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '70vh',
+            maxHeight: '70vh',
+            m: 0,
+            position: 'relative',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <IconButton
+          onClick={() => setTargetIdentificationOpen(false)}
+          sx={{
+            position: 'absolute',
+            right: 23,
+            top: 8.5,
+            color: '#000000ff',
+            zIndex: 1,
+            bgcolor: '#cac7d4ff',
+            '&:hover': {
+              bgcolor: '#39306b',
+              color: '#ffffffff'
+            }
+          }}
+        >
+          ✕
+        </IconButton>
+        <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
+          <TargetIdentification open={targetIdentificationOpen} isPopup={true} />
+        </DialogContent>
+      </Dialog>
+
+      {/* 핵심 표적 점수 분석 팝업 */}
+      <Dialog
+        open={targetPriorityOpen}
+        onClose={() => setTargetPriorityOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            height: '70vh',
+            maxHeight: '70vh',
+            m: 0,
+            position: 'relative',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <IconButton
+          onClick={() => setTargetPriorityOpen(false)}
+          sx={{
+            position: 'absolute',
+            right: 23,
+            top: 8.5,
+            color: '#666',
+            zIndex: 1,
+            bgcolor: '#cac7d4ff',
+            '&:hover': {
+              bgcolor: 'rgba(255,255,255,1)',
+              color: '#000'
+            }
+          }}
+        >
+          ✕
+        </IconButton>
+        <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
+          <TargetPriority open={targetPriorityOpen} isPopup={true} />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
