@@ -3,7 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const router = express.Router();
 
-const INFO_DIR = path.join(__dirname, './Console');
+const INFO_DIR_LOCAL = path.join(__dirname, './Console'); // 로컬
+const INFO_DIR_DEPLOY = path.join(__dirname, './Console'); // 배포
+
+// 환경에 따라 경로 선택
+const INFO_DIR = process.env.NODE_ENV === 'production' ? INFO_DIR_DEPLOY : INFO_DIR_LOCAL;
 
 // 파일 내용 반환 API
 router.get('/api/read-info-file', (req, res) => {
