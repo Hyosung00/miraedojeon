@@ -1591,43 +1591,37 @@ const TwoDPage = () => {
       <Dialog
         open={fusionDBOpen}
         onClose={() => closePopup('osintDetail')}
-        maxWidth="lg"
+        maxWidth="md"
         fullWidth
         PaperProps={{
           sx: {
-            height: '80vh',
-            maxHeight: '80vh',
-            m: 0
+            height: '70vh',
+            maxHeight: '70vh',
+            m: 0,
+            position: 'relative',
+            overflow: 'hidden'
           }
         }}
       >
-        <DialogTitle sx={{ 
-          m: 0, 
-          p: 2, 
-          bgcolor: '#f0edfd',
-          borderBottom: '2px solid #39306b',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <Typography variant="h6" sx={{ color: '#39306b', fontWeight: 'bold' }}>
-            융합 데이터베이스 구축
-          </Typography>
-          <IconButton
-            aria-label="닫기"
-            onClick={() => closePopup('osintDetail')}
-            sx={{
-              color: '#39306b',
-              '&:hover': {
-                bgcolor: 'rgba(57, 48, 107, 0.1)'
-              }
-            }}
-          >
-            <CloseOutlined />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ p: 0, height: 'calc(100% - 64px)' }}>
-          <FusionDBConsole open={fusionDBOpen} />
+        <IconButton
+          onClick={() => closePopup('osintDetail')}
+          sx={{
+            position: 'absolute',
+            right: 23,
+            top: 8.5,
+            color: '#000000ff',
+            zIndex: 1,
+            bgcolor: '#cac7d4ff',
+            '&:hover': {
+              bgcolor: '#39306b',
+              color: '#ffffffff'
+            }
+          }}
+        >
+          ✕
+        </IconButton>
+        <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
+          <FusionDBConsole open={fusionDBOpen} isPopup={true} />
         </DialogContent>
       </Dialog>
     </Card>
