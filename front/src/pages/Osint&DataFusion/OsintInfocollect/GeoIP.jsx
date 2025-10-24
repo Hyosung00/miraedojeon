@@ -4,6 +4,7 @@ import { Box, Typography, Card, CardContent, Grid, IconButton, Slider, Dialog, D
 import { FundOutlined, DatabaseOutlined, CloseOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import FusionDBConsole from '../FusionDB/FusionDB';
+import { usePopup } from '../../../context/PopupContext';
 
 // ==================== 상수 정의 ====================
 const API_CONFIG = {
@@ -52,7 +53,11 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Cesium Ion Access Token 설정
+// 원본 토큰
 Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzODNiZmZiNC04YTUxLTQ1YzgtOWU1Mi1kNDUyY2I2ZDRkNTQiLCJpZCI6MzQyNDEzLCJpYXQiOjE3NTgxNzMyNDh9.zZRyMPovg5ALhNtG2_E-0ED0qHqd_uQQnAG84eQUyG4';
+
+// 수정 된 토큰
+// Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiYmM5NTM1NC05YjlkLTQ3NmItOTRhYi0zOWFlNmRkOTU4OWEiLCJpZCI6MzUzNTE4LCJpYXQiOjE3NjEyNjk2OTh9.0pxPJQdwLFl9wTzqp60Zr1rbgPJLdhT00OaBhS84ORs';
 
 // AS 정보 생성 함수
 const generateAS = (country) => {
@@ -257,8 +262,16 @@ const TwoDPage = () => {
   const [error, setError] = useState(null);
   const [attacks, setAttacks] = useState([]);
 
-  // FusionDB 팝업 상태
-  const [fusionDBOpen, setFusionDBOpen] = useState(false);
+  // 통합 PopupContext 사용
+  const { popups, openPopup, closePopup } = usePopup();
+  const fusionDBOpen = popups.osintDetail;
+
+  // 메뉴에서 팝업 오픈 요청 시 자동으로 열리도록
+  useEffect(() => {
+    if (popups.osintDetail) {
+      // 팝업이 이미 열려있으면 아무것도 하지 않음
+    }
+  }, [popups.osintDetail]);
 
   // 날짜 및 시간 필터링 상태
   const [allAttacks, setAllAttacks] = useState([]); // 전체 데이터 저장 (일주일, 하루당 20개 = 총 140개)
@@ -432,7 +445,7 @@ const TwoDPage = () => {
           baseLayerPicker: true,
           fullscreenButton: false,
           geocoder: true,
-          homeButton: false,
+          homeButton: true,
           infoBox: true,
           sceneModePicker: false,
           scene3DOnly: false, // 2D 모드 지원
@@ -583,11 +596,13 @@ const TwoDPage = () => {
           viewer.current.camera.setView(northKoreaView);
         }, 500);
 
-        // 홈 버튼을 눌렀을 때도 북한 중심으로
-        viewer.current.homeButton.viewModel.command.beforeExecute.addEventListener((e) => {
-          e.cancel = true;
-          viewer.current.camera.setView(northKoreaView);
-        });
+        // 홈 버튼이 활성화되어 있을 때만 이벤트 등록
+        if (viewer.current.homeButton) {
+          viewer.current.homeButton.viewModel.command.beforeExecute.addEventListener((e) => {
+            e.cancel = true;
+            viewer.current.camera.setView(northKoreaView);
+          });
+        }
 
         // 고품질 렌더링 설정
         if (Cesium.FeatureDetection.supportsImageRenderingPixelated()) {
@@ -1153,17 +1168,17 @@ const TwoDPage = () => {
               onClick={() => navigate('/CyberObjectInfo/MultilayerVisualization')}
               sx={{
                 position: 'absolute',
-                top: 8,
-                right: 165,
+                top: 6.5,
+                right: 125,
                 zIndex: 1000,
-                bgcolor: 'rgba(124,58,237,0.8)',
+                bgcolor: '#222b33',
                 color: '#fff',
-                borderRadius: '50%',
+                borderRadius: '5%',
                 width: 32,
                 height: 32,
-                boxShadow: '0 2px 8px rgba(124,58,237,0.3)',
+                boxShadow: '0 2px 8px #222b33',
                 '&:hover': {
-                  bgcolor: '#9333ea',
+                  bgcolor: '#5b89b1ff',
                   color: '#fff',
                 },
               }}
@@ -1225,21 +1240,21 @@ const TwoDPage = () => {
                 size="small"
                 aria-label="융합 데이터베이스 열기"
                 title="융합 데이터베이스 열기"
-                onClick={() => setFusionDBOpen(true)}
+                onClick={() => openPopup('osintDetail')}
                 sx={{
                   position: 'absolute',
-                  bottom: 5,
-                  left: '98.5%',
+                  bottom: '1%',
+                  left: '98%',
                   transform: 'translateX(-50%)',
                   zIndex: 1000,
-                  bgcolor: 'rgba(124,58,237,0.8)',
+                  bgcolor: '#222b33',
                   color: '#fff',
-                  borderRadius: '50%',
+                  borderRadius: '5%',
                   width: 48,
                   height: 48,
-                  boxShadow: '0 4px 12px rgba(124,58,237,0.5)',
+                  boxShadow: '0 4px 12px #222b33',
                   '&:hover': {
-                    bgcolor: '#9333ea',
+                    bgcolor: '#5b89b1ff',
                     color: '#fff',
                     transform: 'translateX(-50%) scale(1.1)',
                   },
@@ -1575,7 +1590,7 @@ const TwoDPage = () => {
       {/* FusionDB 팝업 다이얼로그 */}
       <Dialog
         open={fusionDBOpen}
-        onClose={() => setFusionDBOpen(false)}
+        onClose={() => closePopup('osintDetail')}
         maxWidth="lg"
         fullWidth
         PaperProps={{
@@ -1600,7 +1615,7 @@ const TwoDPage = () => {
           </Typography>
           <IconButton
             aria-label="닫기"
-            onClick={() => setFusionDBOpen(false)}
+            onClick={() => closePopup('osintDetail')}
             sx={{
               color: '#39306b',
               '&:hover': {

@@ -9,7 +9,6 @@ const DashboardDefault = Loadable(lazy(() => import('pages/CyberObjectInfo/dashb
 
 // Osint & Data Fusion
 const GeoIP = Loadable(lazy(() => import('pages/Osint&DataFusion/OsintInfocollect')));
-const FusionDB = Loadable(lazy(() => import('pages/Osint&DataFusion/FusionDB')));
 
 // CyberObjectInfo
 const CyberDashboard = Loadable(lazy(() => import('pages/CyberObjectInfo/dashboard')));
@@ -21,12 +20,9 @@ const InternalNetwork = Loadable(lazy(() => import('pages/ExtInt/Internal')));
 
 // IntelligentCyberTargets
 const TargetDashboard = Loadable(lazy(() => import('pages/IntelligentCyberTargets/target')));
-const TargetIdentification = Loadable(lazy(() => import('pages/IntelligentCyberTargets/TargetIdentification')));
-const TargetPriority = Loadable(lazy(() => import('pages/IntelligentCyberTargets/TargetPriority')));
 
 // ActiveResponse
 const ResponseEffectVisualization = Loadable(lazy(() => import('pages/ActiveResponse/ResponseEffectVisualization')));
-const ThreatAnalysis = Loadable(lazy(() => import('pages/ActiveResponse/ThreatAnalysis')));
 
 
 const MainRoutes = {
@@ -47,13 +43,12 @@ const MainRoutes = {
         { path: 'MultilayerVisualization', element: <CyberMultilayer /> }
       ]
     },
-    {
-      path: 'ActiveResponse',
-      children: [
-        { path: 'responseeffectvisualization', element: <ResponseEffectVisualization /> },
-        { path: 'threatanalysis', element: <ThreatAnalysis /> }
-      ]
-    },
+    // {
+    //   path: 'ActiveResponse',
+    //   children: [
+    //     { path: 'responseeffectvisualization', element: <ResponseEffectVisualization /> }
+    //   ]
+    // },
     {
       path: 'ExtInt',
       children: [
@@ -64,16 +59,13 @@ const MainRoutes = {
     {
       path: 'target',
       children: [
-        { path: 'targetDashboard', element: <TargetDashboard /> },
-        { path: 'targetIdentification', element: <TargetIdentification /> },
-        { path: 'priorityVisualization', element: <TargetPriority /> }
+        { path: 'targetDashboard', element: <TargetDashboard /> }
       ]
     },
     {
       path: 'Osint&DataFusion',
       children: [
-        { path: 'GeoIP', element: <GeoIP /> },
-        { path: 'FusionDB', element: <FusionDB /> }
+        { path: 'GeoIP', element: <GeoIP /> }
       ]
     }
   ]

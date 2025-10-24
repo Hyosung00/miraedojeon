@@ -23,15 +23,17 @@ const externalNetwork = {
       id: 'TargetIdentification',
       title: '네트워크 구조 분석 및 표적 식별',
       type: 'item',
-      url: '/target/targetIdentification',
-      icon: icons.PushpinOutlined
+      url: '/target/targetDashboard',
+      icon: icons.PushpinOutlined,
+      onClick: 'openTargetDetailPopup'
     },
     {
       id: 'TargetPriorityVisualization',
       title: '핵심 표적 점수 분석',
       type: 'item',
-      url: '/target/priorityVisualization',
-      icon: icons.AreaChartOutlined
+      url: '/target/targetDashboard',
+      icon: icons.AreaChartOutlined,
+      onClick: 'openTargetDetailPopup'
     },
     {
       id: 'Target',

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import { Link, useLocation, matchPath } from 'react-router-dom';
+import { Link, useLocation, matchPath, useNavigate } from 'react-router-dom';
 
 // material-ui
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -15,12 +15,15 @@ import Box from '@mui/material/Box';
 import IconButton from 'components/@extended/IconButton';
 
 import { handlerDrawerOpen, useGetMenuMaster } from 'api/menu';
+import { usePopup } from 'context/PopupContext';
 
 // ==============================|| NAVIGATION - LIST ITEM ||============================== //
 
 export default function NavItem({ item, level, isParents = false, setSelectedID }) {
   const { menuMaster } = useGetMenuMaster();
   const drawerOpen = menuMaster.isDashboardDrawerOpened;
+  const navigate = useNavigate();
+  const { openPopup } = usePopup();
 
   const downLG = useMediaQuery((theme) => theme.breakpoints.down('lg'));
 
@@ -29,11 +32,26 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
     itemTarget = '_blank';
   }
 
-  const itemHandler = () => {
+  const itemHandler = (e) => {
     if (downLG) handlerDrawerOpen(false);
 
     if (isParents && setSelectedID) {
       setSelectedID(item.id);
+    }
+
+    // 팝업 열기 매핑
+    const popupMap = {
+      'openTreatAnalysisPopup': { name: 'treatAnalysis', url: '/ActiveResponse/responseeffectvisualization' },
+      'openTargetDetailPopup': { name: 'targetDetail', url: item.url },
+      'openOsintDetailPopup': { name: 'osintDetail', url: item.url }
+    };
+
+    const popup = popupMap[item.onClick];
+    if (popup) {
+      e.preventDefault();
+      navigate(popup.url);
+      setTimeout(() => openPopup(popup.name), 100);
+      return;
     }
   };
 
@@ -50,7 +68,16 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
   );
 
   const { pathname } = useLocation();
-  const isSelected = !!matchPath({ path: item?.link ? item.link : item.url, end: false }, pathname);
+  // 클릭해도 색 변화 없는 메뉴 id 목록
+  const noSelectIds = [
+    'ThreatAnalysis',
+    'TargetIdentification',
+    'TargetPriorityVisualization',
+    'FusionDB'
+  ];
+  const isSelected = noSelectIds.includes(item.id)
+    ? false
+    : !!matchPath({ path: item?.link ? item.link : item.url, end: false }, pathname);
 
   const textColor = 'text.primary';
   const iconSelectedColor = 'primary.main';
@@ -59,8 +86,8 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
     <>
       <Box sx={{ position: 'relative' }}>
         <ListItemButton
-          component={Link}
-          to={item.url}
+          component={item.onClick && item.onClick.startsWith('open') ? 'div' : Link}
+          to={item.onClick && item.onClick.startsWith('open') ? undefined : item.url}
           target={itemTarget}
           disabled={item.disabled}
           selected={isSelected}
@@ -84,7 +111,7 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
               '&.Mui-selected': { '&:hover': { bgcolor: 'transparent' }, bgcolor: 'transparent' }
             })
           })}
-          onClick={() => itemHandler()}
+          onClick={(e) => itemHandler(e)}
         >
           {itemIcon && (
             <ListItemIcon

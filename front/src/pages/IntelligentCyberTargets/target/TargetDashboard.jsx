@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, lazy, Suspense } from "react";
+import React, { useState, useCallback, useMemo, lazy, Suspense, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, Box, Grid, Typography, IconButton, Dialog, DialogContent } from "@mui/material";
 import { PushpinOutlined, AreaChartOutlined } from '@ant-design/icons';
@@ -15,6 +15,7 @@ import StatisticsCard from "./StatisticsCard.jsx";
 import { extractUniqueTypes } from "./TargetCondition/filterUtils";
 import TargetIdentification from "../TargetIdentification/index";
 import TargetPriority from "../TargetPriority/index";
+import { usePopup } from '../../../context/PopupContext';
 import "./Target.css";
 
 // Loading fallback component
@@ -39,9 +40,17 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
   const [currentLogs, setCurrentLogs] = useState(logs);
   const [selectedNode, setSelectedNode] = useState(null);
   
-  // 팝업 상태 관리
-  const [targetIdentificationOpen, setTargetIdentificationOpen] = useState(false);
-  const [targetPriorityOpen, setTargetPriorityOpen] = useState(false);
+  // 통합 PopupContext 사용
+  const { popups, openPopup, closePopup } = usePopup();
+  const targetIdentificationOpen = popups.targetDetail && popups.targetDetail;
+  const targetPriorityOpen = popups.targetDetail && popups.targetDetail;
+
+  // 메뉴에서 팝업 오픈 요청 시 자동으로 열리도록
+  useEffect(() => {
+    if (popups.targetDetail) {
+      // 팝업이 이미 열려있으면 아무것도 하지 않음
+    }
+  }, [popups.targetDetail]);
 
   // Memoize original nodes to prevent recalculation
   const originalNodes = useMemo(() => 
@@ -564,7 +573,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         size="small"
         aria-label="네트워크 구조 분석 및 표적 식별"
         title="네트워크 구조 분석 및 표적 식별"
-        onClick={() => setTargetIdentificationOpen(true)}
+        onClick={() => openPopup('targetDetail')}
         sx={{
           position: 'absolute',
           bottom: 40,
@@ -591,7 +600,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         size="small"
         aria-label="핵심 표적 점수 분석"
         title="핵심 표적 점수 분석"
-        onClick={() => setTargetPriorityOpen(true)}
+        onClick={() => openPopup('targetDetail')}
         sx={{
           position: 'absolute',
           bottom: 40,
@@ -617,7 +626,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
       {/* 네트워크 구조 분석 팝업 */}
       <Dialog
         open={targetIdentificationOpen}
-        onClose={() => setTargetIdentificationOpen(false)}
+        onClose={() => closePopup('targetDetail')}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -631,7 +640,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         }}
       >
         <IconButton
-          onClick={() => setTargetIdentificationOpen(false)}
+          onClick={() => closePopup('targetDetail')}
           sx={{
             position: 'absolute',
             right: 23,
@@ -655,7 +664,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
       {/* 핵심 표적 점수 분석 팝업 */}
       <Dialog
         open={targetPriorityOpen}
-        onClose={() => setTargetPriorityOpen(false)}
+        onClose={() => closePopup('targetDetail')}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -669,7 +678,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         }}
       >
         <IconButton
-          onClick={() => setTargetPriorityOpen(false)}
+          onClick={() => closePopup('targetDetail')}
           sx={{
             position: 'absolute',
             right: 23,

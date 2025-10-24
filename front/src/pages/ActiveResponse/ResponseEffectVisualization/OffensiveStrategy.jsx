@@ -8,6 +8,7 @@ import "./OS.css";
 import { Card, CardContent, IconButton, Dialog, DialogContent } from '@mui/material';
 import { AreaChartOutlined } from '@ant-design/icons';
 import TreatAnalysis from '../ThreatAnalysis/TreatAnalysis';
+import { usePopup } from '../../../context/PopupContext';
 
 function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   // topology: Device 노드들을 표시 (좌측하단)
@@ -25,8 +26,9 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   // 선택된 시작 노드
   const [selectedStartNode, setSelectedStartNode] = useState(null);
   
-  // 팝업 상태 관리
-  const [treatAnalysisOpen, setTreatAnalysisOpen] = useState(false);
+  // 팝업 상태 관리 - 통합 Context 사용
+  const { popups, openPopup, closePopup } = usePopup();
+  const treatAnalysisOpen = popups.treatAnalysis;
 
   // internal fallback when parent does not control deviceElementId
   const [internalSelected, setInternalSelected] = useState(null);
@@ -419,7 +421,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           size="small"
           aria-label="위험 노출도 및 공격 가능도 측정"
           title="위험 노출도 및 공격 가능도 측정"
-          onClick={() => setTreatAnalysisOpen(true)}
+          onClick={() => openPopup('treatAnalysis')}
           sx={{
             position: 'absolute',
             bottom: 40,
@@ -445,7 +447,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         {/* 위험 노출도 및 공격 가능도 측정 팝업 */}
         <Dialog
           open={treatAnalysisOpen}
-          onClose={() => setTreatAnalysisOpen(false)}
+          onClose={() => closePopup('treatAnalysis')}
           maxWidth="md"
           fullWidth
           PaperProps={{
@@ -459,7 +461,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           }}
         >
           <IconButton
-            onClick={() => setTreatAnalysisOpen(false)}
+            onClick={() => closePopup('treatAnalysis')}
             sx={{
               position: 'absolute',
               right: 23,
