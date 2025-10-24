@@ -39,11 +39,12 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
       setSelectedID(item.id);
     }
 
-    // 팝업 열기 매핑
+    // 팝업 열기 매핑 (새로운 onClick 식별자 반영)
     const popupMap = {
-      'openTreatAnalysisPopup': { name: 'treatAnalysis', url: '/ActiveResponse/responseeffectvisualization' },
-      'openTargetDetailPopup': { name: 'targetDetail', url: item.url },
-      'openOsintDetailPopup': { name: 'osintDetail', url: item.url }
+      'openTreatAnalysisPopup': { name: 'treatAnalysis', url: item.url },
+      'openTargetIdentificationPopup': { name: 'targetIdentification', url: item.url },
+      'openTargetPriorityPopup': { name: 'targetPriority', url: item.url },
+      'openFusionDBPopup': { name: 'fusionDB', url: item.url }
     };
 
     const popup = popupMap[item.onClick];

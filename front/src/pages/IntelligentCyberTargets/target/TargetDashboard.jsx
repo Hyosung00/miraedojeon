@@ -42,15 +42,15 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
   
   // 통합 PopupContext 사용
   const { popups, openPopup, closePopup } = usePopup();
-  const targetIdentificationOpen = popups.targetDetail && popups.targetDetail;
-  const targetPriorityOpen = popups.targetDetail && popups.targetDetail;
+  const targetIdentificationOpen = popups.targetIdentification;
+  const targetPriorityOpen = popups.targetPriority;
 
   // 메뉴에서 팝업 오픈 요청 시 자동으로 열리도록
   useEffect(() => {
-    if (popups.targetDetail) {
+    if (popups.targetIdentification || popups.targetPriority) {
       // 팝업이 이미 열려있으면 아무것도 하지 않음
     }
-  }, [popups.targetDetail]);
+  }, [popups.targetIdentification, popups.targetPriority]);
 
   // Memoize original nodes to prevent recalculation
   const originalNodes = useMemo(() => 
@@ -626,7 +626,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
       {/* 네트워크 구조 분석 팝업 */}
       <Dialog
         open={targetIdentificationOpen}
-        onClose={() => closePopup('targetDetail')}
+        onClose={() => closePopup('targetIdentification')}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -640,7 +640,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         }}
       >
         <IconButton
-          onClick={() => closePopup('targetDetail')}
+          onClick={() => closePopup('targetIdentification')}
           sx={{
             position: 'absolute',
             right: 23,
@@ -664,7 +664,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
       {/* 핵심 표적 점수 분석 팝업 */}
       <Dialog
         open={targetPriorityOpen}
-        onClose={() => closePopup('targetDetail')}
+        onClose={() => closePopup('targetPriority')}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -678,7 +678,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         }}
       >
         <IconButton
-          onClick={() => closePopup('targetDetail')}
+          onClick={() => closePopup('targetPriority')}
           sx={{
             position: 'absolute',
             right: 23,

@@ -264,14 +264,14 @@ const TwoDPage = () => {
 
   // 통합 PopupContext 사용
   const { popups, openPopup, closePopup } = usePopup();
-  const fusionDBOpen = popups.osintDetail;
+  const fusionDBOpen = popups.fusionDB;
 
   // 메뉴에서 팝업 오픈 요청 시 자동으로 열리도록
   useEffect(() => {
-    if (popups.osintDetail) {
+    if (popups.fusionDB) {
       // 팝업이 이미 열려있으면 아무것도 하지 않음
     }
-  }, [popups.osintDetail]);
+  }, [popups.fusionDB]);
 
   // 날짜 및 시간 필터링 상태
   const [allAttacks, setAllAttacks] = useState([]); // 전체 데이터 저장 (일주일, 하루당 20개 = 총 140개)
@@ -1240,7 +1240,7 @@ const TwoDPage = () => {
                 size="small"
                 aria-label="융합 데이터베이스 열기"
                 title="융합 데이터베이스 열기"
-                onClick={() => openPopup('osintDetail')}
+                onClick={() => openPopup('fusionDB')}
                 sx={{
                   position: 'absolute',
                   bottom: '1%',
@@ -1590,7 +1590,7 @@ const TwoDPage = () => {
       {/* FusionDB 팝업 다이얼로그 */}
       <Dialog
         open={fusionDBOpen}
-        onClose={() => closePopup('osintDetail')}
+        onClose={() => closePopup('fusionDB')}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -1604,7 +1604,7 @@ const TwoDPage = () => {
         }}
       >
         <IconButton
-          onClick={() => closePopup('osintDetail')}
+          onClick={() => closePopup('fusionDB')}
           sx={{
             position: 'absolute',
             right: 23,

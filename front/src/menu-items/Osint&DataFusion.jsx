@@ -30,7 +30,7 @@ const externalNetwork = {
       type: 'item',
       url: '/Osint&DataFusion/GeoIP',
       icon: icons.DatabaseOutlined,
-      onClick: 'openOsintDetailPopup'
+      onClick: 'openFusionDBPopup'
     }
   ]
 };

@@ -25,7 +25,7 @@ const externalNetwork = {
       type: 'item',
       url: '/target/targetDashboard',
       icon: icons.PushpinOutlined,
-      onClick: 'openTargetDetailPopup'
+      onClick: 'openTargetIdentificationPopup'
     },
     {
       id: 'TargetPriorityVisualization',
@@ -33,7 +33,7 @@ const externalNetwork = {
       type: 'item',
       url: '/target/targetDashboard',
       icon: icons.AreaChartOutlined,
-      onClick: 'openTargetDetailPopup'
+      onClick: 'openTargetPriorityPopup'
     },
     {
       id: 'Target',

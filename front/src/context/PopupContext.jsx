@@ -7,6 +7,9 @@ export const usePopup = () => useContext(PopupContext);
 export function PopupProvider({ children }) {
   const [popups, setPopups] = useState({
     treatAnalysis: false,
+    targetIdentification: false,
+    targetPriority: false,
+    fusionDB: false,
     targetDetail: false,
     osintDetail: false
   });
