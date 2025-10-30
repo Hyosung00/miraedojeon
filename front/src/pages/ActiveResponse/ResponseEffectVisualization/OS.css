@@ -9,47 +9,200 @@
   font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif;
 }
 
-.offensive-root {
+/* ==================== 공격 전략 시각화 스타일 ==================== */
+
+/* 메인 컨테이너 */
+.offensive-strategy-container {
   width: 100%;
   height: calc(100vh - 120px);
-  width: 100%;
-  overflow: hidden;
-  background: #f0edfd; 
+  margin: 0;
+  padding: 0;
 }
 
-.offensive-main {
-  padding: 16px;
-  height: 100%;
-  display: flex;
-  gap: 16px;
-  overflow: hidden;
-}
-
-.offensive-attack {
+/* 공격 그래프 영역 */
+.attack-graph-section {
   flex: 1;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  background-color: #f0edfd;
+  border: 1px solid #f0edfd;
+  box-shadow: 0 4px 12px #cdccd2;
+}
+
+/* 상단 상태 바 */
+.status-bar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  background: #f0edfd;
+  color: rgb(0, 0, 0);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* 그래프 캔버스 */
+.attack-graph-canvas {
   width: 100%;
   height: 100%;
+}
+
+/* 범례 */
+.legend-box {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.start {
+  background-color: #00FF00;
+  border: 2px solid #00CC00;
+}
+
+.legend-dot.target {
+  background-color: #FF0000;
+  border: 2px solid #CC0000;
+}
+
+.legend-dot.via {
+  background-color: #FFA500;
+  border: 2px solid #FF8C00;
+}
+
+.legend-line {
+  width: 20px;
+  height: 2px;
+  background-color: #FFD700;
+  border-radius: 1px;
+  box-shadow: 0 0 4px #FFD700;
+}
+
+/* 우측 패널 */
+.right-panel {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (min-width: 1200px) {
+  .right-panel {
+    width: 400px;
+    max-width: 400px;
+  }
+}
+
+/* 정보 카드 공통 스타일 */
+.info-card {
+  background-color: #f0edfd;
+  color: #333;
+  border: 1px solid #d0c9f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.info-card.scrollable {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
-.offensive-attack-header {
+.card-title {
   margin-bottom: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0;
+  font-weight: bold;
+  font-size: 14px;
+  color: #7c3aed;
 }
 
-.offensive-attack-canvas {
-  width: 100%;
+.card-content-scroll {
   flex: 1;
+  overflow: auto;
   min-height: 0;
-  border: 1px solid #eee;
-  border-radius: 4px;
 }
 
-.offensive-topology {
+/* 경로 리스트 아이템 */
+.path-item {
+  padding: 8px;
+  margin-bottom: 4px;
+  background-color: rgba(124, 58, 237, 0.05);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #555;
+  transition: all 0.3s ease;
+}
+
+.path-item:hover {
+  background-color: rgba(124, 58, 237, 0.1);
+}
+
+.path-item.selected {
+  background-color: #fff;
+  border: 2px solid #4CAF50;
+}
+
+/* 노드 정보 아이템 */
+.node-item {
+  margin-bottom: 4px;
+  padding: 4px;
+  background-color: rgba(124, 58, 237, 0.05);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #555;
+}
+
+/* 로그 아이템 */
+.log-item {
+  margin-bottom: 2px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #333;
+}
+
+.empty-message {
+  color: #999;
+  font-size: 12px;
+}
+
+/* Device Topology 미니 뷰 */
+.topology-mini-view {
   position: fixed;
   left: 16px;
   bottom: 16px;
@@ -57,59 +210,35 @@
   height: 400px;
   border: 1px solid #ccc;
   border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   z-index: 9999;
   overflow: hidden;
 }
 
-.offensive-topology-header {
+.topology-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 6px;
   border-bottom: 1px solid #eee;
-  background: #fafafa;
+  background-color: #fafafa;
 }
 
-.offensive-topology-title {
+.topology-title {
   font-size: 12px;
   font-weight: bold;
 }
 
-.offensive-topology-canvas {
+.topology-canvas {
   width: 100%;
   height: calc(100% - 40px);
 }
 
-.offensive-topology-minimized {
+/* Topology 복원 버튼 */
+.topology-restore-button {
   position: fixed;
   left: 16px;
   bottom: 16px;
   z-index: 9999;
-}
-
-.offensive-btn {
-  cursor: pointer;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.offensive-btn-small {
-  padding: 4px 12px;
-  font-size: 14px;
-  border-radius: 4px;
-}
-
-.offensive-btn-topology {
-  cursor: pointer;
-  background: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  padding: 2px 8px;
 }

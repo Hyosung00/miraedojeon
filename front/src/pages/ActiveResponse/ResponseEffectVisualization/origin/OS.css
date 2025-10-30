@@ -1,0 +1,397 @@
+@font-face {
+  font-family: 'Noto Sans KR';
+  src: url('/Font/NotoSansKR-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+}
+
+* {
+  font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif;
+}
+
+.offensive-root {
+  width: 100%;
+  height: calc(100vh - 120px);
+  overflow: hidden;
+  background: #f0edfd; 
+}
+
+.offensive-main {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.offensive-attack {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.offensive-attack-header {
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.offensive-attack-canvas {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #eee;
+  border-radius: 16px;
+}
+
+.offensive-topology {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  width: 400px;
+  height: 400px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.offensive-topology-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
+}
+
+.offensive-topology-title {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.offensive-topology-canvas {
+  width: 100%;
+  height: calc(100% - 40px);
+}
+
+.offensive-topology-minimized {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 9999;
+}
+
+.offensive-btn {
+  cursor: pointer;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.offensive-btn-small {
+  padding: 4px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.offensive-btn-topology {
+  cursor: pointer;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 2px 8px;
+}
+
+.offensive-right-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 400px;
+  bottom: 0;
+  background: #f5f5f5;
+  border-left: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.offensive-panel-card {
+  flex: 1;
+  background: #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.offensive-panel-card-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #333;
+  border-bottom: 2px solid #999;
+  padding-bottom: 8px;
+}
+
+.offensive-panel-card-content {
+  font-size: 12px;
+  color: #555;
+}
+
+.offensive-panel-card-empty {
+  font-size: 12px;
+  color: #888;
+}
+
+.offensive-path-item {
+  padding: 8px;
+  margin-bottom: 4px;
+  cursor: pointer;
+  background: #fff;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.offensive-path-item.selected {
+  background: #ccc;
+}
+
+.offensive-log-item {
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.offensive-card-wrapper {
+  width: 100%;
+  height: calc(100vh - 120px);
+}
+
+.offensive-card-content {
+  padding: 0;
+  height: 100%;
+  position: relative;
+}
+
+.offensive-card-content:last-child {
+  padding-bottom: 0;
+}
+
+.offensive-popup-button {
+  position: absolute;
+  bottom: 40px;
+  right: 40px;
+  z-index: 1000;
+  background-color: rgba(124,58,237,0.8);
+  color: #fff;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  box-shadow: 0 4px 12px rgba(124,58,237,0.5);
+  transition: all 0.3s ease;
+}
+
+.offensive-popup-button:hover {
+  background-color: #9333ea;
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.offensive-dialog-close {
+  position: absolute;
+  right: 23px;
+  top: 8.5px;
+  color: #000000ff;
+  z-index: 1;
+  background-color: #cac7d4ff;
+}
+
+.offensive-dialog-close:hover {
+  background-color: #39306b;
+  color: #ffffffff;
+}
+
+.offensive-dialog-content {
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* OffensiveStrategy.jsx 전용 클래스 */
+.attack {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.attack.start-selected {
+  right: 400px;
+}
+
+.attack-graph {
+  width: 100%;
+  height: calc(100vh - 48px);
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.show-all-btn {
+  padding: 4px 12px;
+  cursor: pointer;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.right-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 400px;
+  bottom: 0;
+  background: #f5f5f5;
+  border-left: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.card {
+  flex: 1;
+  background: #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #333;
+  border-bottom: 2px solid #999;
+  padding-bottom: 8px;
+}
+
+.card-content {
+  font-size: 12px;
+  color: #555;
+}
+
+.card-empty {
+  color: #999;
+}
+
+.path-item {
+  padding: 8px;
+  margin-bottom: 4px;
+  background: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.path-item.selected {
+  background: #fff;
+  border: 2px solid #4CAF50;
+}
+
+.path-node-info {
+  margin-bottom: 4px;
+  padding: 4px;
+  background: #f9f9f9;
+  border-radius: 3px;
+}
+
+.log-item {
+  font-size: 11px;
+  font-family: monospace;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.topology {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  width: 400px;
+  height: 400px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.topology-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
+}
+
+.topology-title {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.topology-canvas {
+  width: 100%;
+  height: calc(100% - 40px);
+}
+
+.topology-minimized {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 9999;
+}
+
+.topology-minimized-btn {
+  cursor: pointer;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.topology-close-btn {
+  cursor: pointer;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 2px 8px;
+}

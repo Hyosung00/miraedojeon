@@ -43,12 +43,12 @@ const MainRoutes = {
         { path: 'MultilayerVisualization', element: <CyberMultilayer /> }
       ]
     },
-    // {
-    //   path: 'ActiveResponse',
-    //   children: [
-    //     { path: 'responseeffectvisualization', element: <ResponseEffectVisualization /> }
-    //   ]
-    // },
+    {
+      path: 'ActiveResponse',
+      children: [
+        { path: 'responseeffectvisualization', element: <ResponseEffectVisualization /> }
+      ]
+    },
     {
       path: 'ExtInt',
       children: [
