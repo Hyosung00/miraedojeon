@@ -345,7 +345,3 @@ def neo4j_ping():
 def health_check():
     return {"status": "ok"}
 
-
-# === OffensiveStrategy.jsx 기반 API ===
-
-

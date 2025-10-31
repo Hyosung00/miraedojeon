@@ -1,12 +1,13 @@
 @font-face {
-  font-family: 'Noto Sans KR';
-  src: url('/Font/NotoSansKR-VariableFont_wght.ttf') format('truetype');
-  font-weight: 100 900;
+  font-family: 'NanumSquare';
+  src: url('/Font/NanumSquareB.otf') format('opentype');
+  font-weight: 700;
   font-style: normal;
+  font-display: swap;
 }
 
 * {
-  font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif;
+  font-family: 'NanumSquare', 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif;
 }
 
 .apexcharts-legend-series {

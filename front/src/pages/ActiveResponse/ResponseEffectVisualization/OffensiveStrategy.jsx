@@ -39,8 +39,10 @@ import neo4j from "neo4j-driver";
 import { DataSet } from "vis-data";
 import { Network } from "vis-network/standalone";
 import "vis-network/styles/vis-network.css";
-import { Box, Typography, Card, CardContent, Grid, IconButton, Button } from '@mui/material';
-import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { Box, Typography, Card, CardContent, Grid, IconButton, Button, Dialog, DialogContent, DialogTitle } from '@mui/material';
+import { MinusOutlined, PlusOutlined, FundOutlined, CloseOutlined } from '@ant-design/icons';
+import TreatAnalysis from '../ThreatAnalysis/TreatAnalysis';
+import { usePopup } from '../../../context/PopupContext';
 import './OS.css';
 
 const driver = neo4j.driver(
@@ -61,6 +63,17 @@ async function fetchData(queryString = "MATCH (n) RETURN n LIMIT 25", params = {
 
 
 function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
+    // 통합 PopupContext 사용
+    const { popups, openPopup, closePopup } = usePopup();
+    const treatAnalysisOpen = popups.treatAnalysis;
+
+    // 메뉴에서 팝업 오픈 요청 시 자동으로 열리도록
+    useEffect(() => {
+        if (popups.treatAnalysis) {
+            // 팝업이 열리면 추가 작업 가능
+        }
+    }, [popups.treatAnalysis]);
+
     // topology: Device 노드들(좌측)
     const topologyRef = useRef(null);
     const topologyNetRef = useRef(null);
@@ -1033,25 +1046,44 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                                         ? `공격 목표: ${effectiveElementId}${selectedStartNode ? " (시작 노드 선택됨)" : ""}`
                                         : "공격 목표 미선택"}
                             </Typography>
-                            {selectedStartNode && (
-                                <Button
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                {/* TreatAnalysis 팝업 버튼 */}
+                                <IconButton
                                     size="small"
-                                    variant="contained"
-                                    onClick={() => setSelectedStartNode(null)}
+                                    onClick={() => openPopup('treatAnalysis')}
                                     sx={{
-                                        bgcolor: '#4CAF50',
+                                        bgcolor: '#7c3aed',
                                         color: 'white',
                                         '&:hover': {
-                                            bgcolor: '#45a049'
+                                            bgcolor: '#6d28d9'
                                         },
-                                        fontSize: 11,
-                                        py: 0.5,
-                                        px: 1.5
+                                        width: 32,
+                                        height: 32
                                     }}
+                                    title="위험 분석 보기"
                                 >
-                                    모든 시작 노드 표시
-                                </Button>
-                            )}
+                                    <FundOutlined style={{ fontSize: 16 }} />
+                                </IconButton>
+                                {selectedStartNode && (
+                                    <Button
+                                        size="small"
+                                        variant="contained"
+                                        onClick={() => setSelectedStartNode(null)}
+                                        sx={{
+                                            bgcolor: '#4CAF50',
+                                            color: 'white',
+                                            '&:hover': {
+                                                bgcolor: '#45a049'
+                                            },
+                                            fontSize: 11,
+                                            py: 0.5,
+                                            px: 1.5
+                                        }}
+                                    >
+                                        모든 시작 노드 표시
+                                    </Button>
+                                )}
+                            </Box>
                         </Box>
 
                         <div
@@ -1283,6 +1315,44 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                     </Button>
                 </Box>
             )}
+
+            {/* TreatAnalysis 팝업 다이얼로그 */}
+            <Dialog
+                open={treatAnalysisOpen}
+                onClose={() => closePopup('treatAnalysis')}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        height: '70vh',
+                        maxHeight: '70vh',
+                        m: 0,
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }
+                }}
+            >
+                <IconButton
+                    onClick={() => closePopup('treatAnalysis')}
+                    sx={{
+                        position: 'absolute',
+                        right: 23,
+                        top: 8.5,
+                        color: '#000000ff',
+                        zIndex: 1,
+                        bgcolor: '#cac7d4ff',
+                        '&:hover': {
+                            bgcolor: '#39306b',
+                            color: '#ffffffff'
+                        }
+                    }}
+                >
+                    ✕
+                </IconButton>
+                <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
+                    <TreatAnalysis open={treatAnalysisOpen} isPopup={true} />
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }
