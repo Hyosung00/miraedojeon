@@ -4,8 +4,8 @@ import neo4j from "neo4j-driver";
 import { DataSet } from "vis-data";
 import { Network } from "vis-network/standalone";
 import "vis-network/styles/vis-network.css";
-import { Box, Typography, Card, CardContent, IconButton, Button, Dialog, DialogContent } from '@mui/material';
-import { MinusOutlined, PlusOutlined, FundOutlined } from '@ant-design/icons';
+import { Box, Typography, Card, CardContent, IconButton, Button, Dialog, DialogContent, Paper } from '@mui/material';
+import { MinusOutlined, PlusOutlined, FundOutlined, InfoOutlined } from '@ant-design/icons';
 import TreatAnalysis from '../ThreatAnalysis/TreatAnalysis';
 import { usePopup } from '../../../context/PopupContext';
 import './OS.css';
@@ -46,17 +46,14 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
   useEffect(() => { /* 팝업 상태만 동기화 */ }, [popups.treatAnalysis]);
 
-  // Topology (좌측/미니)
+  // Device Topology (메인)
   const topologyRef = useRef(null);
   const topologyNetRef = useRef(null);
   const [topologyData, setTopologyData] = useState({ nodes: [], edges: [] });
-  const [topologyMinimized, setTopologyMinimized] = useState(false);
   const initialTopologyRef = useRef(null);
   const nodePositionsRef = useRef(null);
 
-  // Attack Graph (메인)
-  const attackRef = useRef(null);
-  const attackNetRef = useRef(null);
+  // Attack Path Data
   const [attackGraphData, setAttackGraphData] = useState({ nodes: [], edges: [] });
   const [loadingAttack, setLoadingAttack] = useState(false);
   const [selectedStartNode, setSelectedStartNode] = useState(null);
@@ -67,13 +64,14 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   const [typedLogText, setTypedLogText] = useState("");
   const typingTimerRef = useRef(null);
 
+  // 정보 팝업 상태
+  const [infoPopupOpen, setInfoPopupOpen] = useState(false);
+
   // 내부 선택 device elementId (부모 미제공 시)
   const [internalSelected, setInternalSelected] = useState(null);
   const effectiveElementId = deviceElementId ?? internalSelected;
 
   // 재사용 refs
-  const topologyNodesRef = useRef(null);
-  const topologyEdgesRef = useRef(null);
   const onSelectDeviceRef = useRef(onSelectDevice);
   const attackGraphDataRef = useRef(attackGraphData);
   const loadingAttackRef = useRef(loadingAttack);
@@ -164,11 +162,11 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       CALL {
         MATCH (start:Physical {project:'multi-layer'}), (target:Physical {id:$targetPhysicalId, project:'multi-layer'})
         WHERE id(start) = $startId
-        MATCH p = (start)-[:CONNECTED*1..100]-(target)
+        MATCH p = (start)-[:CONNECTED*1..12]-(target)
         WHERE ALL(r IN relationships(p) WHERE r.project = 'multi-layer')
           AND size(nodes(p)) = size(apoc.coll.toSet(nodes(p)))
         WITH start, target, nodes(p) AS pathNodes
-        LIMIT 100
+        LIMIT 10
         RETURN start, target, pathNodes
       }
       WITH start, target, pathNodes, range(0, size(pathNodes)-1) AS indices
@@ -213,7 +211,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         WHERE id(start) = $startId
         MATCH (via:Physical {project:'multi-layer'})
         WHERE via <> start AND via <> target AND properties(via).type IS NOT NULL
-        WITH start, target, via ORDER BY rand() LIMIT 50
+        WITH start, target, via ORDER BY rand() LIMIT 10
         MATCH p1 = shortestPath((start)-[:CONNECTED*]-(via))
         WHERE ALL(r IN relationships(p1) WHERE r.project = 'multi-layer')
         MATCH p2 = shortestPath((via)-[:CONNECTED*]-(target))
@@ -255,7 +253,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       ORDER BY idx
       WITH start, target, collect(nodeInfo) AS orderedNodeInfos
       RETURN start, target, orderedNodeInfos
-      LIMIT 500
+      LIMIT 10
     `;
 
     fetchData(query, { targetPhysicalId, startId }).then((recs) => {
@@ -393,152 +391,228 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     return () => { canceled = true; };
   }, [effectiveElementId, selectedStartNode]);
 
-  // 3) 좌측 Device topology 렌더링
+  // 3) Device topology 렌더링 (메인)
   useEffect(() => {
     if (!topologyRef.current) return;
-    // 최초 1회 생성
-    if (!topologyNetRef.current) {
-      const baseTopology = initialTopologyRef.current ?? topologyData;
-      topologyNodesRef.current = new DataSet((baseTopology.nodes || []).map(n => { const c = { ...n }; c.shape='image'; c.image=getNodeImage(c); c.borderWidth=2; c.size=c.size ?? 20; c.color={ border: '#205AAA' }; c.font={ color: '#7c3aed' }; return c; }));
-      topologyEdgesRef.current = new DataSet((baseTopology.edges || []).map(e => ({ ...e })));
-      const data = { nodes: topologyNodesRef.current, edges: topologyEdgesRef.current };
-      const options = { interaction: { hover: true, multiselect: false }, nodes: { shape:'image', brokenImage: getNodeImage({}), size:30, borderWidth:2, color:{ border:'#b39ddb' }, font:{ size:10, color:'#7c3aed' } }, edges: { smooth: { enabled: false } }, physics: { stabilization: true } };
-      topologyNetRef.current = new Network(topologyRef.current, data, options);
-      if (nodePositionsRef.current) {
-        topologyNetRef.current.setOptions({ physics: false, edges: { smooth: { enabled: false } } });
-        Object.keys(nodePositionsRef.current).forEach(id => { try { topologyNetRef.current.moveNode(id, nodePositionsRef.current[id].x, nodePositionsRef.current[id].y); } catch {} });
-      } else {
-        topologyNetRef.current.once('stabilizationIterationsDone', () => {
-          if (topologyNetRef.current) { nodePositionsRef.current = topologyNetRef.current.getPositions(); topologyNetRef.current.setOptions({ physics: false, edges: { smooth: { enabled: false } } }); }
-        });
-      }
-      topologyNetRef.current.on('selectNode', async (params) => {
-        const nid = params.nodes && params.nodes[0]; if (!nid) return; const node = topologyNodesRef.current.get(nid);
-        if (effectiveElementId) {
-          const physId = await resolvePhysicalIdByElementId(node?.elementId);
-          if (physId != null) setSelectedStartNode(physId); else console.warn('No Physical id found for Device:', node?.elementId);
-        }
+
+    // 선택된 경로의 노드와 엣지 ID 수집
+    const selectedPathNodes = new Set();
+    const selectedPathEdges = new Set();
+
+    if (selectedPath !== null && pathList[selectedPath]) {
+      const pathNodes = pathList[selectedPath];
+      // 경로의 노드 ID들을 수집
+      pathNodes.forEach(node => {
+        selectedPathNodes.add(node.id);
       });
-      if (topologyMinimized) return;
+
+      // 경로의 엣지 ID들을 수집 (연속된 노드 간의 엣지)
+      for (let i = 0; i < pathNodes.length - 1; i++) {
+        const from = pathNodes[i].id;
+        const to = pathNodes[i + 1].id;
+        // 양방향 엣지 ID 모두 추가
+        selectedPathEdges.add(`${Math.min(from, to)}-${Math.max(from, to)}`);
+      }
     }
 
-    // 데이터셋 업데이트
-    try {
-      const baseTopology = initialTopologyRef.current ?? topologyData;
-      const pathNodeElementIds = new Set();
-      if (attackGraphData.nodes) {
-        attackGraphData.nodes.forEach(n => {
-          if (n.group !== 'StartPhysical' && n.group !== 'TargetPhysical' && n.properties && n.properties.id) {
-            const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
-            pathNodeElementIds.add(elemId);
-          }
-        });
-      }
-      const startNodeOriginalId = attackGraphData.nodes?.find(p => p.id === selectedStartNode || p.originalId === selectedStartNode)?.originalId || selectedStartNode;
-      const nodesToShow = (baseTopology.nodes || []).map(n => {
-        const copy = { ...n };
-        let isStartSelected = false;
-        if (selectedStartNode != null && startNodeOriginalId != null) {
-          const phys = attackGraphData.nodes?.find(p => p.originalId === startNodeOriginalId || p.id === startNodeOriginalId);
-          if (phys?.properties && typeof phys.properties.id === 'string') {
-            const physElementId = phys.properties.id.startsWith('ml:') ? phys.properties.id.slice(3) : phys.properties.id;
-            if (physElementId === copy.elementId) isStartSelected = true;
-          }
-          if (!isStartSelected && copy.id === startNodeOriginalId) isStartSelected = true;
-        }
-        const isTarget = effectiveElementId && copy.elementId === effectiveElementId;
-        const isInPath = copy.elementId && pathNodeElementIds.has(copy.elementId);
-        copy.shape='image'; copy.image=getNodeImage(copy); copy.font={ color:'#7c3aed' }; copy.borderWidth=2; copy.color={ border:'#205AAA' }; copy.size=copy.size ?? 12;
-        if (isTarget) { copy.color={ border:'#CC0000' }; copy.size=25; }
-        else if (isStartSelected) { copy.color={ border:'#00FF00' }; copy.size=20; }
-        else if (isInPath) { copy.color={ border:'#FF8C00' }; copy.size=18; }
-        return copy;
-      });
-      const edgesToShow = (baseTopology.edges || []).map(e => ({ ...e }));
-      topologyNodesRef.current.clear(); topologyEdgesRef.current.clear();
-      topologyNodesRef.current.add(nodesToShow); topologyEdgesRef.current.add(edgesToShow);
-    } catch (err) { console.error('Failed to update topology datasets:', err); }
-
-    if (nodePositionsRef.current && topologyNetRef.current) {
-      topologyNetRef.current.setOptions({ physics: false });
-      Object.keys(nodePositionsRef.current).forEach(id => { try { topologyNetRef.current.moveNode(id, nodePositionsRef.current[id].x, nodePositionsRef.current[id].y); } catch {} });
+    // 최초 1회 생성 또는 재생성
+    if (topologyNetRef.current) {
+      topologyNetRef.current.destroy();
+      topologyNetRef.current = null;
     }
 
-    return () => {
-      if (topologyNetRef.current) {
-        topologyNetRef.current.destroy(); topologyNetRef.current = null; topologyNodesRef.current = null; topologyEdgesRef.current = null;
-      }
-    };
-  }, [topologyData, selectedStartNode, attackGraphData, effectiveElementId, topologyMinimized]);
-
-  // 4) 메인(공격/토폴로지) 렌더링
-  useEffect(() => {
-    if (!attackRef.current) return;
-    if (attackNetRef.current) { attackNetRef.current.destroy(); attackNetRef.current = null; }
     const baseTopology = initialTopologyRef.current ?? topologyData;
 
-    let nodesToShow; let edgesToShow; let isFiltered = false;
-    let options = {
-      interaction: { hover: true, multiselect: false },
-      nodes: { shape: 'image', brokenImage: getNodeImage({}), size: 30, borderWidth: 2, color: { border: '#b39ddb' }, font: { size: 18, color: '#7c3aed' } },
-      edges: { smooth: selectedStartNode ? { enabled: true, type: 'dynamic', roundness: 0.7 } : { enabled: false } },
-      physics: { stabilization: true, barnesHut: { gravitationalConstant: -8000, springConstant: 0.04, springLength: 95 } }
-    };
+    // 노드 매핑 생성 (Physical ID -> Device elementId)
+    const physicalToDevice = new Map();
+    if (attackGraphData.nodes) {
+      attackGraphData.nodes.forEach(n => {
+        if (n.properties && n.properties.id) {
+          const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
+          physicalToDevice.set(n.id, elemId);
+        }
+      });
+    }
 
-    if (!selectedStartNode) {
-      nodesToShow = (effectiveElementId ? (baseTopology.nodes || []).map(n => {
-        const copy = { ...n }; if (copy.elementId && copy.elementId === effectiveElementId) { copy.color = { border: '#9f1515' }; copy.size = 25; }
-        copy.shape='image'; copy.image=getNodeImage(copy); copy.font={ color:'#7c3aed' }; return copy;
-      }) : (baseTopology.nodes || []).map(n => { const copy = { ...n }; copy.shape='image'; copy.image=getNodeImage(copy); copy.font={ color:'#7c3aed' }; return copy; }));
-      edgesToShow = (baseTopology.edges || []).map(e => ({ ...e }));
-      options.physics.enabled = true;
-    } else {
-      nodesToShow = attackGraphData.nodes ? attackGraphData.nodes.map(n => { const c = { ...n }; c.shape='image'; c.image=getNodeImage(c); c.borderWidth=2; c.size=c.size ?? 20; c.color=c.color || { border:'#2B7CE9' }; c.font={ color:'#7c3aed' }; return c; }) : [];
-      edgesToShow = attackGraphData.edges ? attackGraphData.edges.map(e => ({ ...e })) : [];
-      if (attackGraphData.pathsMap) {
-        const pathEdges = attackGraphData.pathsMap.get(selectedStartNode);
-        if (pathEdges && pathEdges.size > 0) {
-          isFiltered = true;
-          const filteredEdges = edgesToShow.filter(edge => pathEdges.has(edge.id));
-          const nodeIds = new Set([selectedStartNode, attackGraphData.targetNodeId]);
-          filteredEdges.forEach(e => { nodeIds.add(e.from); nodeIds.add(e.to); });
-          edgesToShow = filteredEdges;
-          nodesToShow = nodesToShow.filter(n => nodeIds.has(n.id)).map(n => {
-            if (n.id === selectedStartNode) return { ...n, color: { border: '#00CC00' }, size: 20 };
-            if (n.id === attackGraphData.targetNodeId) return { ...n, color: { border: '#CC0000' }, size: 25 };
-            if (n.group === 'ViaPhysical') return { ...n, color: { border: '#FF8C00' }, size: 18 };
-            return { ...n, color: { border: '#FF8C00' }, size: 16 };
-          });
+    // 노드 스타일 적용
+    const nodesToShow = (baseTopology.nodes || []).map(n => {
+      const copy = { ...n };
+      copy.shape = 'image';
+      copy.image = getNodeImage(copy);
+      copy.font = { color: '#7c3aed' };
+      copy.borderWidth = 2;
+
+      // 경로의 노드 찾기
+      let isInSelectedPath = false;
+      if (selectedPath !== null) {
+        // Physical ID로 매핑된 elementId 확인
+        for (const [physId, elemId] of physicalToDevice.entries()) {
+          if (selectedPathNodes.has(physId) && elemId === copy.elementId) {
+            isInSelectedPath = true;
+            break;
+          }
         }
       }
-      options.layout = isFiltered ? { hierarchical: { enabled: true, direction: 'DU', sortMethod: 'directed', levelSeparation: 100, nodeSpacing: 300, treeSpacing: 350, blockShifting: true, edgeMinimization: false, parentCentralization: false } } : {};
-      options.physics.enabled = !isFiltered;
-    }
 
-    const nodes = new DataSet(nodesToShow); const edges = new DataSet(edgesToShow);
-    attackNetRef.current = new Network(attackRef.current, { nodes, edges }, options);
-
-    if (!selectedStartNode) {
-      if (nodePositionsRef.current) {
-        attackNetRef.current.setOptions({ physics: false });
-        Object.keys(nodePositionsRef.current).forEach(id => { try { attackNetRef.current.moveNode(id, nodePositionsRef.current[id].x, nodePositionsRef.current[id].y); } catch {} });
-      } else {
-        attackNetRef.current.once('stabilizationIterationsDone', () => { if (attackNetRef.current) { nodePositionsRef.current = attackNetRef.current.getPositions(); attackNetRef.current.setOptions({ physics: false }); } });
+      // 시작 노드 확인
+      let isStartSelected = false;
+      if (selectedStartNode != null) {
+        const physElementId = physicalToDevice.get(selectedStartNode);
+        if (physElementId === copy.elementId) {
+          isStartSelected = true;
+        }
       }
+
+      // 목표 노드 확인
+      const isTarget = effectiveElementId && copy.elementId === effectiveElementId;
+
+      // 하이라이트 우선순위: 목표 > 시작 > 경로상 노드
+      if (isTarget) {
+        copy.size = 35;
+        copy.borderWidth = 4;
+        copy.color = { border: '#CC0000', background: '#FFE5E5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 0, 0, 0.8)',
+          size: 25,
+          x: 0,
+          y: 0
+        };
+      } else if (isStartSelected) {
+        copy.size = 30;
+        copy.borderWidth = 4;
+        copy.color = { border: '#00CC00', background: '#E5FFE5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(0, 204, 0, 0.8)',
+          size: 20,
+          x: 0,
+          y: 0
+        };
+      } else if (isInSelectedPath) {
+        copy.size = 25;
+        copy.borderWidth = 3;
+        copy.color = { border: '#FF8C00', background: '#FFF5E5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 140, 0, 0.6)',
+          size: 15,
+          x: 0,
+          y: 0
+        };
+      } else {
+        copy.size = 12;
+        copy.color = { border: '#205AAA' };
+        copy.shadow = { enabled: false };
+      }
+
+      return copy;
+    });
+
+    // 엣지 스타일 적용
+    const edgesToShow = (baseTopology.edges || []).map(e => {
+      const edgeCopy = { ...e };
+
+      if (selectedPathEdges.has(e.id)) {
+        // 선택된 경로의 엣지는 노란색으로 하이라이트
+        edgeCopy.color = {
+          color: '#FFD700',
+          highlight: '#FFF000',
+          hover: '#FFF000'
+        };
+        edgeCopy.width = 8;
+        edgeCopy.hoverWidth = 10;
+        edgeCopy.smooth = { enabled: true, type: 'continuous', roundness: 0.5 };
+        edgeCopy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 215, 0, 0.5)',
+          size: 10,
+          x: 0,
+          y: 0
+        };
+      } else {
+        edgeCopy.color = { color: '#848484' };
+        edgeCopy.width = 1;
+      }
+
+      return edgeCopy;
+    });
+
+    const nodes = new DataSet(nodesToShow);
+    const edges = new DataSet(edgesToShow);
+    const data = { nodes, edges };
+
+    const options = {
+      interaction: { hover: true, multiselect: false },
+      nodes: {
+        shape: 'image',
+        brokenImage: getNodeImage({}),
+        size: 30,
+        borderWidth: 2,
+        color: { border: '#b39ddb' },
+        font: { size: 14, color: '#7c3aed' }
+      },
+      edges: {
+        smooth: { enabled: false }
+      },
+      physics: {
+        stabilization: true
+      }
+    };
+
+    topologyNetRef.current = new Network(topologyRef.current, data, options);
+
+    // 위치 복원 또는 저장
+    if (nodePositionsRef.current) {
+      topologyNetRef.current.setOptions({ physics: false, edges: { smooth: { enabled: false } } });
+      Object.keys(nodePositionsRef.current).forEach(id => {
+        try {
+          topologyNetRef.current.moveNode(id, nodePositionsRef.current[id].x, nodePositionsRef.current[id].y);
+        } catch (e) {
+          // 노드가 존재하지 않을 수 있음
+        }
+      });
+    } else {
+      topologyNetRef.current.once('stabilizationIterationsDone', () => {
+        if (topologyNetRef.current) {
+          nodePositionsRef.current = topologyNetRef.current.getPositions();
+          topologyNetRef.current.setOptions({ physics: false, edges: { smooth: { enabled: false } } });
+        }
+      });
     }
 
-    attackNetRef.current.on('selectNode', async (params) => {
-      const nid = params.nodes && params.nodes[0]; if (!nid) return; const node = nodes.get(nid);
+    // 노드 선택 이벤트
+    topologyNetRef.current.on('selectNode', async (params) => {
+      const nid = params.nodes && params.nodes[0];
+      if (!nid) return;
+      const node = nodes.get(nid);
+
       if (effectiveElementId) {
-        if (node?.elementId) { const physId = await resolvePhysicalIdByElementId(node.elementId); if (physId != null) { setSelectedStartNode(physId); return; } }
-        if (node && (node.group === 'StartPhysical' || attackGraphData.allStartNodes?.has(nid))) setSelectedStartNode(nid);
+        // 목표가 이미 선택된 경우, 시작 노드로 설정
+        const physId = await resolvePhysicalIdByElementId(node?.elementId);
+        if (physId != null) {
+          setSelectedStartNode(physId);
+        } else {
+          console.warn('No Physical id found for Device:', node?.elementId);
+        }
       } else {
-        const elementIdFull = node && node.elementId; if (onSelectDeviceRef.current) onSelectDeviceRef.current(elementIdFull); else setInternalSelected(elementIdFull);
+        // 목표 노드 선택
+        const elementIdFull = node && node.elementId;
+        if (onSelectDeviceRef.current) {
+          onSelectDeviceRef.current(elementIdFull);
+        } else {
+          setInternalSelected(elementIdFull);
+        }
       }
     });
 
-    return () => { if (attackNetRef.current && selectedStartNode) { attackNetRef.current.destroy(); attackNetRef.current = null; } };
-  }, [attackGraphData, selectedStartNode, effectiveElementId, topologyData, onSelectDevice]);
+    return () => {
+      if (topologyNetRef.current) {
+        topologyNetRef.current.destroy();
+        topologyNetRef.current = null;
+      }
+    };
+  }, [topologyData, selectedStartNode, attackGraphData, effectiveElementId, selectedPath, pathList]);
 
   // 보조 유틸: 노드 상세정보
   const showNodeDetails = (node) => { const props = node?.properties || node?.props || {}; alert(JSON.stringify(props, null, 2)); };
@@ -659,12 +733,12 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   return (
     <Card component="main" role="main" aria-label="공격 경로 시각화" className="offensive-strategy-container" sx={{ width: '100%', height: 'calc(100vh - 120px)', bgcolor: 'background.paper', boxShadow: 3, m: 0 }}>
       <CardContent sx={{ p: 1, height: '100%', '&:last-child': { pb: 1 }, display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 1, overflow: 'hidden' }}>
-        {/* 메인 공격 그래프 */}
-        <Card component="section" aria-label="공격 그래프 영역" className="attack-graph-section" sx={{ flex: 1, position: 'relative', overflow: 'hidden', height: '100%' }}>
+        {/* 메인 Device Topology */}
+        <Card component="section" aria-label="Device Topology 영역" className="attack-graph-section" sx={{ flex: 1, position: 'relative', overflow: 'hidden', height: '100%' }}>
           <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 }, position: 'relative' }}>
             <Box className="status-bar">
               <Typography variant="caption" color="inherit">
-                {loadingAttack ? '공격 그래프 로딩 중...' : (effectiveElementId ? `공격 목표: ${effectiveElementId}${selectedStartNode ? ' (시작 노드 선택됨)' : ''}` : '공격 목표 미선택')}
+                {loadingAttack ? '공격 경로 분석 중...' : (effectiveElementId ? `공격 목표: ${effectiveElementId}${selectedStartNode ? ' (시작 노드 선택됨)' : ''}` : '공격 목표 미선택')}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <IconButton size="small" onClick={() => openPopup('treatAnalysis')} sx={{ bgcolor: '#7c3aed', color: 'white', '&:hover': { bgcolor: '#6d28d9' }, width: 32, height: 32 }} title="위험 분석 보기">
@@ -672,17 +746,17 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                 </IconButton>
                 {selectedStartNode && (
                   <Button size="small" variant="contained" onClick={() => setSelectedStartNode(null)} sx={{ bgcolor: '#4CAF50', color: 'white', '&:hover': { bgcolor: '#45a049' }, fontSize: 11, py: 0.5, px: 1.5 }}>
-                    모든 시작 노드 표시
+                    시작 노드 초기화
                   </Button>
                 )}
               </Box>
             </Box>
-            <div ref={attackRef} role="img" aria-label="공격 경로를 표시하는 네트워크 그래프" className="attack-graph-canvas" />
+            <div ref={topologyRef} role="img" aria-label="Device Topology를 표시하는 네트워크 그래프" className="attack-graph-canvas" />
             <Box className="legend-box">
               <ul className="legend-list" role="list">
                 <li className="legend-item"><Box className="legend-dot start" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>시작 노드</Typography></li>
                 <li className="legend-item"><Box className="legend-dot target" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>목표 노드</Typography></li>
-                <li className="legend-item"><Box className="legend-dot via" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>경유 노드</Typography></li>
+                <li className="legend-item"><Box className="legend-dot via" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>경로 노드</Typography></li>
                 <li className="legend-item"><Box className="legend-line" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>공격 경로</Typography></li>
               </ul>
             </Box>
@@ -817,7 +891,26 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
             {/* 카드 4: 계산 로그 (타자 애니메이션) */}
             <Card component="section" aria-label="계산 로그" className="info-card scrollable" sx={{ flex: 1, minHeight: 0 }}>
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', flex: 1, '&:last-child': { pb: 2 } }}>
-                <Typography variant="body2" component="h3" className="card-title">📋 계산 로그</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="body2" component="h3" className="card-title">📋 계산 로그</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => setInfoPopupOpen(true)}
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: '#e3f2fd',
+                      border: '1px solid #90caf9',
+                      borderRadius: '50%',
+                      '&:hover': { bgcolor: '#bbdefb' }
+                    }}
+                  >
+                    <InfoOutlined style={{ fontSize: 16, color: '#1976d2' }} />
+                  </IconButton>
+                </Box>
                 <Box className="card-content-scroll" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', fontSize: 11 }}>
                   {typedLogText && typedLogText.length > 0 ? typedLogText : (
                     <Typography variant="caption" className="empty-message">방책 리스트에서 경로를 선택하면 계산 과정을 타이핑 애니메이션으로 표시합니다.</Typography>
@@ -828,31 +921,147 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           </Box>
         )}
 
-        {/* Device Topology 미니 뷰 */}
-        {effectiveElementId && selectedStartNode && !topologyMinimized && (
-          <Card className="topology-mini-view">
-            <Box className="topology-header">
-              <Typography variant="caption" className="topology-title">Device Topology</Typography>
-              <IconButton size="small" onClick={() => setTopologyMinimized(true)} sx={{ bgcolor: '#f0f0f0', border: '1px solid #ccc', borderRadius: 0.5, width: 24, height: 24, '&:hover': { bgcolor: '#e0e0e0' } }}>
-                <MinusOutlined style={{ fontSize: 12 }} />
-              </IconButton>
-            </Box>
-            <div ref={topologyRef} className="topology-canvas" />
-          </Card>
-        )}
-        {effectiveElementId && selectedStartNode && topologyMinimized && (
-          <Box className="topology-restore-button">
-            <Button variant="contained" startIcon={<PlusOutlined />} onClick={() => setTopologyMinimized(false)} sx={{ bgcolor: '#4CAF50', color: 'white', '&:hover': { bgcolor: '#45a049' }, fontSize: 14, fontWeight: 'bold', py: 1, px: 2 }}>
-              Topology
-            </Button>
-          </Box>
-        )}
-
         {/* TreatAnalysis 팝업 */}
         <Dialog open={treatAnalysisOpen} onClose={() => closePopup('treatAnalysis')} maxWidth="md" fullWidth PaperProps={{ sx: { height: '70vh', maxHeight: '70vh', m: 0, position: 'relative', overflow: 'hidden' } }}>
           <IconButton onClick={() => closePopup('treatAnalysis')} sx={{ position: 'absolute', right: 23, top: 8.5, color: '#000000ff', zIndex: 1, bgcolor: '#cac7d4ff', '&:hover': { bgcolor: '#39306b', color: '#ffffffff' } }}>x</IconButton>
           <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
             <TreatAnalysis open={treatAnalysisOpen} isPopup={true} />
+          </DialogContent>
+        </Dialog>
+
+        {/* 정보 팝업 - 공격 가능도 및 성공 가능성 설명 */}
+        <Dialog
+          open={infoPopupOpen}
+          onClose={() => setInfoPopupOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: 2 } }}
+        >
+          <Box sx={{ p: 3, bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>📊 공격 가능도 & 성공 가능성 분석</Typography>
+              <IconButton
+                onClick={() => setInfoPopupOpen(false)}
+                sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}
+              >
+                ✕
+              </IconButton>
+            </Box>
+          </Box>
+
+          <DialogContent sx={{ p: 3 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* HRN 설명 */}
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #ff6b6b' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#ff6b6b', mb: 1 }}>
+                  🔴 HRN (고위험 노드 점수)
+                </Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.6, color: '#333' }}>
+                  노드의 보안 위험도를 측정하는 점수입니다.
+                  <br />
+                  <strong>측정 기준:</strong>
+                  <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                    <li>노드의 고위험 취약점 개수 ≥ 전체 취약점 개수의 50% 이상 → 고위험 점수 부여</li>
+                    <li>노드의 CVE 개수 &gt; 평균 CVE 개수 → 고위험 점수(HRN) 부여</li>
+                    <li>점수 범위: 1~3 (1: 낮음, 3: 높음)</li>
+                  </ul>
+                </Typography>
+              </Paper>
+
+              {/* NLS 설명 */}
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #4ecdc4' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#4ecdc4', mb: 1 }}>
+                  🔗 NLS (연결 중요도 점수)
+                </Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.6, color: '#333' }}>
+                  네트워크 내에서 다른 노드와의 연결 중요도입니다.
+                  <br />
+                  <strong>특징:</strong>
+                  <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                    <li>높을수록 보안 위험도 상승 ⬆️</li>
+                    <li>많은 연결을 통해 공격이 빠르게 확산될 수 있음</li>
+                    <li>네트워크 허브 역할을 하는 노드가 높은 NLS를 가짐</li>
+                  </ul>
+                </Typography>
+              </Paper>
+
+              {/* 공격 가능도 설명 */}
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #ffa502' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#ffa502', mb: 1 }}>
+                  ⚔️ 공격 가능도 (Exploitability)
+                </Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.6, color: '#333' }}>
+                  네트워크 경로를 통한 실제 공격 가능성을 측정합니다.
+                  <br />
+                  <strong>계산 공식:</strong>
+                  <div style={{
+                    bgcolor: '#fff9e6',
+                    padding: '12px',
+                    borderRadius: '4px',
+                    fontFamily: 'monospace',
+                    fontSize: '13px',
+                    margin: '8px 0',
+                    border: '1px solid #ffe58f'
+                  }}>
+                    공격 가능도 = (HRN + NLS) × CPS
+                  </div>
+                  <strong>구성 요소:</strong>
+                  <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                    <li><strong>HRN:</strong> 고위험 노드 점수</li>
+                    <li><strong>NLS:</strong> 연결 중요도 점수</li>
+                    <li><strong>CPS:</strong> 네트워크 중심 점수 (1 - 중심성) <br/>
+                      → 낮을수록 감시가 어려워 위험도 상승
+                    </li>
+                  </ul>
+                </Typography>
+              </Paper>
+
+              {/* 성공 가능성 설명 */}
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #00b4d8' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#00b4d8', mb: 1 }}>
+                  ✅ 공격 성공 가능성 (Success Probability)
+                </Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.6, color: '#333' }}>
+                  특정 경로에서 공격이 성공할 가능성을 측정합니다.
+                  <br />
+                  <strong>측정 단계:</strong>
+                  <ol style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                    <li><strong>RS 점수 산출:</strong> 각 노드의 취약점 심각도와 영향도 계산
+                      <div style={{ fontSize: '12px', margin: '4px 0', color: '#666' }}>
+                        RS = (취약점 점수 평균 × (C벡터 + I벡터 + A벡터) / 3)
+                      </div>
+                    </li>
+                    <li><strong>경로의 RS 평균:</strong> 연결된 모든 노드의 RS 점수 평균</li>
+                    <li><strong>전체 네트워크 RS 평균:</strong> 망 전체의 평균 RS 점수</li>
+                    <li><strong>성공 가능성:</strong> 경로 RS 평균 ÷ 전체 네트워크 RS 평균
+                      <div style={{ fontSize: '12px', margin: '4px 0', color: '#666' }}>
+                        = 경로의 평균 취약성 / 전체 네트워크 평균 취약성
+                      </div>
+                    </li>
+                  </ol>
+                  <strong>해석:</strong>
+                  <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                    <li>&gt; 100%: 평균보다 취약한 경로</li>
+                    <li>= 100%: 평균 수준의 취약성</li>
+                    <li>&lt; 100%: 평균보다 안전한 경로</li>
+                  </ul>
+                </Typography>
+              </Paper>
+
+              {/* 종합 분석 */}
+              <Paper sx={{ p: 2, bgcolor: '#e8f5e9', borderLeft: '4px solid #43a047' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#43a047', mb: 1 }}>
+                  🎯 종합 분석
+                </Typography>
+                <Typography variant="body2" sx={{ lineHeight: 1.6, color: '#333' }}>
+                  <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                    <li><strong>공격 가능도</strong>: 경로 자체가 얼마나 공격받을 수 있는가?</li>
+                    <li><strong>공격 성공 가능성</strong>: 경로를 통한 공격이 성공할 확률은?</li>
+                    <li>높은 공격 가능도 + 높은 성공 가능성 = 📍 가장 위험한 경로</li>
+                  </ul>
+                </Typography>
+              </Paper>
+            </Box>
           </DialogContent>
         </Dialog>
       </CardContent>
