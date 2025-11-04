@@ -573,7 +573,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         size="small"
         aria-label="네트워크 구조 분석 및 표적 식별"
         title="네트워크 구조 분석 및 표적 식별"
-        onClick={() => openPopup('targetDetail')}
+        onClick={() => openPopup('targetPriority')}
         sx={{
           position: 'absolute',
           bottom: 40,
@@ -600,7 +600,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         size="small"
         aria-label="핵심 표적 점수 분석"
         title="핵심 표적 점수 분석"
-        onClick={() => openPopup('targetDetail')}
+        onClick={() => openPopup('targetPriority')}
         sx={{
           position: 'absolute',
           bottom: 40,
