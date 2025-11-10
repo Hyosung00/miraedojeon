@@ -1,21 +1,21 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
+const config = require('./config');
 
 const app = express();
 const readInfoApi = require('./readInfoApi');
-const PORT = process.env.PORT || 5000;
+const PORT = config.server.mongodb_port;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(readInfoApi);
 
-// MongoDB 접속 정보
-const MONGO_URI = "mongodb+srv://lovea:milab123@cluster0.zvlayyo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-const DB_NAME = "network_traffic";
-const NODES_COLLECTION = "nodes";
-const EDGES_COLLECTION = "edges";
+// MongoDB 접속 정보 (.env에서 로드)
+const { uri: MONGO_URI, dbName: DB_NAME, collections } = config.mongodb;
+const NODES_COLLECTION = collections.nodes;
+const EDGES_COLLECTION = collections.edges;
 
 let db;
 let nodesCollection;
