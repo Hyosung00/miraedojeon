@@ -4,6 +4,8 @@
   "description": "Backend API for North Korea attack data",
   "main": "mongoDB_server.js",
   "scripts": {
+    "preinstall": "echo 'Installing dependencies...'",
+    "postinstall": "py -m pip install -r requirements.txt",
     "start": "concurrently \"node mongoDB_server.js\" \"py -m uvicorn Neo4j_server:app --reload --port 8000\"",
     "dev": "nodemon mongoDB_server.js",
     "pyserver": "py -m uvicorn Neo4j_server:app --reload --port 8000",
