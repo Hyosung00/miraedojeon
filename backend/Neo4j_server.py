@@ -5,22 +5,20 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from neo4j import GraphDatabase
 from neo4j.exceptions import ServiceUnavailable, AuthError
+from config import config
 
-# ===== Neo4j Aura 접속 설정 =====
-# neo4j 연결 정보 - 내부망(현욱), 표적(효성, 지수)
-# node 분류 (n:Device{project:"internal or facility"})
-NEO4J_URI = "neo4j+s://eff16eb9.databases.neo4j.io"
-URI = "neo4j+ssc://eff16eb9.databases.neo4j.io"
-USERNAME = "neo4j"
-PASSWORD = "_G6MBldCj1gGO_hWjogaMJpleFbjuSZKlMHohGucVrA"
-DBNAME = "neo4j"
-# ==================================
+# ===== Neo4j Aura 접속 설정 (.env에서 로드) =====
+URI = config.neo4j['uri']
+USERNAME = config.neo4j['username']
+PASSWORD = config.neo4j['password']
+DBNAME = config.neo4j['dbname']
 
 # MongoDB 접속 정보 (필요시 사용)
-MONGO_URI = "mongodb+srv://lovea:milab123@cluster0.zvlayyo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-DB_NAME = "network_traffic"
-NODES_COLLECTION = "nodes"
-EDGES_COLLECTION = "edges"
+MONGO_URI = config.mongodb['uri']
+DB_NAME = config.mongodb['db_name']
+NODES_COLLECTION = config.mongodb['collections']['nodes']
+EDGES_COLLECTION = config.mongodb['collections']['edges']
+# ==================================
 
 
 app = FastAPI()

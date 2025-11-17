@@ -95,7 +95,8 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
           sx={(theme) => ({
             zIndex: 1201,
             pl: drawerOpen ? `${level * 28}px` : 1.5,
-            py: !drawerOpen && level === 1 ? 1.25 : 1,
+            // 메뉴 높이 조정
+            py: !drawerOpen && level === 1 ? 1.5 : 1.25,
             ...(drawerOpen && {
               '&:hover': { bgcolor: 'primary.lighter', ...theme.applyStyles('dark', { bgcolor: 'divider' }) },
               '&.Mui-selected': {
@@ -141,7 +142,8 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
           {(drawerOpen || (!drawerOpen && level !== 1)) && (
             <ListItemText
               primary={
-                <Typography variant="h6" sx={{ color: isSelected ? iconSelectedColor : textColor }}>
+                // 메뉴 글자 스타일 조정
+                <Typography variant="h5" sx={{ color: isSelected ? iconSelectedColor : textColor }}> 
                   {item.title}
                 </Typography>
               }
