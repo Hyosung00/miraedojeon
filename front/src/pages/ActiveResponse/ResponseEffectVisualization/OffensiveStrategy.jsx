@@ -220,11 +220,52 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       RETURN start, target, pathRels, orderedNodeInfos, viaCount
     `;
 
-    fetchData(query, { targetPhysicalName, startId }).then((recs) => {
+    fetchData(query, { targetPhysicalName, startId }).then(async (recs) => {
       if (canceled) return;
       if (!recs || recs.length === 0) {
         const fallbackNodes = [];
-        if (startId != null) fallbackNodes.push({ id: startId, label: 'Start', group: 'StartPhysical', title: '', shape: 'image', image: getNodeImage({}), size: 20, color: { border: '#00CC00' }, font: { color: '#7c3aed' }, properties: {} });
+        if (startId != null) {
+          // Physical 노드 정보를 쿼리로 가져와서 사용
+          try {
+            const startPhysQuery = `MATCH (p:Physical {project:'multi-layer'}) WHERE id(p) = $startId RETURN p`;
+            const startPhysRecs = await fetchData(startPhysQuery, { startId });
+            let startPhysNode = null;
+            if (startPhysRecs && startPhysRecs.length > 0) {
+              startPhysNode = startPhysRecs[0].get('p');
+            }
+
+            fallbackNodes.push({
+              id: startId,
+              label: startPhysNode?.properties?.name || 'Start',
+              group: 'StartPhysical',
+              title: '',
+              shape: 'image',
+              image: getNodeImage({}),
+              size: 20,
+              color: { border: '#00CC00' },
+              font: { color: '#7c3aed' },
+              properties: {
+                ...(startPhysNode?.properties || {}),
+                id: startPhysNode?.properties?.id || `ml:${startId}`
+              }
+            });
+          } catch (error) {
+            console.error('Failed to fetch start node info:', error);
+            // 실패 시 기본 노드 추가
+            fallbackNodes.push({
+              id: startId,
+              label: 'Start',
+              group: 'StartPhysical',
+              title: '',
+              shape: 'image',
+              image: getNodeImage({}),
+              size: 20,
+              color: { border: '#00CC00' },
+              font: { color: '#7c3aed' },
+              properties: { id: `ml:${startId}` }
+            });
+          }
+        }
         setAttackGraphData({ nodes: fallbackNodes, edges: [], pathsMap: new Map(), targetNodeId: null, allStartNodes: new Set([startId]), nodeConnections: new Map() });
         setPathList([]);
         if (loadingAttackRef.current) setLoadingAttack(false);
@@ -236,16 +277,29 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       const edgesSet = new Set();
       const allEdges = [];
       let targetId = null;
+      let startNodeInfo = null; // 시작 노드 정보 저장
       const pathsArr = [];
       const nodePathPositions = new Map();
 
       for (let pathIdx = 0; pathIdx < recs.length; pathIdx++) {
         const rec = recs[pathIdx];
+        const startNode = rec.get('start');
         const targetNode = rec.get('target');
         const orderedNodeInfos = rec.get('orderedNodeInfos') || [];
         const pathRels = rec.get('pathRels') || [];
         const viaCount = rec.get('viaCount') || 0;
+
         targetId = targetId ?? (targetNode?.identity ? toNum(targetNode.identity) : null);
+
+        // 시작 노드 정보 저장 (첫 경로에서 한 번만)
+        if (!startNodeInfo && startNode) {
+          startNodeInfo = {
+            id: toNum(startNode.identity),
+            name: startNode.properties?.name,
+            elementId: startNode.properties?.id,
+            properties: startNode.properties
+          };
+        }
 
         console.log(`\n[경로 ${pathIdx + 1}] 우회 노드 수: ${viaCount}개`);
 
@@ -498,13 +552,23 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
             }
           }
           if (!nodesMap.has(originalId)) {
+            // 시작 노드인 경우 startNodeInfo의 정보 사용
+            const useStartInfo = isStart && startNodeInfo && startNodeInfo.id === originalId;
+
             const nodeData = {
               id: originalId,
-              label: nodeInfo.name || nodeInfo.props?.name || nodeInfo.props?.label || (Array.isArray(nodeInfo.labels) ? nodeInfo.labels[0] : undefined) || nodeInfo.nodeId || nodeInfo.props?.id || String(originalId),
+              label: useStartInfo ? startNodeInfo.name : (nodeInfo.name || nodeInfo.props?.name || nodeInfo.props?.label || (Array.isArray(nodeInfo.labels) ? nodeInfo.labels[0] : undefined) || nodeInfo.nodeId || nodeInfo.props?.id || String(originalId)),
               group: nodeGroup,
               title: JSON.stringify({ ...(nodeInfo.props || {}), vulnList: nodeInfo.vulnList || [], vulnScore: nodeInfo.vulnScore ?? null }, null, 2),
               shape: 'image', image: getNodeImage(nodeInfo), size: nodeSize, color: nodeColor,
-              properties: { ...(nodeInfo.props || {}), cveInfos: nodeInfo.cveInfos || [], vulnList: nodeInfo.vulnList || [], vulnScore: nodeInfo.vulnScore ?? null },
+              properties: {
+                ...(useStartInfo ? startNodeInfo.properties : (nodeInfo.props || {})),
+                cveInfos: nodeInfo.cveInfos || [],
+                vulnList: nodeInfo.vulnList || [],
+                vulnScore: nodeInfo.vulnScore ?? null,
+                // Physical ID를 Device elementId로 매핑하기 위한 id 필드
+                id: useStartInfo ? startNodeInfo.elementId : (nodeInfo.props?.id || nodeInfo.nodeId || `ml:${originalId}`)
+              },
               font: { color: '#7c3aed' }
             };
             if (!isTarget && !isStart) { nodeData.x = Math.random() * 1600 - 1200; nodeData.physics = false; }
@@ -687,13 +751,20 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
     const baseTopology = initialTopologyRef.current ?? topologyData;
 
-    // 노드 매핑 생성 (Physical ID -> Device elementId)
+    // 노드 매핑 생성 (Physical ID -> Device elementId, name)
     const physicalToDevice = new Map();
+    const physicalToDeviceName = new Map();
     if (attackGraphData.nodes) {
       attackGraphData.nodes.forEach(n => {
+        // properties.id로 매핑
         if (n.properties && n.properties.id) {
           const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
           physicalToDevice.set(n.id, elemId);
+        }
+        // label/name으로도 매핑
+        const nodeName = n.label || n.properties?.name;
+        if (nodeName) {
+          physicalToDeviceName.set(n.id, nodeName);
         }
       });
     }
@@ -709,11 +780,20 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       // 경로의 노드 찾기
       let isInSelectedPath = false;
       if (selectedPath !== null) {
-        // Physical ID로 매핑된 elementId 확인
+        // Physical ID로 매핑된 elementId 또는 name 확인
         for (const [physId, elemId] of physicalToDevice.entries()) {
           if (selectedPathNodes.has(physId) && elemId === copy.elementId) {
             isInSelectedPath = true;
             break;
+          }
+        }
+        // elementId로 못 찾으면 name으로 시도
+        if (!isInSelectedPath) {
+          for (const [physId, deviceName] of physicalToDeviceName.entries()) {
+            if (selectedPathNodes.has(physId) && deviceName === copy.name) {
+              isInSelectedPath = true;
+              break;
+            }
           }
         }
       }
@@ -722,7 +802,9 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       let isStartSelected = false;
       if (selectedStartNode != null) {
         const physElementId = physicalToDevice.get(selectedStartNode);
-        if (physElementId === copy.elementId) {
+        const physDeviceName = physicalToDeviceName.get(selectedStartNode);
+        if ((physElementId && physElementId === copy.elementId) ||
+            (physDeviceName && physDeviceName === copy.name)) {
           isStartSelected = true;
         }
       }
@@ -855,7 +937,23 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         // 목표가 이미 선택된 경우, 시작 노드로 설정
         const physId = await resolvePhysicalIdByName(node?.name);
         if (physId != null) {
+          console.log('시작 노드 선택:', node?.name, '-> Physical ID:', physId);
           setSelectedStartNode(physId);
+
+          // 선택된 노드 즉시 하이라이트
+          nodes.update({
+            id: nid,
+            size: 30,
+            borderWidth: 4,
+            color: { border: '#00CC00', background: '#E5FFE5' },
+            shadow: {
+              enabled: true,
+              color: 'rgba(0, 204, 0, 0.8)',
+              size: 20,
+              x: 0,
+              y: 0
+            }
+          });
         } else {
           console.warn('No Physical id found for Device name:', node?.name);
         }
@@ -867,6 +965,21 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         } else {
           setInternalSelected(deviceName);
         }
+
+        // 선택된 목표 노드 즉시 하이라이트
+        nodes.update({
+          id: nid,
+          size: 35,
+          borderWidth: 4,
+          color: { border: '#CC0000', background: '#FFE5E5' },
+          shadow: {
+            enabled: true,
+            color: 'rgba(255, 0, 0, 0.8)',
+            size: 25,
+            x: 0,
+            y: 0
+          }
+        });
       }
     });
 
@@ -905,13 +1018,18 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     const pathNodes = pathList[selectedPath];
     const positions = [];
 
-    // Physical ID -> Device elementId 매핑
+    // Physical ID -> Device elementId, name 매핑
     const physicalToDevice = new Map();
+    const physicalToDeviceName = new Map();
     if (attackGraphData.nodes) {
       attackGraphData.nodes.forEach(n => {
         if (n.properties && n.properties.id) {
           const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
           physicalToDevice.set(n.id, elemId);
+        }
+        const nodeName = n.label || n.properties?.name;
+        if (nodeName) {
+          physicalToDeviceName.set(n.id, nodeName);
         }
       });
     }
@@ -919,12 +1037,26 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     // 각 경로 노드의 화면 위치 찾기
     for (const pathNode of pathNodes) {
       const deviceElementId = physicalToDevice.get(pathNode.id);
-      if (!deviceElementId) continue;
+      const deviceName = physicalToDeviceName.get(pathNode.id);
 
       // Device 토폴로지에서 해당 노드 찾기
       const baseTopology = initialTopologyRef.current ?? topologyData;
-      const deviceNode = baseTopology.nodes.find(n => n.elementId === deviceElementId);
-      if (!deviceNode) continue;
+      let deviceNode = null;
+
+      // elementId로 먼저 찾기
+      if (deviceElementId) {
+        deviceNode = baseTopology.nodes.find(n => n.elementId === deviceElementId);
+      }
+
+      // elementId로 못 찾으면 name으로 찾기
+      if (!deviceNode && deviceName) {
+        deviceNode = baseTopology.nodes.find(n => n.name === deviceName);
+      }
+
+      if (!deviceNode) {
+        console.warn('Device node not found for path node:', pathNode.id, deviceElementId, deviceName);
+        continue;
+      }
 
       try {
         const pos = network.getPosition(deviceNode.id);
