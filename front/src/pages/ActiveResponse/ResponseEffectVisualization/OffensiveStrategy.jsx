@@ -169,18 +169,57 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
     const query = `
       MATCH (start:Physical {project:'multi-layer'}), (target:Physical {name:$targetPhysicalName, project:'multi-layer'})
-      WHERE id(start) = $startId
+      WHERE id(start) = $startId AND start <> target
       CALL {
         WITH start, target
-        MATCH p = (start)-[:CONNECTED*1..12]-(target)
-        WHERE ALL(r IN relationships(p) WHERE r.project = 'multi-layer')
-          AND size(nodes(p)) = size(apoc.coll.toSet(nodes(p)))
-        WITH nodes(p) AS pathNodes, relationships(p) AS pathRels, id(start) AS startId, id(target) AS targetId
-        LIMIT 10
-        WITH pathNodes, pathRels, startId, targetId, range(0, size(pathNodes)-1) AS indices
+        // 우회 노드(엔드포인트) 찾기 - 시작과 목표가 아닌 엔드포인트 타입 노드
+        MATCH (via:Physical {project:'multi-layer'})
+        WHERE via <> start AND via <> target 
+          AND properties(via).type IS NOT NULL
+          AND (toLower(properties(via).type) CONTAINS 'laptop'
+               OR toLower(properties(via).type) CONTAINS 'workstation'
+               OR toLower(properties(via).type) CONTAINS 'server'
+               OR toLower(properties(via).type) CONTAINS 'printer'
+               OR toLower(properties(via).type) CONTAINS 'sensor'
+               OR toLower(properties(via).type) CONTAINS 'plc'
+               OR toLower(properties(via).type) CONTAINS 'computer'
+               OR toLower(properties(via).type) CONTAINS 'pc'
+               OR toLower(properties(via).type) CONTAINS 'host')
+        WITH start, target, via
+        ORDER BY rand()
+        LIMIT 50
+        
+        // 시작 -> 우회 노드 경로
+        WITH start, target, via
+        MATCH p1 = shortestPath((start)-[:CONNECTED*1..8]-(via))
+        WHERE ALL(r IN relationships(p1) WHERE r.project = 'multi-layer')
+          AND via <> start
+          AND NONE(n IN nodes(p1)[1..-1] WHERE n = target)
+        
+        // 우회 노드 -> 목표 경로  
+        WITH start, target, via, nodes(p1) AS p1Nodes, relationships(p1) AS p1Rels
+        MATCH p2 = shortestPath((via)-[:CONNECTED*1..8]-(target))
+        WHERE ALL(r IN relationships(p2) WHERE r.project = 'multi-layer')
+          AND via <> target
+          AND NONE(n IN nodes(p2)[1..-1] WHERE n = start)
+        
+        // 두 경로 결합
+        WITH start, target, via,
+             p1Nodes + nodes(p2)[1..] AS pathNodes,
+             p1Rels + relationships(p2) AS pathRels,
+             id(start) AS startId, 
+             id(target) AS targetId,
+             id(via) AS viaId
+        
+        // 경로 길이가 너무 길지 않도록 제한 (최소 3개 노드 = 시작 + 우회 + 목표)
+        WHERE size(pathNodes) <= 15 AND size(pathNodes) >= 3
+        
+        WITH pathNodes, pathRels, startId, targetId, viaId, range(0, size(pathNodes)-1) AS indices
+        LIMIT 20
+        
         UNWIND indices AS idx
-        WITH pathNodes, pathRels, startId, targetId, idx, pathNodes[idx] AS n
-        WITH pathNodes, pathRels, startId, targetId, idx, n,
+        WITH pathNodes, pathRels, startId, targetId, viaId, idx, pathNodes[idx] AS n
+        WITH pathNodes, pathRels, startId, targetId, viaId, idx, n,
              COUNT { (n)-[:CONNECTED {project:'multi-layer'}]-() } AS deg,
              properties(n).type AS nodeType,
              properties(n).ip AS nodeIp,
@@ -188,17 +227,17 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
              properties(n).id AS nodeId
         OPTIONAL MATCH (n)-[:HOSTS]->(l:Logical)
         OPTIONAL MATCH (l)-[:HAS_CVE]->(c:CveDetail)
-        WITH pathNodes, pathRels, startId, targetId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId,
+        WITH pathNodes, pathRels, startId, targetId, viaId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId,
              collect(DISTINCT c) AS cList
-        WITH pathNodes, pathRels, startId, targetId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId,
+        WITH pathNodes, pathRels, startId, targetId, viaId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId,
              [ci IN cList WHERE ci IS NOT NULL | { id: id(ci), props: properties(ci) }] AS cveInfos,
              [ci IN cList WHERE ci IS NOT NULL | coalesce(ci.cve, ci.cveId, ci.id, ci.name)] AS cveIdList,
              [ci IN cList WHERE ci IS NOT NULL |
                 coalesce(toFloat(ci.cvss3), toFloat(ci.cvss), toFloat(ci.baseScore), toFloat(ci.score), toFloat(ci.score_value), toFloat(ci.severity), toFloat(ci.severity_score))
              ] AS rawScores
-        WITH pathNodes, pathRels, startId, targetId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId, cveInfos, cveIdList,
+        WITH pathNodes, pathRels, startId, targetId, viaId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId, cveInfos, cveIdList,
              [s IN rawScores WHERE s IS NOT NULL] AS scoreVals
-        WITH pathNodes, pathRels, startId, targetId, idx,
+        WITH pathNodes, pathRels, startId, targetId, viaId, idx,
              {
                id: id(n), props: properties(n), labels: labels(n), deg: deg, nodeType: nodeType,
                ip: nodeIp, name: nodeName, nodeId: nodeId, cveInfos: cveInfos, vulnList: cveIdList,
@@ -209,20 +248,51 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                ELSE NULL END
              } AS nodeInfo
         ORDER BY idx
-        WITH pathNodes, pathRels, startId, targetId, collect(nodeInfo) AS orderedNodeInfos
-        WITH pathRels, orderedNodeInfos,
-             size([n IN orderedNodeInfos WHERE n.nodeType IS NOT NULL AND n.id <> startId AND n.id <> targetId]) AS viaCount
-        RETURN pathRels, orderedNodeInfos, viaCount
+        WITH pathNodes, pathRels, startId, targetId, viaId, collect(nodeInfo) AS orderedNodeInfos
+        
+        // 우회 엔드포인트 노드 수 계산 (명시적으로 엔드포인트 타입만 카운트)
+        WITH pathRels, orderedNodeInfos, viaId,
+             size([n IN orderedNodeInfos 
+                   WHERE n.nodeType IS NOT NULL 
+                   AND n.id <> startId 
+                   AND n.id <> targetId
+                   AND (toLower(n.nodeType) CONTAINS 'laptop'
+                        OR toLower(n.nodeType) CONTAINS 'workstation'
+                        OR toLower(n.nodeType) CONTAINS 'server'
+                        OR toLower(n.nodeType) CONTAINS 'printer'
+                        OR toLower(n.nodeType) CONTAINS 'sensor'
+                        OR toLower(n.nodeType) CONTAINS 'plc'
+                        OR toLower(n.nodeType) CONTAINS 'computer'
+                        OR toLower(n.nodeType) CONTAINS 'pc'
+                        OR toLower(n.nodeType) CONTAINS 'host')
+                  ]) AS viaCount
+        
+        // 최소 1개 이상의 우회 노드가 있는 경로만 선택
+        WHERE viaCount > 0
+        
+        RETURN pathRels, orderedNodeInfos, viaCount, viaId
       }
-      WITH start, target, pathRels, orderedNodeInfos, viaCount
-      ORDER BY viaCount
+      WITH start, target, pathRels, orderedNodeInfos, viaCount, viaId
+      ORDER BY viaCount ASC, size(pathRels) ASC
       LIMIT 10
-      RETURN start, target, pathRels, orderedNodeInfos, viaCount
+      RETURN start, target, pathRels, orderedNodeInfos, viaCount, viaId
     `;
+
+    console.log('🔍 공격 경로 쿼리 실행 중...');
+    console.log('  시작 노드 ID:', startId);
+    console.log('  목표 노드:', targetPhysicalName);
+    console.log('  조건: 최소 1개 이상의 우회 엔드포인트 경유 필수');
 
     fetchData(query, { targetPhysicalName, startId }).then(async (recs) => {
       if (canceled) return;
+
+      console.log(`✅ 쿼리 완료: ${recs?.length || 0}개의 경로 발견`);
+
       if (!recs || recs.length === 0) {
+        console.warn('⚠️ 최소 1개 이상의 우회 엔드포인트를 경유하는 경로를 찾을 수 없습니다.');
+        console.log('시작 노드 ID:', startId, '목표 노드:', targetPhysicalName);
+        console.log('ℹ️ 다른 시작 노드를 선택하거나 네트워크 연결을 확인하세요.');
+
         const fallbackNodes = [];
         if (startId != null) {
           // Physical 노드 정보를 쿼리로 가져와서 사용
@@ -288,6 +358,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         const orderedNodeInfos = rec.get('orderedNodeInfos') || [];
         const pathRels = rec.get('pathRels') || [];
         const viaCount = rec.get('viaCount') || 0;
+        const viaId = rec.get('viaId') ? toNum(rec.get('viaId')) : null;
 
         targetId = targetId ?? (targetNode?.identity ? toNum(targetNode.identity) : null);
 
@@ -301,7 +372,25 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           };
         }
 
-        console.log(`\n[경로 ${pathIdx + 1}] 우회 노드 수: ${viaCount}개`);
+        console.log(`\n[경로 ${pathIdx + 1}] 우회 엔드포인트 노드 수: ${viaCount}개 ✅ (경유 노드 ID: ${viaId})`);
+
+        // 우회 노드 상세 정보 로그 (엔드포인트 타입만)
+        const viaNodes = orderedNodeInfos.filter(n => {
+          const nodeId = toNum(n.id);
+          const isNotStartOrTarget = nodeId !== startId && nodeId !== targetId;
+          const typeStr = n.nodeType ? String(n.nodeType).toLowerCase() : '';
+          const isEndpoint = typeStr.includes('laptop') || typeStr.includes('workstation') ||
+                            typeStr.includes('server') || typeStr.includes('printer') ||
+                            typeStr.includes('sensor') || typeStr.includes('plc') ||
+                            typeStr.includes('computer') || typeStr.includes('pc') || typeStr.includes('host');
+          return isNotStartOrTarget && isEndpoint && n.nodeType;
+        });
+
+        if (viaNodes.length > 0) {
+          console.log(`  우회 엔드포인트 노드들:`, viaNodes.map(n => `${n.name || n.nodeId}(${n.nodeType}, ID:${toNum(n.id)})`).join(' → '));
+        } else {
+          console.warn(`  ⚠️ 경로 ${pathIdx + 1}에 우회 엔드포인트 노드가 없습니다!`);
+        }
 
         // 엔드포인트/연속 중복 제거
         const endpointIds = new Set();
@@ -413,21 +502,22 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         const startNodeCount = pathNodesForList.filter(n => n.id === startId).length;
         const targetNodeCount = pathNodesForList.filter(n => n.id === targetId).length;
 
-        // 엔드포인트 중복 체크 (시작/목표 노드 제외, 네트워크 장비 제외)
+        // 엔드포인트 중복 체크 (시작/목표 노드 제외, 명시적으로 엔드포인트 타입만)
         const endpointsInPath = pathNodesForList.filter(n => {
           const typeStr = (n.nodeType ? String(n.nodeType) : '').toLowerCase();
 
-          // 네트워크 장비 판별
-          const isNetworkDevice = typeStr.includes('switch') ||
-                                  typeStr.includes('router') ||
-                                  typeStr.includes('firewall') ||
-                                  typeStr.includes('gateway') ||
-                                  typeStr.includes('ids') ||
-                                  typeStr.includes('ips') ||
-                                  typeStr.includes('load') ||
-                                  typeStr.includes('balancer');
+          // 엔드포인트 타입 판별
+          const isEndpoint = typeStr.includes('laptop') ||
+                            typeStr.includes('workstation') ||
+                            typeStr.includes('server') ||
+                            typeStr.includes('printer') ||
+                            typeStr.includes('sensor') ||
+                            typeStr.includes('plc') ||
+                            typeStr.includes('computer') ||
+                            typeStr.includes('pc') ||
+                            typeStr.includes('host');
 
-          return !isNetworkDevice && n.id !== startId && n.id !== targetId;
+          return isEndpoint && n.id !== startId && n.id !== targetId;
         });
 
         const endpointCountMap = new Map();
