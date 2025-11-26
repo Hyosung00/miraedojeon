@@ -1133,35 +1133,66 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
       let update = { id: n.id };
 
-      if (isTarget) {
-        update.size = 35;
-        update.borderWidth = 4;
-        update.color = { border: '#CC0000', background: '#FFE5E5' };
-        update.shadow = { enabled: true, color: 'rgba(255, 0, 0, 0.8)', size: 25, x: 0, y: 0 };
-      } else if (isStartSelected) {
-        update.size = 30;
-        update.borderWidth = 4;
-        update.color = { border: '#00CC00', background: '#E5FFE5' };
-        update.shadow = { enabled: true, color: 'rgba(0, 204, 0, 0.8)', size: 20, x: 0, y: 0 };
-      } else if (isInSelectedPath && selectedPath !== null) {
-        const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
-        const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-        update.size = 28;
-        update.borderWidth = 4;
-        update.color = { border: colorInfo.border, background: '#FFFFFF' };
-        update.shadow = { enabled: true, color: colorInfo.shadow, size: 20, x: 0, y: 0 };
-      } else if (nodeRankInfo) {
-        const lowestRank = nodeRankInfo.lowestRank;
-        const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
-        update.size = 20;
-        update.borderWidth = 3;
-        update.color = { border: colorInfo.border, background: '#FFFFFF' };
-        update.shadow = { enabled: true, color: colorInfo.shadow, size: 12, x: 0, y: 0 };
+      // 특정 경로를 선택한 경우: 다른 노드들 비활성화
+      if (selectedPath !== null) {
+        if (isTarget) {
+          // 목표 노드: 항상 강조
+          update.size = 35;
+          update.borderWidth = 4;
+          update.color = { border: '#CC0000', background: '#FFE5E5' };
+          update.shadow = { enabled: true, color: 'rgba(255, 0, 0, 0.8)', size: 25, x: 0, y: 0 };
+        } else if (isStartSelected) {
+          // 시작 노드: 항상 강조
+          update.size = 30;
+          update.borderWidth = 4;
+          update.color = { border: '#00CC00', background: '#E5FFE5' };
+          update.shadow = { enabled: true, color: 'rgba(0, 204, 0, 0.8)', size: 20, x: 0, y: 0 };
+        } else if (isInSelectedPath) {
+          // 선택된 경로의 노드: 강조
+          const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
+          const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
+          update.size = 28;
+          update.borderWidth = 4;
+          update.color = { border: colorInfo.border, background: '#FFFFFF' };
+          update.shadow = { enabled: true, color: colorInfo.shadow, size: 20, x: 0, y: 0 };
+        } else if (nodeRankInfo) {
+          // 다른 경로의 노드: 완전 투명
+          update.size = 12;
+          update.borderWidth = 1;
+          update.color = { border: 'rgba(150, 150, 150, 0.15)', background: 'rgba(255, 255, 255, 0.1)' };
+          update.shadow = { enabled: false };
+        } else {
+          // 경로가 아닌 노드: 투명
+          update.size = 12;
+          update.borderWidth = 1;
+          update.color = { border: 'rgba(100, 100, 100, 0.15)' };
+          update.shadow = { enabled: false };
+        }
       } else {
-        update.size = 12;
-        update.borderWidth = 2;
-        update.color = { border: '#205AAA' };
-        update.shadow = { enabled: false };
+        // 경로를 선택하지 않은 경우: 모든 경로 표시
+        if (isTarget) {
+          update.size = 35;
+          update.borderWidth = 4;
+          update.color = { border: '#CC0000', background: '#FFE5E5' };
+          update.shadow = { enabled: true, color: 'rgba(255, 0, 0, 0.8)', size: 25, x: 0, y: 0 };
+        } else if (isStartSelected) {
+          update.size = 30;
+          update.borderWidth = 4;
+          update.color = { border: '#00CC00', background: '#E5FFE5' };
+          update.shadow = { enabled: true, color: 'rgba(0, 204, 0, 0.8)', size: 20, x: 0, y: 0 };
+        } else if (nodeRankInfo) {
+          const lowestRank = nodeRankInfo.lowestRank;
+          const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
+          update.size = 20;
+          update.borderWidth = 3;
+          update.color = { border: colorInfo.border, background: '#FFFFFF' };
+          update.shadow = { enabled: true, color: colorInfo.shadow, size: 12, x: 0, y: 0 };
+        } else {
+          update.size = 12;
+          update.borderWidth = 2;
+          update.color = { border: '#205AAA' };
+          update.shadow = { enabled: false };
+        }
       }
 
       return update;
@@ -1174,22 +1205,45 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
       let update = { id: e.id };
 
-      if (isInSelectedPathEdge && selectedPath !== null) {
-        const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
-        const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-        update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-        update.width = 10;
-        update.shadow = { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 };
-      } else if (edgeRankInfo) {
-        const lowestRank = edgeRankInfo.lowestRank;
-        const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
-        update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-        update.width = 5;
-        update.shadow = { enabled: true, color: colorInfo.shadow, size: 8, x: 0, y: 0 };
+      // 특정 경로를 선택한 경우: 다른 엣지들 비활성화
+      if (selectedPath !== null) {
+        if (isInSelectedPathEdge) {
+          // 선택된 경로의 엣지: 강조
+          const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
+          const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
+          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
+          update.width = 10;
+          update.shadow = { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 };
+        } else if (edgeRankInfo) {
+          // 다른 경로의 엣지: 완전 투명
+          update.color = { color: 'rgba(200, 200, 200, 0.1)', highlight: 'rgba(200, 200, 200, 0.1)', hover: 'rgba(200, 200, 200, 0.1)' };
+          update.width = 1;
+          update.shadow = { enabled: false };
+        } else {
+          // 경로가 아닌 엣지: 투명
+          update.color = { color: 'rgba(132, 132, 132, 0.1)' };
+          update.width = 0.5;
+          update.shadow = { enabled: false };
+        }
       } else {
-        update.color = { color: '#848484' };
-        update.width = 1;
-        update.shadow = { enabled: false };
+        // 경로를 선택하지 않은 경우: 모든 경로 표시
+        if (isInSelectedPathEdge) {
+          const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
+          const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
+          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
+          update.width = 10;
+          update.shadow = { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 };
+        } else if (edgeRankInfo) {
+          const lowestRank = edgeRankInfo.lowestRank;
+          const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
+          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
+          update.width = 5;
+          update.shadow = { enabled: true, color: colorInfo.shadow, size: 8, x: 0, y: 0 };
+        } else {
+          update.color = { color: '#848484' };
+          update.width = 1;
+          update.shadow = { enabled: false };
+        }
       }
 
       return update;
@@ -1562,7 +1616,16 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                   <FundOutlined style={{ fontSize: 16 }} />
                 </IconButton>
                 {selectedStartNode && (
-                  <Button size="small" variant="contained" onClick={() => setSelectedStartNode(null)} sx={{ bgcolor: '#4CAF50', color: 'white', '&:hover': { bgcolor: '#45a049' }, fontSize: 11, py: 0.5, px: 1.5 }}>
+                  <Button size="small" variant="contained" onClick={() => {
+                    setSelectedStartNode(null);
+                    setSelectedPath(null);
+                    animationActiveRef.current = false;
+                    if (animationFrameRef.current) {
+                      cancelAnimationFrame(animationFrameRef.current);
+                      animationFrameRef.current = null;
+                    }
+                    setIsAnimating(false);
+                  }} sx={{ bgcolor: '#4CAF50', color: 'white', '&:hover': { bgcolor: '#45a049' }, fontSize: 11, py: 0.5, px: 1.5 }}>
                     시작 노드 초기화
                   </Button>
                 )}
@@ -1639,7 +1702,12 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
             {/* 카드 2: 방책 리스트 (테이블) */}
             <Card component="section" aria-label="경로 리스트" className="info-card scrollable" sx={{ flex: 1, minHeight: 0 }}>
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', flex: 1, '&:last-child': { pb: 2 } }}>
-                <Typography variant="body2" component="h3" className="card-title">🛤️ 방책 리스트</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="body2" component="h3" className="card-title">🛤️ 방책 리스트</Typography>
+                  {selectedPath !== null && (
+                    <Button size="small" variant="outlined" onClick={() => setSelectedPath(null)} sx={{ fontSize: 11, py: 0.5, px: 1 }}>초기화</Button>
+                  )}
+                </Box>
                 <Box className="card-content-scroll" sx={{ overflowX: 'auto' }}>
                   {pathMetrics.length === 0 ? (
                     <Typography variant="caption" className="empty-message">경로가 없습니다</Typography>
@@ -1659,12 +1727,14 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                           const colorInfo = rankColors[Math.min(sortedIdx, rankColors.length - 1)];
                           const successDisplay = m.success == null ? 'N/A' : `${((m.success) * 100).toFixed(2)}%`;
                           const isSelected = selectedPath === m.index;
+                          const isOtherSelected = selectedPath !== null && selectedPath !== m.index;
                           return (
                             <tr 
                               key={m.index} 
                               onClick={() => onSelectPathWithLogs(m.index)} 
                               style={{ 
                                 background: isSelected ? colorInfo.edge + '30' : '#f9f9f9', 
+                                opacity: isOtherSelected ? 0.35 : 1,
                                 cursor: 'pointer', 
                                 borderLeft: `4px solid ${colorInfo.edge}`,
                                 borderBottom: '1px solid #eee',
