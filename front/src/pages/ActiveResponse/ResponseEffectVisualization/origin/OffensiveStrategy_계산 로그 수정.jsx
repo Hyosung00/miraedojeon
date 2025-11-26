@@ -6,8 +6,8 @@ import { Network } from "vis-network/standalone";
 import "vis-network/styles/vis-network.css";
 import { Box, Typography, Card, CardContent, IconButton, Button, Dialog, DialogContent, Paper } from '@mui/material';
 import { MinusOutlined, PlusOutlined, FundOutlined, InfoOutlined } from '@ant-design/icons';
-import TreatAnalysis from '../ThreatAnalysis/TreatAnalysis';
-import { usePopup } from '../../../context/PopupContext';
+import TreatAnalysis from '../../ThreatAnalysis/TreatAnalysis';
+import { usePopup } from '../../../../context/PopupContext';
 import './OS.css';
 
 // 노드 타입 이미지
@@ -73,12 +73,13 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
   // 정보 팝업 상태
   const [infoPopupOpen, setInfoPopupOpen] = useState(false);
+  const [calculationLogPopupOpen, setCalculationLogPopupOpen] = useState(false);
   const [nodeDetailPopupOpen, setNodeDetailPopupOpen] = useState(false);
   const [selectedNodeDetail, setSelectedNodeDetail] = useState(null);
 
-  // 내부 선택 device name (부모 미제공 시)
+  // 내부 선택 device elementId (부모 미제공 시)
   const [internalSelected, setInternalSelected] = useState(null);
-  const effectiveDeviceName = deviceElementId ?? internalSelected;
+  const effectiveElementId = deviceElementId ?? internalSelected;
 
   // 재사용 refs
   const onSelectDeviceRef = useRef(onSelectDevice);
@@ -88,12 +89,12 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   useEffect(() => { loadingAttackRef.current = loadingAttack; }, [loadingAttack]);
   useEffect(() => { onSelectDeviceRef.current = onSelectDevice; }, [onSelectDevice]);
 
-  // Device name -> Physical id
-  const resolvePhysicalIdByName = async (deviceName) => {
-    if (!deviceName) return null;
+  // Device elementId -> Physical id
+  const resolvePhysicalIdByElementId = async (elementId) => {
+    if (!elementId) return null;
     const recs = await fetchData(
-      `MATCH (p:Physical {name:$name, project:'multi-layer'}) RETURN id(p) AS pid`,
-      { name: deviceName }
+      `MATCH (p:Physical {id:$pid, project:'multi-layer'}) RETURN id(p) AS pid`,
+      { pid: `ml:${elementId}` }
     );
     if (!recs?.length) return null;
     const v = recs[0].get('pid');
@@ -122,7 +123,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         const dId = idOf(d);
         if (d && dId != null && !nodesMap.has(dId)) {
           nodesMap.set(dId, {
-            id: dId, label: labelOf(d), elementId: d.elementId, name: d.properties?.name, group: 'Device',
+            id: dId, label: labelOf(d), elementId: d.elementId, group: 'Device',
             title: JSON.stringify(d.properties || {}, null, 2), shape: 'image', image: getNodeImage(d),
             size: 12, color: { border: '#205AAA' }, font: { color: '#7c3aed' }
           });
@@ -131,7 +132,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           const d2Id = idOf(d2);
           if (d2Id != null && !nodesMap.has(d2Id)) {
             nodesMap.set(d2Id, {
-              id: d2Id, label: labelOf(d2), elementId: d2.elementId, name: d2.properties?.name, group: 'Device',
+              id: d2Id, label: labelOf(d2), elementId: d2.elementId, group: 'Device',
               title: JSON.stringify(d2.properties || {}, null, 2), shape: 'image', image: getNodeImage(d2),
               size: 12, color: { border: '#205AAA' }, font: { color: '#7c3aed' }
             });
@@ -155,7 +156,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   useEffect(() => {
     let canceled = false;
     const toNum = (v) => (neo4j.isInt?.(v) ? v.toNumber() : v);
-    if (!effectiveDeviceName) {
+    if (!effectiveElementId) {
       const prev = attackGraphDataRef.current || { nodes: [], edges: [] };
       if ((prev.nodes?.length) || (prev.edges?.length)) setAttackGraphData({ nodes: [], edges: [] });
       if (loadingAttackRef.current) setLoadingAttack(false);
@@ -163,179 +164,181 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       setPathList([]);
       return;
     }
-    const targetPhysicalName = effectiveDeviceName;
+    const targetPhysicalId = `ml:${effectiveElementId}`;
     if (!loadingAttackRef.current) setLoadingAttack(true);
     const startId = selectedStartNode;
 
     const query = `
-      MATCH (start:Physical {project:'multi-layer'}), (target:Physical {name:$targetPhysicalName, project:'multi-layer'})
-      WHERE id(start) = $startId AND start <> target
+      // 1~4개의 우회 엔드포인트를 경유하는 경로 생성
+      // 무방향 관계(-) 사용, 엔드포인트 중복 불가, 중간 노드(Switch/Router/Firewall 등) 중복 허용
+      MATCH (startNode:Physical {project:'multi-layer'}), (targetNode:Physical {id:$targetPhysicalId, project:'multi-layer'})
+      WHERE id(startNode) = $startId
+      
+      // 우회 엔드포인트 후보 찾기 (실제 엔드포인트만: Laptop, Workstation, Server, Printer, Sensor, PLC 등)
+      MATCH (viaCandidate:Physical {project:'multi-layer'})
+      WHERE viaCandidate <> startNode AND viaCandidate <> targetNode 
+        AND properties(viaCandidate).type IS NOT NULL
+        AND toLower(toString(properties(viaCandidate).type)) IN [
+          'laptop', 'workstation', 'server', 'printer', 'sensor', 'plc', 
+          'computer', 'pc', 'host', 'endpoint', 'device'
+        ]
+      
+      WITH startNode, targetNode, collect(viaCandidate)[0..50] AS viaNodes
+      
       CALL {
-        WITH start, target
-        // 우회 노드(엔드포인트) 찾기 - 시작과 목표가 아닌 엔드포인트 타입 노드
-        MATCH (via:Physical {project:'multi-layer'})
-        WHERE via <> start AND via <> target 
-          AND properties(via).type IS NOT NULL
-          AND (toLower(properties(via).type) CONTAINS 'laptop'
-               OR toLower(properties(via).type) CONTAINS 'workstation'
-               OR toLower(properties(via).type) CONTAINS 'server'
-               OR toLower(properties(via).type) CONTAINS 'printer'
-               OR toLower(properties(via).type) CONTAINS 'sensor'
-               OR toLower(properties(via).type) CONTAINS 'plc'
-               OR toLower(properties(via).type) CONTAINS 'computer'
-               OR toLower(properties(via).type) CONTAINS 'pc'
-               OR toLower(properties(via).type) CONTAINS 'host')
-        WITH start, target, via
-        ORDER BY rand()
-        LIMIT 50
+        WITH startNode, targetNode, viaNodes
         
-        // 시작 -> 우회 노드 경로
-        WITH start, target, via
-        MATCH p1 = shortestPath((start)-[:CONNECTED*1..8]-(via))
+        // 1개 우회 노드 경로
+        UNWIND viaNodes AS via1
+        MATCH p1 = allShortestPaths((startNode)-[:CONNECTED*1..8]-(via1))
         WHERE ALL(r IN relationships(p1) WHERE r.project = 'multi-layer')
-          AND via <> start
-          AND NONE(n IN nodes(p1)[1..-1] WHERE n = target)
-        
-        // 우회 노드 -> 목표 경로  
-        WITH start, target, via, nodes(p1) AS p1Nodes, relationships(p1) AS p1Rels
-        MATCH p2 = shortestPath((via)-[:CONNECTED*1..8]-(target))
+        WITH startNode, targetNode, via1, p1 ORDER BY length(p1) LIMIT 1
+        MATCH p2 = allShortestPaths((via1)-[:CONNECTED*1..8]-(targetNode))
         WHERE ALL(r IN relationships(p2) WHERE r.project = 'multi-layer')
-          AND via <> target
-          AND NONE(n IN nodes(p2)[1..-1] WHERE n = start)
+        WITH startNode AS start, targetNode AS target, 
+             nodes(p1) + nodes(p2)[1..] AS pathNodes, 
+             relationships(p1) + relationships(p2) AS pathRels
+        ORDER BY size(pathRels) LIMIT 1
+        RETURN start, target, pathNodes, pathRels, 1 AS viaCount
         
-        // 두 경로 결합
-        WITH start, target, via,
-             p1Nodes + nodes(p2)[1..] AS pathNodes,
-             p1Rels + relationships(p2) AS pathRels,
-             id(start) AS startId, 
-             id(target) AS targetId,
-             id(via) AS viaId
+        UNION
         
-        // 경로 길이가 너무 길지 않도록 제한 (최소 3개 노드 = 시작 + 우회 + 목표)
-        WHERE size(pathNodes) <= 15 AND size(pathNodes) >= 3
+        // 2개 우회 노드 경로
+        WITH startNode, targetNode, viaNodes
+        UNWIND viaNodes AS via1
+        WITH startNode, targetNode, viaNodes, via1
+        UNWIND [v IN viaNodes WHERE v <> via1] AS via2
+        MATCH p1 = allShortestPaths((startNode)-[:CONNECTED*1..6]-(via1))
+        WHERE ALL(r IN relationships(p1) WHERE r.project = 'multi-layer')
+        WITH startNode, targetNode, via1, via2, nodes(p1) AS p1Nodes, relationships(p1) AS p1Rels
+        ORDER BY size(p1Rels) LIMIT 1
+        MATCH p2 = allShortestPaths((via1)-[:CONNECTED*1..6]-(via2))
+        WHERE ALL(r IN relationships(p2) WHERE r.project = 'multi-layer')
+          AND NONE(n IN nodes(p2) WHERE n IN p1Nodes AND n <> via1)
+        WITH startNode, targetNode, via2, p1Nodes, p1Rels, nodes(p2) AS p2Nodes, relationships(p2) AS p2Rels
+        ORDER BY size(p2Rels) LIMIT 1
+        MATCH p3 = allShortestPaths((via2)-[:CONNECTED*1..6]-(targetNode))
+        WHERE ALL(r IN relationships(p3) WHERE r.project = 'multi-layer')
+        WITH startNode AS start, targetNode AS target,
+             p1Nodes + p2Nodes[1..] + nodes(p3)[1..] AS pathNodes, 
+             p1Rels + p2Rels + relationships(p3) AS pathRels
+        ORDER BY size(pathRels) LIMIT 1
+        RETURN start, target, pathNodes, pathRels, 2 AS viaCount
         
-        WITH pathNodes, pathRels, startId, targetId, viaId, range(0, size(pathNodes)-1) AS indices
-        LIMIT 20
+        UNION
         
-        UNWIND indices AS idx
-        WITH pathNodes, pathRels, startId, targetId, viaId, idx, pathNodes[idx] AS n
-        WITH pathNodes, pathRels, startId, targetId, viaId, idx, n,
-             COUNT { (n)-[:CONNECTED {project:'multi-layer'}]-() } AS deg,
-             properties(n).type AS nodeType,
-             properties(n).ip AS nodeIp,
-             properties(n).name AS nodeName,
-             properties(n).id AS nodeId
-        OPTIONAL MATCH (n)-[:HOSTS]->(l:Logical)
-        OPTIONAL MATCH (l)-[:HAS_CVE]->(c:CveDetail)
-        WITH pathNodes, pathRels, startId, targetId, viaId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId,
-             collect(DISTINCT c) AS cList
-        WITH pathNodes, pathRels, startId, targetId, viaId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId,
-             [ci IN cList WHERE ci IS NOT NULL | { id: id(ci), props: properties(ci) }] AS cveInfos,
-             [ci IN cList WHERE ci IS NOT NULL | coalesce(ci.cve, ci.cveId, ci.id, ci.name)] AS cveIdList,
-             [ci IN cList WHERE ci IS NOT NULL |
-                coalesce(toFloat(ci.cvss3), toFloat(ci.cvss), toFloat(ci.baseScore), toFloat(ci.score), toFloat(ci.score_value), toFloat(ci.severity), toFloat(ci.severity_score))
-             ] AS rawScores
-        WITH pathNodes, pathRels, startId, targetId, viaId, idx, n, deg, nodeType, nodeIp, nodeName, nodeId, cveInfos, cveIdList,
-             [s IN rawScores WHERE s IS NOT NULL] AS scoreVals
-        WITH pathNodes, pathRels, startId, targetId, viaId, idx,
-             {
-               id: id(n), props: properties(n), labels: labels(n), deg: deg, nodeType: nodeType,
-               ip: nodeIp, name: nodeName, nodeId: nodeId, cveInfos: cveInfos, vulnList: cveIdList,
-               vulnScore: CASE WHEN size(scoreVals) > 0 THEN
-                 CASE WHEN (reduce(s=0.0, x IN scoreVals | s + x) / size(scoreVals)) > 10.0
-                   THEN round(100.0 * ((reduce(s=0.0, x IN scoreVals | s + x) / size(scoreVals)) / 10.0)) / 100.0
-                 ELSE round(100.0 * (reduce(s=0.0, x IN scoreVals | s + x) / size(scoreVals))) / 100.0 END
-               ELSE NULL END
-             } AS nodeInfo
-        ORDER BY idx
-        WITH pathNodes, pathRels, startId, targetId, viaId, collect(nodeInfo) AS orderedNodeInfos
+        // 3개 우회 노드 경로  
+        WITH startNode, targetNode, viaNodes
+        UNWIND viaNodes AS via1
+        WITH startNode, targetNode, viaNodes, via1
+        UNWIND [v IN viaNodes WHERE v <> via1] AS via2
+        WITH startNode, targetNode, viaNodes, via1, via2
+        UNWIND [v IN viaNodes WHERE v <> via1 AND v <> via2] AS via3
+        MATCH p1 = allShortestPaths((startNode)-[:CONNECTED*1..5]-(via1))
+        WHERE ALL(r IN relationships(p1) WHERE r.project = 'multi-layer')
+        WITH startNode, targetNode, via1, via2, via3, nodes(p1) AS p1Nodes, relationships(p1) AS p1Rels
+        ORDER BY size(p1Rels) LIMIT 1
+        MATCH p2 = allShortestPaths((via1)-[:CONNECTED*1..5]-(via2))
+        WHERE ALL(r IN relationships(p2) WHERE r.project = 'multi-layer')
+          AND NONE(n IN nodes(p2) WHERE n IN p1Nodes AND n <> via1)
+        WITH startNode, targetNode, via2, via3, p1Nodes, p1Rels, nodes(p2) AS p2Nodes, relationships(p2) AS p2Rels
+        ORDER BY size(p2Rels) LIMIT 1
+        MATCH p3 = allShortestPaths((via2)-[:CONNECTED*1..5]-(via3))
+        WHERE ALL(r IN relationships(p3) WHERE r.project = 'multi-layer')
+          AND NONE(n IN nodes(p3) WHERE n IN (p1Nodes + p2Nodes[1..]) AND n <> via2)
+        WITH startNode, targetNode, via3, p1Nodes, p1Rels, p2Nodes, p2Rels, nodes(p3) AS p3Nodes, relationships(p3) AS p3Rels
+        ORDER BY size(p3Rels) LIMIT 1
+        MATCH p4 = allShortestPaths((via3)-[:CONNECTED*1..5]-(targetNode))
+        WHERE ALL(r IN relationships(p4) WHERE r.project = 'multi-layer')
+        WITH startNode AS start, targetNode AS target,
+             p1Nodes + p2Nodes[1..] + p3Nodes[1..] + nodes(p4)[1..] AS pathNodes, 
+             p1Rels + p2Rels + p3Rels + relationships(p4) AS pathRels
+        ORDER BY size(pathRels) LIMIT 1
+        RETURN start, target, pathNodes, pathRels, 3 AS viaCount
         
-        // 우회 엔드포인트 노드 수 계산 (명시적으로 엔드포인트 타입만 카운트)
-        WITH pathRels, orderedNodeInfos, viaId,
-             size([n IN orderedNodeInfos 
-                   WHERE n.nodeType IS NOT NULL 
-                   AND n.id <> startId 
-                   AND n.id <> targetId
-                   AND (toLower(n.nodeType) CONTAINS 'laptop'
-                        OR toLower(n.nodeType) CONTAINS 'workstation'
-                        OR toLower(n.nodeType) CONTAINS 'server'
-                        OR toLower(n.nodeType) CONTAINS 'printer'
-                        OR toLower(n.nodeType) CONTAINS 'sensor'
-                        OR toLower(n.nodeType) CONTAINS 'plc'
-                        OR toLower(n.nodeType) CONTAINS 'computer'
-                        OR toLower(n.nodeType) CONTAINS 'pc'
-                        OR toLower(n.nodeType) CONTAINS 'host')
-                  ]) AS viaCount
+        UNION
         
-        // 최소 1개 이상의 우회 노드가 있는 경로만 선택
-        WHERE viaCount > 0
-        
-        RETURN pathRels, orderedNodeInfos, viaCount, viaId
+        // 4개 우회 노드 경로
+        WITH startNode, targetNode, viaNodes
+        UNWIND viaNodes AS via1
+        WITH startNode, targetNode, viaNodes, via1
+        UNWIND [v IN viaNodes WHERE v <> via1] AS via2
+        WITH startNode, targetNode, viaNodes, via1, via2
+        UNWIND [v IN viaNodes WHERE v <> via1 AND v <> via2] AS via3
+        WITH startNode, targetNode, viaNodes, via1, via2, via3
+        UNWIND [v IN viaNodes WHERE v <> via1 AND v <> via2 AND v <> via3] AS via4
+        MATCH p1 = allShortestPaths((startNode)-[:CONNECTED*1..4]-(via1))
+        WHERE ALL(r IN relationships(p1) WHERE r.project = 'multi-layer')
+        WITH startNode, targetNode, via1, via2, via3, via4, nodes(p1) AS p1Nodes, relationships(p1) AS p1Rels
+        ORDER BY size(p1Rels) LIMIT 1
+        MATCH p2 = allShortestPaths((via1)-[:CONNECTED*1..4]-(via2))
+        WHERE ALL(r IN relationships(p2) WHERE r.project = 'multi-layer')
+          AND NONE(n IN nodes(p2) WHERE n IN p1Nodes AND n <> via1)
+        WITH startNode, targetNode, via2, via3, via4, p1Nodes, p1Rels, nodes(p2) AS p2Nodes, relationships(p2) AS p2Rels
+        ORDER BY size(p2Rels) LIMIT 1
+        MATCH p3 = allShortestPaths((via2)-[:CONNECTED*1..4]-(via3))
+        WHERE ALL(r IN relationships(p3) WHERE r.project = 'multi-layer')
+          AND NONE(n IN nodes(p3) WHERE n IN (p1Nodes + p2Nodes[1..]) AND n <> via2)
+        WITH startNode, targetNode, via3, via4, p1Nodes, p1Rels, p2Nodes, p2Rels, nodes(p3) AS p3Nodes, relationships(p3) AS p3Rels
+        ORDER BY size(p3Rels) LIMIT 1
+        MATCH p4 = allShortestPaths((via3)-[:CONNECTED*1..4]-(via4))
+        WHERE ALL(r IN relationships(p4) WHERE r.project = 'multi-layer')
+          AND NONE(n IN nodes(p4) WHERE n IN (p1Nodes + p2Nodes[1..] + p3Nodes[1..]) AND n <> via3)
+        WITH startNode, targetNode, via4, p1Nodes, p1Rels, p2Nodes, p2Rels, p3Nodes, p3Rels, nodes(p4) AS p4Nodes, relationships(p4) AS p4Rels
+        ORDER BY size(p4Rels) LIMIT 1
+        MATCH p5 = allShortestPaths((via4)-[:CONNECTED*1..4]-(targetNode))
+        WHERE ALL(r IN relationships(p5) WHERE r.project = 'multi-layer')
+        WITH startNode AS start, targetNode AS target,
+             p1Nodes + p2Nodes[1..] + p3Nodes[1..] + p4Nodes[1..] + nodes(p5)[1..] AS pathNodes,
+             p1Rels + p2Rels + p3Rels + p4Rels + relationships(p5) AS pathRels
+        ORDER BY size(pathRels) LIMIT 1
+        RETURN start, target, pathNodes, pathRels, 4 AS viaCount
       }
-      WITH start, target, pathRels, orderedNodeInfos, viaCount, viaId
-      ORDER BY viaCount ASC, size(pathRels) ASC
+      
+      // 노드 정보 수집
+      WITH start, target, pathNodes, pathRels, viaCount, range(0, size(pathNodes)-1) AS indices
+      UNWIND indices AS idx
+      WITH start, target, pathNodes, pathRels, viaCount, idx, pathNodes[idx] AS n
+      WITH start, target, pathNodes, pathRels, viaCount, idx, n,
+           COUNT { (n)-[:CONNECTED {project:'multi-layer'}]-() } AS deg,
+           properties(n).type AS nodeType,
+           properties(n).ip AS nodeIp,
+           properties(n).name AS nodeName,
+           properties(n).id AS nodeId
+      OPTIONAL MATCH (n)-[:HOSTS]->(l:Logical)
+      OPTIONAL MATCH (l)-[:HAS_CVE]->(c:CveDetail)
+      WITH start, target, pathRels, viaCount, idx, n, deg, nodeType, nodeIp, nodeName, nodeId,
+           collect(DISTINCT c) AS cList
+      WITH start, target, pathRels, viaCount, idx, n, deg, nodeType, nodeIp, nodeName, nodeId,
+           [ci IN cList WHERE ci IS NOT NULL | { id: id(ci), props: properties(ci) }] AS cveInfos,
+           [ci IN cList WHERE ci IS NOT NULL | coalesce(ci.cve, ci.cveId, ci.id, ci.name)] AS cveIdList,
+           [ci IN cList WHERE ci IS NOT NULL |
+              coalesce(toFloat(ci.cvss3), toFloat(ci.cvss), toFloat(ci.baseScore), toFloat(ci.score), toFloat(ci.score_value), toFloat(ci.severity), toFloat(ci.severity_score))
+           ] AS rawScores
+      WITH start, target, pathRels, viaCount, idx, n, deg, nodeType, nodeIp, nodeName, nodeId, cveInfos, cveIdList,
+           [s IN rawScores WHERE s IS NOT NULL] AS scoreVals
+      WITH start, target, pathRels, viaCount, idx,
+           {
+             id: id(n), props: properties(n), labels: labels(n), deg: deg, nodeType: nodeType,
+             ip: nodeIp, name: nodeName, nodeId: nodeId, cveInfos: cveInfos, vulnList: cveIdList,
+             vulnScore: CASE WHEN size(scoreVals) > 0 THEN
+               CASE WHEN (reduce(s=0.0, x IN scoreVals | s + x) / size(scoreVals)) > 10.0
+                 THEN round(100.0 * ((reduce(s=0.0, x IN scoreVals | s + x) / size(scoreVals)) / 10.0)) / 100.0
+               ELSE round(100.0 * (reduce(s=0.0, x IN scoreVals | s + x) / size(scoreVals))) / 100.0 END
+             ELSE NULL END
+           } AS nodeInfo
+      ORDER BY idx
+      WITH start, target, pathRels, viaCount, collect(nodeInfo) AS orderedNodeInfos
+      RETURN start, target, pathRels, orderedNodeInfos, viaCount
+      ORDER BY viaCount
       LIMIT 10
-      RETURN start, target, pathRels, orderedNodeInfos, viaCount, viaId
     `;
 
-    console.log('🔍 공격 경로 쿼리 실행 중...');
-    console.log('  시작 노드 ID:', startId);
-    console.log('  목표 노드:', targetPhysicalName);
-    console.log('  조건: 최소 1개 이상의 우회 엔드포인트 경유 필수');
-
-    fetchData(query, { targetPhysicalName, startId }).then(async (recs) => {
+    fetchData(query, { targetPhysicalId, startId }).then((recs) => {
       if (canceled) return;
-
-      console.log(`✅ 쿼리 완료: ${recs?.length || 0}개의 경로 발견`);
-
       if (!recs || recs.length === 0) {
-        console.warn('⚠️ 최소 1개 이상의 우회 엔드포인트를 경유하는 경로를 찾을 수 없습니다.');
-        console.log('시작 노드 ID:', startId, '목표 노드:', targetPhysicalName);
-        console.log('ℹ️ 다른 시작 노드를 선택하거나 네트워크 연결을 확인하세요.');
-
         const fallbackNodes = [];
-        if (startId != null) {
-          // Physical 노드 정보를 쿼리로 가져와서 사용
-          try {
-            const startPhysQuery = `MATCH (p:Physical {project:'multi-layer'}) WHERE id(p) = $startId RETURN p`;
-            const startPhysRecs = await fetchData(startPhysQuery, { startId });
-            let startPhysNode = null;
-            if (startPhysRecs && startPhysRecs.length > 0) {
-              startPhysNode = startPhysRecs[0].get('p');
-            }
-
-            fallbackNodes.push({
-              id: startId,
-              label: startPhysNode?.properties?.name || 'Start',
-              group: 'StartPhysical',
-              title: '',
-              shape: 'image',
-              image: getNodeImage({}),
-              size: 20,
-              color: { border: '#00CC00' },
-              font: { color: '#7c3aed' },
-              properties: {
-                ...(startPhysNode?.properties || {}),
-                id: startPhysNode?.properties?.id || `ml:${startId}`
-              }
-            });
-          } catch (error) {
-            console.error('Failed to fetch start node info:', error);
-            // 실패 시 기본 노드 추가
-            fallbackNodes.push({
-              id: startId,
-              label: 'Start',
-              group: 'StartPhysical',
-              title: '',
-              shape: 'image',
-              image: getNodeImage({}),
-              size: 20,
-              color: { border: '#00CC00' },
-              font: { color: '#7c3aed' },
-              properties: { id: `ml:${startId}` }
-            });
-          }
-        }
+        if (startId != null) fallbackNodes.push({ id: startId, label: 'Start', group: 'StartPhysical', title: '', shape: 'image', image: getNodeImage({}), size: 20, color: { border: '#00CC00' }, font: { color: '#7c3aed' }, properties: {} });
         setAttackGraphData({ nodes: fallbackNodes, edges: [], pathsMap: new Map(), targetNodeId: null, allStartNodes: new Set([startId]), nodeConnections: new Map() });
         setPathList([]);
         if (loadingAttackRef.current) setLoadingAttack(false);
@@ -347,50 +350,18 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       const edgesSet = new Set();
       const allEdges = [];
       let targetId = null;
-      let startNodeInfo = null; // 시작 노드 정보 저장
       const pathsArr = [];
       const nodePathPositions = new Map();
 
       for (let pathIdx = 0; pathIdx < recs.length; pathIdx++) {
         const rec = recs[pathIdx];
-        const startNode = rec.get('start');
         const targetNode = rec.get('target');
         const orderedNodeInfos = rec.get('orderedNodeInfos') || [];
         const pathRels = rec.get('pathRels') || [];
         const viaCount = rec.get('viaCount') || 0;
-        const viaId = rec.get('viaId') ? toNum(rec.get('viaId')) : null;
-
         targetId = targetId ?? (targetNode?.identity ? toNum(targetNode.identity) : null);
 
-        // 시작 노드 정보 저장 (첫 경로에서 한 번만)
-        if (!startNodeInfo && startNode) {
-          startNodeInfo = {
-            id: toNum(startNode.identity),
-            name: startNode.properties?.name,
-            elementId: startNode.properties?.id,
-            properties: startNode.properties
-          };
-        }
-
-        console.log(`\n[경로 ${pathIdx + 1}] 우회 엔드포인트 노드 수: ${viaCount}개 ✅ (경유 노드 ID: ${viaId})`);
-
-        // 우회 노드 상세 정보 로그 (엔드포인트 타입만)
-        const viaNodes = orderedNodeInfos.filter(n => {
-          const nodeId = toNum(n.id);
-          const isNotStartOrTarget = nodeId !== startId && nodeId !== targetId;
-          const typeStr = n.nodeType ? String(n.nodeType).toLowerCase() : '';
-          const isEndpoint = typeStr.includes('laptop') || typeStr.includes('workstation') ||
-                            typeStr.includes('server') || typeStr.includes('printer') ||
-                            typeStr.includes('sensor') || typeStr.includes('plc') ||
-                            typeStr.includes('computer') || typeStr.includes('pc') || typeStr.includes('host');
-          return isNotStartOrTarget && isEndpoint && n.nodeType;
-        });
-
-        if (viaNodes.length > 0) {
-          console.log(`  우회 엔드포인트 노드들:`, viaNodes.map(n => `${n.name || n.nodeId}(${n.nodeType}, ID:${toNum(n.id)})`).join(' → '));
-        } else {
-          console.warn(`  ⚠️ 경로 ${pathIdx + 1}에 우회 엔드포인트 노드가 없습니다!`);
-        }
+        console.log(`\n[경로 ${pathIdx + 1}] 우회 노드 수: ${viaCount}개`);
 
         // 엔드포인트/연속 중복 제거
         const endpointIds = new Set();
@@ -400,39 +371,18 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         for (let idx = 0; idx < orderedNodeInfos.length; idx++) {
           const nodeInfo = orderedNodeInfos[idx];
           const nodeId = toNum(nodeInfo.id);
-          const nodeType = nodeInfo.nodeType;
-          const typeStr = nodeType ? String(nodeType).toLowerCase() : '';
-
-          // 중간 노드 (네트워크 장비) 판별
-          const isNetworkDevice = typeStr.includes('switch') ||
-                                  typeStr.includes('router') ||
-                                  typeStr.includes('firewall') ||
-                                  typeStr.includes('gateway') ||
-                                  typeStr.includes('ids') ||
-                                  typeStr.includes('ips') ||
-                                  typeStr.includes('load') ||
-                                  typeStr.includes('balancer');
-
-          // 실제 엔드포인트 판별 (Laptop, Workstation, Server, Printer, Sensor, PLC 등)
-          const isEndpoint = typeStr.includes('laptop') ||
-                            typeStr.includes('workstation') ||
-                            typeStr.includes('server') ||
-                            typeStr.includes('printer') ||
-                            typeStr.includes('sensor') ||
-                            typeStr.includes('plc') ||
-                            typeStr.includes('computer') ||
-                            typeStr.includes('pc') ||
-                            typeStr.includes('host');
+          const nodeType = nodeInfo.nodeType; const typeStr = nodeType ? String(nodeType).toLowerCase() : '';
+          const isSwitchOrRouter = typeStr.includes('switch') || typeStr.includes('router');
 
           if (filteredNodeInfos.length > 0) {
             const lastNodeId = toNum(filteredNodeInfos[filteredNodeInfos.length - 1].id);
             if (nodeId === lastNodeId) continue;
           }
 
-          if (isNetworkDevice) {
-            // 네트워크 장비는 항상 추가 (중간 노드, 중복 허용)
+          if (isSwitchOrRouter) {
+            // Switch와 Router는 항상 추가 (중간 노드)
             filteredNodeInfos.push(nodeInfo);
-          } else if (isEndpoint) {
+          } else {
             // 엔드포인트는 한 번만 추가
             if (!endpointIds.has(nodeId)) {
               endpointIds.add(nodeId);
@@ -444,10 +394,6 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               endpointOccurrences.set(nodeId, count + 1);
               console.warn(`⚠️ [경로 ${pathIdx + 1}] 엔드포인트 중복 발견: 노드 ${nodeId} (${nodeInfo.name || 'Unknown'}) - ${count + 1}번째`);
             }
-          } else {
-            // 타입을 알 수 없는 노드는 일단 추가하되 경고
-            console.warn(`⚠️ [경로 ${pathIdx + 1}] 알 수 없는 노드 타입: ${typeStr} (${nodeId})`);
-            filteredNodeInfos.push(nodeInfo);
           }
         }
         if (filteredNodeInfos.length < 2) continue;
@@ -502,22 +448,11 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         const startNodeCount = pathNodesForList.filter(n => n.id === startId).length;
         const targetNodeCount = pathNodesForList.filter(n => n.id === targetId).length;
 
-        // 엔드포인트 중복 체크 (시작/목표 노드 제외, 명시적으로 엔드포인트 타입만)
+        // 엔드포인트 중복 체크 (시작/목표 노드 제외)
         const endpointsInPath = pathNodesForList.filter(n => {
           const typeStr = (n.nodeType ? String(n.nodeType) : '').toLowerCase();
-
-          // 엔드포인트 타입 판별
-          const isEndpoint = typeStr.includes('laptop') ||
-                            typeStr.includes('workstation') ||
-                            typeStr.includes('server') ||
-                            typeStr.includes('printer') ||
-                            typeStr.includes('sensor') ||
-                            typeStr.includes('plc') ||
-                            typeStr.includes('computer') ||
-                            typeStr.includes('pc') ||
-                            typeStr.includes('host');
-
-          return isEndpoint && n.id !== startId && n.id !== targetId;
+          const isSwitchOrRouter = typeStr.includes('switch') || typeStr.includes('router');
+          return !isSwitchOrRouter && n.id !== startId && n.id !== targetId;
         });
 
         const endpointCountMap = new Map();
@@ -601,64 +536,24 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           if (!nodePathPositions.has(originalId)) nodePathPositions.set(originalId, []);
           nodePathPositions.get(originalId).push(i);
 
-          const isStart = originalId === startId;
-          const isTarget = originalId === targetId;
+          const isStart = originalId === startId; const isTarget = originalId === targetId;
           let nodeColor, nodeSize, nodeGroup;
-
-          if (isTarget) {
-            nodeColor = { border: '#CC0000' };
-            nodeSize = 25;
-            nodeGroup = 'TargetPhysical';
-          }
-          else if (isStart) {
-            nodeColor = { border: '#00CC00' };
-            nodeSize = 20;
-            nodeGroup = 'StartPhysical';
-          }
+          if (isTarget) { nodeColor = { border: '#CC0000' }; nodeSize = 25; nodeGroup = 'TargetPhysical'; }
+          else if (isStart) { nodeColor = { border: '#00CC00' }; nodeSize = 20; nodeGroup = 'StartPhysical'; }
           else {
             const typeStr = (nodeInfo.nodeType ? String(nodeInfo.nodeType) : '').toLowerCase();
-
-            // 네트워크 장비 판별
-            const isNetworkDevice = typeStr.includes('switch') ||
-                                    typeStr.includes('router') ||
-                                    typeStr.includes('firewall') ||
-                                    typeStr.includes('gateway') ||
-                                    typeStr.includes('ids') ||
-                                    typeStr.includes('ips') ||
-                                    typeStr.includes('load') ||
-                                    typeStr.includes('balancer');
-
-            if (!isNetworkDevice) {
-              // 엔드포인트 (우회 노드)
-              nodeColor = { border: '#FF8C00' };
-              nodeSize = 18;
-              nodeGroup = 'ViaPhysical';
-            }
-            else {
-              // 네트워크 장비 (중간 노드)
-              nodeColor = { border: '#205AAA' };
-              nodeSize = 15;
-              nodeGroup = 'Physical';
-            }
+            const isVia = !(typeStr.includes('switch') || typeStr.includes('router'));
+            if (isVia) { nodeColor = { border: '#FF8C00' }; nodeSize = 18; nodeGroup = 'ViaPhysical'; }
+            else { nodeColor = { border: '#205AAA' }; nodeSize = 15; nodeGroup = 'Physical'; }
           }
           if (!nodesMap.has(originalId)) {
-            // 시작 노드인 경우 startNodeInfo의 정보 사용
-            const useStartInfo = isStart && startNodeInfo && startNodeInfo.id === originalId;
-
             const nodeData = {
               id: originalId,
-              label: useStartInfo ? startNodeInfo.name : (nodeInfo.name || nodeInfo.props?.name || nodeInfo.props?.label || (Array.isArray(nodeInfo.labels) ? nodeInfo.labels[0] : undefined) || nodeInfo.nodeId || nodeInfo.props?.id || String(originalId)),
+              label: nodeInfo.name || nodeInfo.props?.name || nodeInfo.props?.label || (Array.isArray(nodeInfo.labels) ? nodeInfo.labels[0] : undefined) || nodeInfo.nodeId || nodeInfo.props?.id || String(originalId),
               group: nodeGroup,
               title: JSON.stringify({ ...(nodeInfo.props || {}), vulnList: nodeInfo.vulnList || [], vulnScore: nodeInfo.vulnScore ?? null }, null, 2),
               shape: 'image', image: getNodeImage(nodeInfo), size: nodeSize, color: nodeColor,
-              properties: {
-                ...(useStartInfo ? startNodeInfo.properties : (nodeInfo.props || {})),
-                cveInfos: nodeInfo.cveInfos || [],
-                vulnList: nodeInfo.vulnList || [],
-                vulnScore: nodeInfo.vulnScore ?? null,
-                // Physical ID를 Device elementId로 매핑하기 위한 id 필드
-                id: useStartInfo ? startNodeInfo.elementId : (nodeInfo.props?.id || nodeInfo.nodeId || `ml:${originalId}`)
-              },
+              properties: { ...(nodeInfo.props || {}), cveInfos: nodeInfo.cveInfos || [], vulnList: nodeInfo.vulnList || [], vulnScore: nodeInfo.vulnScore ?? null },
               font: { color: '#7c3aed' }
             };
             if (!isTarget && !isStart) { nodeData.x = Math.random() * 1600 - 1200; nodeData.physics = false; }
@@ -807,63 +702,158 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     }).catch((e) => { console.error(e); setLoadingAttack(false); });
 
     return () => { canceled = true; };
-  }, [effectiveDeviceName, selectedStartNode]);
+  }, [effectiveElementId, selectedStartNode]);
 
-  // 순위별 색상 정의 (1순위부터 10순위까지)
-  const rankColors = [
-    { border: '#FF0000', edge: '#FF0000', shadow: 'rgba(255, 0, 0, 0.8)', name: '1순위 (빨강)' },      // 1순위: 빨강
-    { border: '#FF6600', edge: '#FF6600', shadow: 'rgba(255, 102, 0, 0.7)', name: '2순위 (주황)' },    // 2순위: 주황
-    { border: '#FFCC00', edge: '#FFCC00', shadow: 'rgba(255, 204, 0, 0.7)', name: '3순위 (노랑)' },    // 3순위: 노랑
-    { border: '#99CC00', edge: '#99CC00', shadow: 'rgba(153, 204, 0, 0.6)', name: '4순위 (연두)' },    // 4순위: 연두
-    { border: '#00CC00', edge: '#00CC00', shadow: 'rgba(0, 204, 0, 0.6)', name: '5순위 (초록)' },      // 5순위: 초록
-    { border: '#00CC66', edge: '#00CC66', shadow: 'rgba(0, 204, 102, 0.6)', name: '6순위 (민트)' },    // 6순위: 민트
-    { border: '#00CCCC', edge: '#00CCCC', shadow: 'rgba(0, 204, 204, 0.6)', name: '7순위 (청록)' },    // 7순위: 청록
-    { border: '#0099CC', edge: '#0099CC', shadow: 'rgba(0, 153, 204, 0.6)', name: '8순위 (하늘)' },    // 8순위: 하늘
-    { border: '#0066FF', edge: '#0066FF', shadow: 'rgba(0, 102, 255, 0.6)', name: '9순위 (파랑)' },    // 9순위: 파랑
-    { border: '#3333CC', edge: '#3333CC', shadow: 'rgba(51, 51, 204, 0.5)', name: '10순위 (남색)' },   // 10순위: 남색
-    { border: '#6600CC', edge: '#6600CC', shadow: 'rgba(102, 0, 204, 0.5)', name: '11순위 (보라)' },   // 11순위: 보라
-    { border: '#9933CC', edge: '#9933CC', shadow: 'rgba(153, 51, 204, 0.5)', name: '12순위 (자주)' },  // 12순위: 자주
-    { border: '#CC00CC', edge: '#CC00CC', shadow: 'rgba(204, 0, 204, 0.5)', name: '13순위 (자홍)' },   // 13순위: 자홍
-    { border: '#CC6699', edge: '#CC6699', shadow: 'rgba(204, 102, 153, 0.5)', name: '14순위 (분홍)' }, // 14순위: 분홍
-    { border: '#996633', edge: '#996633', shadow: 'rgba(153, 102, 51, 0.5)', name: '15순위 (갈색)' },  // 15순위: 갈색
-    { border: '#666666', edge: '#666666', shadow: 'rgba(102, 102, 102, 0.5)', name: '16순위 (회색)' }, // 16순위: 회색
-  ];
-
-  // DataSet refs를 컴포넌트 레벨에서 유지
-  const nodesDataSetRef = useRef(null);
-  const edgesDataSetRef = useRef(null);
-
-  // 3) Device topology 초기 렌더링 (topologyData 변경 시에만)
+  // 3) Device topology 렌더링 (메인)
   useEffect(() => {
-    if (!topologyRef.current || !topologyData.nodes?.length) return;
-    
-    // 네트워크가 이미 있으면 스킵 (초기 생성만)
-    if (topologyNetRef.current) return;
+    if (!topologyRef.current) return;
+
+    // 선택된 경로의 노드와 엣지 ID 수집
+    const selectedPathNodes = new Set();
+    const selectedPathEdges = new Set();
+
+    if (selectedPath !== null && pathList[selectedPath]) {
+      const pathNodes = pathList[selectedPath];
+      // 경로의 노드 ID들을 수집
+      pathNodes.forEach(node => {
+        selectedPathNodes.add(node.id);
+      });
+
+      // 경로의 엣지 ID들을 수집 (연속된 노드 간의 엣지)
+      for (let i = 0; i < pathNodes.length - 1; i++) {
+        const from = pathNodes[i].id;
+        const to = pathNodes[i + 1].id;
+        // 양방향 엣지 ID 모두 추가
+        selectedPathEdges.add(`${Math.min(from, to)}-${Math.max(from, to)}`);
+      }
+    }
+
+    // 최초 1회 생성 또는 재생성
+    if (topologyNetRef.current) {
+      topologyNetRef.current.destroy();
+      topologyNetRef.current = null;
+    }
 
     const baseTopology = initialTopologyRef.current ?? topologyData;
 
-    // 기본 노드/엣지 생성
-    const nodesToShow = (baseTopology.nodes || []).map(n => ({
-      ...n,
-      shape: 'image',
-      image: getNodeImage(n),
-      font: { color: '#7c3aed' },
-      borderWidth: 2,
-      size: 12,
-      color: { border: '#205AAA' },
-      shadow: { enabled: false }
-    }));
+    // 노드 매핑 생성 (Physical ID -> Device elementId)
+    const physicalToDevice = new Map();
+    if (attackGraphData.nodes) {
+      attackGraphData.nodes.forEach(n => {
+        if (n.properties && n.properties.id) {
+          const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
+          physicalToDevice.set(n.id, elemId);
+        }
+      });
+    }
 
-    const edgesToShow = (baseTopology.edges || []).map(e => ({
-      ...e,
-      color: { color: '#848484' },
-      width: 1,
-      shadow: { enabled: false }
-    }));
+    // 노드 스타일 적용
+    const nodesToShow = (baseTopology.nodes || []).map(n => {
+      const copy = { ...n };
+      copy.shape = 'image';
+      copy.image = getNodeImage(copy);
+      copy.font = { color: '#7c3aed' };
+      copy.borderWidth = 2;
 
-    nodesDataSetRef.current = new DataSet(nodesToShow);
-    edgesDataSetRef.current = new DataSet(edgesToShow);
-    const data = { nodes: nodesDataSetRef.current, edges: edgesDataSetRef.current };
+      // 경로의 노드 찾기
+      let isInSelectedPath = false;
+      if (selectedPath !== null) {
+        // Physical ID로 매핑된 elementId 확인
+        for (const [physId, elemId] of physicalToDevice.entries()) {
+          if (selectedPathNodes.has(physId) && elemId === copy.elementId) {
+            isInSelectedPath = true;
+            break;
+          }
+        }
+      }
+
+      // 시작 노드 확인
+      let isStartSelected = false;
+      if (selectedStartNode != null) {
+        const physElementId = physicalToDevice.get(selectedStartNode);
+        if (physElementId === copy.elementId) {
+          isStartSelected = true;
+        }
+      }
+
+      // 목표 노드 확인
+      const isTarget = effectiveElementId && copy.elementId === effectiveElementId;
+
+      // 하이라이트 우선순위: 목표 > 시작 > 경로상 노드
+      if (isTarget) {
+        copy.size = 35;
+        copy.borderWidth = 4;
+        copy.color = { border: '#CC0000', background: '#FFE5E5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 0, 0, 0.8)',
+          size: 25,
+          x: 0,
+          y: 0
+        };
+      } else if (isStartSelected) {
+        copy.size = 30;
+        copy.borderWidth = 4;
+        copy.color = { border: '#00CC00', background: '#E5FFE5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(0, 204, 0, 0.8)',
+          size: 20,
+          x: 0,
+          y: 0
+        };
+      } else if (isInSelectedPath) {
+        copy.size = 25;
+        copy.borderWidth = 3;
+        copy.color = { border: '#FF8C00', background: '#FFF5E5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 140, 0, 0.6)',
+          size: 15,
+          x: 0,
+          y: 0
+        };
+      } else {
+        copy.size = 12;
+        copy.color = { border: '#205AAA' };
+        copy.shadow = { enabled: false };
+      }
+
+      return copy;
+    });
+
+    // 엣지 스타일 적용
+    const edgesToShow = (baseTopology.edges || []).map(e => {
+      const edgeCopy = { ...e };
+
+      if (selectedPathEdges.has(e.id)) {
+        // 선택된 경로의 엣지는 노란색으로 하이라이트
+        edgeCopy.color = {
+          color: '#FFD700',
+          highlight: '#FFF000',
+          hover: '#FFF000'
+        };
+        edgeCopy.width = 8;
+        edgeCopy.hoverWidth = 10;
+        edgeCopy.smooth = { enabled: true, type: 'continuous', roundness: 0.5 };
+        edgeCopy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 215, 0, 0.5)',
+          size: 10,
+          x: 0,
+          y: 0
+        };
+      } else {
+        edgeCopy.color = { color: '#848484' };
+        edgeCopy.width = 1;
+      }
+
+      return edgeCopy;
+    });
+
+    const nodes = new DataSet(nodesToShow);
+    const edges = new DataSet(edgesToShow);
+    const data = { nodes, edges };
 
     const options = {
       interaction: { hover: true, multiselect: false },
@@ -891,7 +881,9 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       Object.keys(nodePositionsRef.current).forEach(id => {
         try {
           topologyNetRef.current.moveNode(id, nodePositionsRef.current[id].x, nodePositionsRef.current[id].y);
-        } catch (e) {}
+        } catch (e) {
+          // 노드가 존재하지 않을 수 있음
+        }
       });
     } else {
       topologyNetRef.current.once('stabilizationIterationsDone', () => {
@@ -905,20 +897,24 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     // 노드 선택 이벤트
     topologyNetRef.current.on('selectNode', async (params) => {
       const nid = params.nodes && params.nodes[0];
-      if (!nid || !nodesDataSetRef.current) return;
-      const node = nodesDataSetRef.current.get(nid);
+      if (!nid) return;
+      const node = nodes.get(nid);
 
-      if (effectiveDeviceName) {
-        const physId = await resolvePhysicalIdByName(node?.name);
+      if (effectiveElementId) {
+        // 목표가 이미 선택된 경우, 시작 노드로 설정
+        const physId = await resolvePhysicalIdByElementId(node?.elementId);
         if (physId != null) {
           setSelectedStartNode(physId);
+        } else {
+          console.warn('No Physical id found for Device:', node?.elementId);
         }
       } else {
-        const deviceName = node?.name;
+        // 목표 노드 선택
+        const elementIdFull = node && node.elementId;
         if (onSelectDeviceRef.current) {
-          onSelectDeviceRef.current(deviceName);
+          onSelectDeviceRef.current(elementIdFull);
         } else {
-          setInternalSelected(deviceName);
+          setInternalSelected(elementIdFull);
         }
       }
     });
@@ -927,281 +923,11 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       if (topologyNetRef.current) {
         topologyNetRef.current.destroy();
         topologyNetRef.current = null;
-        nodesDataSetRef.current = null;
-        edgesDataSetRef.current = null;
       }
     };
-  }, [topologyData]);
+  }, [topologyData, selectedStartNode, attackGraphData, effectiveElementId, selectedPath, pathList]);
 
-  // 4) 스타일 업데이트 (selectedPath, pathList 등 변경 시 - 네트워크 재생성 없이)
-  useEffect(() => {
-    if (!nodesDataSetRef.current || !edgesDataSetRef.current) return;
-
-    const baseTopology = initialTopologyRef.current ?? topologyData;
-
-    // pathList 기반으로 순위 맵 계산
-    const calcNodeRS = (node) => {
-      const props = node?.properties || node?.props || {};
-      const cves = props.cveInfos || props.vulnerabilities || props.cves || [];
-      const arr = Array.isArray(cves) ? cves : [];
-      const scores = [], cVals = [], iVals = [], aVals = [];
-      for (const cv of arr) {
-        const p = cv?.props || cv || {};
-        const sCand = p.cvss3 ?? p.cvss ?? p.baseScore ?? p.score ?? p.score_value ?? p.severity_score;
-        const sNum = typeof sCand === 'number' ? sCand : parseFloat(sCand);
-        if (!Number.isNaN(sNum)) scores.push(sNum);
-        const vStr = p.vectorString || p.vector || p.cvssVector || null;
-        if (vStr && typeof vStr === 'string') {
-          const map = { H: 1, M: 0.66, L: 0.33, N: 0 };
-          const pick = (tag) => { const m = vStr.match(new RegExp(`${tag}:([HNML])`)); return m ? (map[m[1]] ?? null) : null; };
-          const C = pick('C'), I = pick('I'), A = pick('A');
-          if (C != null) cVals.push(C);
-          if (I != null) iVals.push(I);
-          if (A != null) aVals.push(A);
-        }
-      }
-      const avgFn = (xs) => xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : null;
-      const avgScore = avgFn(scores), avgC = avgFn(cVals), avgI = avgFn(iVals), avgA = avgFn(aVals);
-      if (avgScore == null || avgC == null || avgI == null || avgA == null) return null;
-      return ((avgScore * (avgC + avgI + avgA)) / 3) / 10;
-    };
-
-    const allRS = (attackGraphData.nodes || []).map(calcNodeRS).filter(v => typeof v === 'number');
-    const localNetworkRSMean = allRS.length ? allRS.reduce((a,b)=>a+b,0)/allRS.length : null;
-
-    const localPathMetrics = (pathList || []).map((p, idx) => {
-      const nodes = Array.isArray(p) ? p : [];
-      const rsVals = nodes.map(node => {
-        const full = (attackGraphData.nodes || []).find(n => n.id === node.id) || node;
-        return calcNodeRS(full);
-      }).filter(v => typeof v === 'number');
-      const pathRS = rsVals.length ? rsVals.reduce((a,b)=>a+b,0)/rsVals.length : null;
-      let success = null;
-      if (pathRS != null && localNetworkRSMean != null && localNetworkRSMean > 0) {
-        success = Math.min(Math.max(pathRS / localNetworkRSMean, 0), 1);
-      }
-      return { index: idx, success };
-    });
-
-    const localSortedPathRanks = new Map();
-    const sorted = [...localPathMetrics].sort((a, b) => (b.success ?? -1) - (a.success ?? -1));
-    sorted.forEach((item, rank) => {
-      localSortedPathRanks.set(item.index, rank);
-    });
-
-    // 모든 경로의 노드와 엣지 정보 수집
-    const allPathNodes = new Map();
-    const allPathEdges = new Map();
-
-    (pathList || []).forEach((path, pathIdx) => {
-      const rank = localSortedPathRanks.get(pathIdx) ?? pathIdx;
-      const pathNodes = path || [];
-      
-      pathNodes.forEach(node => {
-        if (!allPathNodes.has(node.id)) {
-          allPathNodes.set(node.id, { ranks: new Set(), lowestRank: rank });
-        }
-        allPathNodes.get(node.id).ranks.add(rank);
-        if (rank < allPathNodes.get(node.id).lowestRank) {
-          allPathNodes.get(node.id).lowestRank = rank;
-        }
-      });
-
-      for (let i = 0; i < pathNodes.length - 1; i++) {
-        const from = pathNodes[i].id;
-        const to = pathNodes[i + 1].id;
-        const edgeId = `${Math.min(from, to)}-${Math.max(from, to)}`;
-        
-        if (!allPathEdges.has(edgeId)) {
-          allPathEdges.set(edgeId, { ranks: new Set(), lowestRank: rank });
-        }
-        allPathEdges.get(edgeId).ranks.add(rank);
-        if (rank < allPathEdges.get(edgeId).lowestRank) {
-          allPathEdges.get(edgeId).lowestRank = rank;
-        }
-      }
-    });
-
-    // 선택된 경로
-    const selectedPathNodes = new Set();
-    const selectedPathEdges = new Set();
-
-    if (selectedPath !== null && pathList[selectedPath]) {
-      const pathNodes = pathList[selectedPath];
-      pathNodes.forEach(node => selectedPathNodes.add(node.id));
-      for (let i = 0; i < pathNodes.length - 1; i++) {
-        const from = pathNodes[i].id;
-        const to = pathNodes[i + 1].id;
-        selectedPathEdges.add(`${Math.min(from, to)}-${Math.max(from, to)}`);
-      }
-    }
-
-    // 노드 매핑 생성
-    const physicalToDevice = new Map();
-    const physicalToDeviceName = new Map();
-    if (attackGraphData.nodes) {
-      attackGraphData.nodes.forEach(n => {
-        if (n.properties && n.properties.id) {
-          const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
-          physicalToDevice.set(n.id, elemId);
-        }
-        const nodeName = n.label || n.properties?.name;
-        if (nodeName) {
-          physicalToDeviceName.set(n.id, nodeName);
-        }
-      });
-    }
-
-    // Physical ID -> Device Node ID 역매핑
-    const physicalToDeviceNodeId = new Map();
-    (baseTopology.nodes || []).forEach(deviceNode => {
-      for (const [physId, elemId] of physicalToDevice.entries()) {
-        if (elemId === deviceNode.elementId) {
-          physicalToDeviceNodeId.set(physId, deviceNode.id);
-          break;
-        }
-      }
-      for (const [physId, deviceName] of physicalToDeviceName.entries()) {
-        if (!physicalToDeviceNodeId.has(physId) && deviceName === deviceNode.name) {
-          physicalToDeviceNodeId.set(physId, deviceNode.id);
-        }
-      }
-    });
-
-    // Device ID 기반 엣지 맵 생성
-    const devicePathEdges = new Map();
-    for (const [physEdgeId, rankInfo] of allPathEdges.entries()) {
-      const [physFrom, physTo] = physEdgeId.split('-').map(Number);
-      const deviceFrom = physicalToDeviceNodeId.get(physFrom);
-      const deviceTo = physicalToDeviceNodeId.get(physTo);
-      
-      if (deviceFrom != null && deviceTo != null) {
-        const deviceEdgeId = `${Math.min(deviceFrom, deviceTo)}-${Math.max(deviceFrom, deviceTo)}`;
-        if (!devicePathEdges.has(deviceEdgeId)) {
-          devicePathEdges.set(deviceEdgeId, { ranks: new Set(rankInfo.ranks), lowestRank: rankInfo.lowestRank });
-        } else {
-          const existing = devicePathEdges.get(deviceEdgeId);
-          rankInfo.ranks.forEach(r => existing.ranks.add(r));
-          if (rankInfo.lowestRank < existing.lowestRank) {
-            existing.lowestRank = rankInfo.lowestRank;
-          }
-        }
-      }
-    }
-
-    const deviceSelectedPathEdges = new Set();
-    for (const physEdgeId of selectedPathEdges) {
-      const [physFrom, physTo] = physEdgeId.split('-').map(Number);
-      const deviceFrom = physicalToDeviceNodeId.get(physFrom);
-      const deviceTo = physicalToDeviceNodeId.get(physTo);
-      
-      if (deviceFrom != null && deviceTo != null) {
-        deviceSelectedPathEdges.add(`${Math.min(deviceFrom, deviceTo)}-${Math.max(deviceFrom, deviceTo)}`);
-      }
-    }
-
-    // 노드 스타일 업데이트 (update 메서드 사용)
-    const nodeUpdates = (baseTopology.nodes || []).map(n => {
-      let nodePhysicalId = null;
-      let nodeRankInfo = null;
-      
-      for (const [physId, elemId] of physicalToDevice.entries()) {
-        if (elemId === n.elementId) { nodePhysicalId = physId; break; }
-      }
-      if (nodePhysicalId === null) {
-        for (const [physId, deviceName] of physicalToDeviceName.entries()) {
-          if (deviceName === n.name) { nodePhysicalId = physId; break; }
-        }
-      }
-      
-      if (nodePhysicalId !== null && allPathNodes.has(nodePhysicalId)) {
-        nodeRankInfo = allPathNodes.get(nodePhysicalId);
-      }
-
-      const isInSelectedPath = nodePhysicalId !== null && selectedPathNodes.has(nodePhysicalId);
-      
-      let isStartSelected = false;
-      if (selectedStartNode != null) {
-        const physElementId = physicalToDevice.get(selectedStartNode);
-        const physDeviceName = physicalToDeviceName.get(selectedStartNode);
-        if ((physElementId && physElementId === n.elementId) || (physDeviceName && physDeviceName === n.name)) {
-          isStartSelected = true;
-        }
-      }
-
-      const isTarget = effectiveDeviceName && n.name === effectiveDeviceName;
-
-      let update = { id: n.id };
-
-      if (isTarget) {
-        update.size = 35;
-        update.borderWidth = 4;
-        update.color = { border: '#CC0000', background: '#FFE5E5' };
-        update.shadow = { enabled: true, color: 'rgba(255, 0, 0, 0.8)', size: 25, x: 0, y: 0 };
-      } else if (isStartSelected) {
-        update.size = 30;
-        update.borderWidth = 4;
-        update.color = { border: '#00CC00', background: '#E5FFE5' };
-        update.shadow = { enabled: true, color: 'rgba(0, 204, 0, 0.8)', size: 20, x: 0, y: 0 };
-      } else if (isInSelectedPath && selectedPath !== null) {
-        const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
-        const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-        update.size = 28;
-        update.borderWidth = 4;
-        update.color = { border: colorInfo.border, background: '#FFFFFF' };
-        update.shadow = { enabled: true, color: colorInfo.shadow, size: 20, x: 0, y: 0 };
-      } else if (nodeRankInfo) {
-        const lowestRank = nodeRankInfo.lowestRank;
-        const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
-        update.size = 20;
-        update.borderWidth = 3;
-        update.color = { border: colorInfo.border, background: '#FFFFFF' };
-        update.shadow = { enabled: true, color: colorInfo.shadow, size: 12, x: 0, y: 0 };
-      } else {
-        update.size = 12;
-        update.borderWidth = 2;
-        update.color = { border: '#205AAA' };
-        update.shadow = { enabled: false };
-      }
-
-      return update;
-    });
-
-    // 엣지 스타일 업데이트
-    const edgeUpdates = (baseTopology.edges || []).map(e => {
-      const edgeRankInfo = devicePathEdges.get(e.id);
-      const isInSelectedPathEdge = deviceSelectedPathEdges.has(e.id);
-
-      let update = { id: e.id };
-
-      if (isInSelectedPathEdge && selectedPath !== null) {
-        const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
-        const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-        update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-        update.width = 10;
-        update.shadow = { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 };
-      } else if (edgeRankInfo) {
-        const lowestRank = edgeRankInfo.lowestRank;
-        const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
-        update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-        update.width = 5;
-        update.shadow = { enabled: true, color: colorInfo.shadow, size: 8, x: 0, y: 0 };
-      } else {
-        update.color = { color: '#848484' };
-        update.width = 1;
-        update.shadow = { enabled: false };
-      }
-
-      return update;
-    });
-
-    // DataSet 업데이트 (깜빡임 없이)
-    nodesDataSetRef.current.update(nodeUpdates);
-    edgesDataSetRef.current.update(edgeUpdates);
-
-  }, [topologyData, selectedStartNode, attackGraphData, effectiveDeviceName, selectedPath, pathList, rankColors]);
-
-  // 5) Canvas에 파티클 애니메이션 그리기
+  // 4) Canvas에 파티클 애니메이션 그리기
   useEffect(() => {
     if (!canvasRef.current || !topologyNetRef.current || !isAnimating || selectedPath === null || !pathList[selectedPath]) {
       if (canvasRef.current) {
@@ -1228,18 +954,13 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     const pathNodes = pathList[selectedPath];
     const positions = [];
 
-    // Physical ID -> Device elementId, name 매핑
+    // Physical ID -> Device elementId 매핑
     const physicalToDevice = new Map();
-    const physicalToDeviceName = new Map();
     if (attackGraphData.nodes) {
       attackGraphData.nodes.forEach(n => {
         if (n.properties && n.properties.id) {
           const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
           physicalToDevice.set(n.id, elemId);
-        }
-        const nodeName = n.label || n.properties?.name;
-        if (nodeName) {
-          physicalToDeviceName.set(n.id, nodeName);
         }
       });
     }
@@ -1247,26 +968,12 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     // 각 경로 노드의 화면 위치 찾기
     for (const pathNode of pathNodes) {
       const deviceElementId = physicalToDevice.get(pathNode.id);
-      const deviceName = physicalToDeviceName.get(pathNode.id);
+      if (!deviceElementId) continue;
 
       // Device 토폴로지에서 해당 노드 찾기
       const baseTopology = initialTopologyRef.current ?? topologyData;
-      let deviceNode = null;
-
-      // elementId로 먼저 찾기
-      if (deviceElementId) {
-        deviceNode = baseTopology.nodes.find(n => n.elementId === deviceElementId);
-      }
-
-      // elementId로 못 찾으면 name으로 찾기
-      if (!deviceNode && deviceName) {
-        deviceNode = baseTopology.nodes.find(n => n.name === deviceName);
-      }
-
-      if (!deviceNode) {
-        console.warn('Device node not found for path node:', pathNode.id, deviceElementId, deviceName);
-        continue;
-      }
+      const deviceNode = baseTopology.nodes.find(n => n.elementId === deviceElementId);
+      if (!deviceNode) continue;
 
       try {
         const pos = network.getPosition(deviceNode.id);
@@ -1426,22 +1133,6 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     });
   }, [pathList, attackGraphData.nodes, networkRSMean]);
 
-  // 순위별 정렬된 경로 인덱스 맵 생성
-  const sortedPathRanks = useMemo(() => {
-    if (!pathMetrics || pathMetrics.length === 0) return new Map();
-    
-    // 성공 가능성 내림차순 정렬
-    const sorted = [...pathMetrics].sort((a, b) => (b.success ?? -1) - (a.success ?? -1));
-    
-    // 원래 인덱스 -> 순위 맵 생성
-    const rankMap = new Map();
-    sorted.forEach((item, rank) => {
-      rankMap.set(item.index, rank); // 0부터 시작하는 순위
-    });
-    
-    return rankMap;
-  }, [pathMetrics]);
-
   const buildCalculationText = (pathIdx) => {
     const p = pathList?.[pathIdx] || []; const lines = []; lines.push(`방책 ${pathIdx + 1} 계산 시작`);
     const rsVals = [];
@@ -1555,10 +1246,10 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 }, position: 'relative' }}>
             <Box className="status-bar">
               <Typography variant="caption" color="inherit">
-                {loadingAttack ? '공격 경로 분석 중...' : (effectiveDeviceName ? `공격 목표: ${effectiveDeviceName}${selectedStartNode ? ' (시작 노드 선택됨)' : ''}` : '공격 목표 미선택')}
+                {loadingAttack ? '' : (effectiveElementId ? `공격 목표: ${effectiveElementId}${selectedStartNode ? ' (시작 노드 선택됨)' : ''}` : '공격 목표 미선택')}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <IconButton size="small" onClick={() => openPopup('treatAnalysis')} sx={{ bgcolor: '#7c3aed', color: 'white', '&:hover': { bgcolor: '#6d28d9' }, width: 32, height: 32 }} title="위험 분석 보기">
+                <IconButton size="small" onClick={() => setCalculationLogPopupOpen(true)} sx={{ bgcolor: '#7c3aed', color: 'white', '&:hover': { bgcolor: '#6d28d9' }, width: 32, height: 32 }} title="계산 로그 보기">
                   <FundOutlined style={{ fontSize: 16 }} />
                 </IconButton>
                 {selectedStartNode && (
@@ -1581,32 +1272,15 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                 zIndex: 5
               }}
             />
-            <Box className="legend-box" sx={{ maxHeight: 200, overflowY: 'auto' }}>
+            <Box className="legend-box">
               <ul className="legend-list" role="list">
                 <li className="legend-item"><Box className="legend-dot start" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>시작 노드</Typography></li>
                 <li className="legend-item"><Box className="legend-dot target" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>목표 노드</Typography></li>
-                {/* 순위별 경로 색상 표시 */}
-                {pathList && pathList.length > 0 && (
-                  <>
-                    <li className="legend-item" style={{ marginTop: 8, marginBottom: 4 }}>
-                      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 'bold' }}>순위별 경로:</Typography>
-                    </li>
-                    {[...Array(Math.min(pathList.length, 5))].map((_, idx) => (
-                      <li key={idx} className="legend-item">
-                        <Box sx={{ width: 20, height: 4, bgcolor: rankColors[idx].edge, borderRadius: 2, boxShadow: `0 0 6px ${rankColors[idx].edge}` }} aria-hidden="true" />
-                        <Typography variant="caption" sx={{ color: '#fff', ml: 0.5 }}>{idx + 1}순위</Typography>
-                      </li>
-                    ))}
-                    {pathList.length > 5 && (
-                      <li className="legend-item">
-                        <Typography variant="caption" sx={{ color: '#aaa', fontSize: 10 }}>...외 {pathList.length - 5}개</Typography>
-                      </li>
-                    )}
-                  </>
-                )}
+                <li className="legend-item"><Box className="legend-dot via" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>경로 노드</Typography></li>
                 {isAnimating && (
-                  <li className="legend-item" style={{ marginTop: 8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF1493', boxShadow: '0 0 10px #FF1493' }} aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>경로 이동 중</Typography></li>
+                  <li className="legend-item"><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF1493', boxShadow: '0 0 10px #FF1493' }} aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>경로 이동 중</Typography></li>
                 )}
+                {/*<li className="legend-item"><Box className="legend-line" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>공격 경로</Typography></li>*/}
               </ul>
             </Box>
           </CardContent>
@@ -1647,50 +1321,24 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
                         <tr>
-                          <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>순위</th>
                           <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>방책 No.</th>
                           <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>노드 수</th>
+                          <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>순위</th>
                           <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>성공 가능성</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {[...pathMetrics].sort((a, b) => (b.success ?? -1) - (a.success ?? -1)).map((m, sortedIdx) => {
-                          const rank = sortedIdx + 1;
-                          const colorInfo = rankColors[Math.min(sortedIdx, rankColors.length - 1)];
+                        {pathMetrics.map((m) => {
+                          const sorted = [...pathMetrics].sort((a, b) => (b.success ?? -1) - (a.success ?? -1));
+                          const rank = (sorted.findIndex(x => x.index === m.index) + 1) || '-';
                           const successDisplay = m.success == null ? 'N/A' : `${((m.success) * 100).toFixed(2)}%`;
                           const isSelected = selectedPath === m.index;
                           return (
-                            <tr 
-                              key={m.index} 
-                              onClick={() => onSelectPathWithLogs(m.index)} 
-                              style={{ 
-                                background: isSelected ? colorInfo.edge + '30' : '#f9f9f9', 
-                                cursor: 'pointer', 
-                                borderLeft: `4px solid ${colorInfo.edge}`,
-                                borderBottom: '1px solid #eee',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Box sx={{ 
-                                  width: 20, 
-                                  height: 20, 
-                                  borderRadius: '50%', 
-                                  bgcolor: colorInfo.edge, 
-                                  color: '#fff', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center',
-                                  fontSize: 11,
-                                  fontWeight: 'bold',
-                                  boxShadow: `0 0 6px ${colorInfo.shadow}`
-                                }}>
-                                  {rank}
-                                </Box>
-                              </td>
-                              <td style={{ padding: '8px' }}>{`방책 ${m.index + 1}`}</td>
+                            <tr key={m.index} onClick={() => onSelectPathWithLogs(m.index)} style={{ background: isSelected ? '#fff' : '#f9f9f9', cursor: 'pointer', border: isSelected ? '2px solid #4CAF50' : '1px solid #ccc' }}>
+                              <td style={{ padding: '8px' }}>{`경로 ${m.index + 1}`}</td>
                               <td style={{ padding: '8px' }}>{m.nodeCount}</td>
-                              <td style={{ padding: '8px', fontWeight: isSelected ? 'bold' : 'normal' }}>{successDisplay}</td>
+                              <td style={{ padding: '8px' }}>{rank}</td>
+                              <td style={{ padding: '8px' }}>{successDisplay}</td>
                             </tr>
                           );
                         })}
@@ -1704,7 +1352,26 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
             {/* 카드 3: 경로 노드 정보 (테이블) */}
             <Card component="section" aria-label="경로 노드 정보" className="info-card scrollable" sx={{ flex: 1, minHeight: 0 }}>
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', flex: 1, '&:last-child': { pb: 2 } }}>
-                <Typography variant="body2" component="h3" className="card-title">🔗 경로 노드 정보</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="body2" component="h3" className="card-title">🔗 경로 노드 정보</Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => setInfoPopupOpen(true)}
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: '#e3f2fd',
+                      border: '1px solid #90caf9',
+                      borderRadius: '50%',
+                      '&:hover': { bgcolor: '#bbdefb' }
+                    }}
+                  >
+                    <InfoOutlined style={{ fontSize: 16, color: '#1976d2' }} />
+                  </IconButton>
+                </Box>
                 <Box className="card-content-scroll" sx={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
@@ -1830,37 +1497,6 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                 </Box>
               </CardContent>
             </Card>
-
-            {/* 카드 4: 계산 로그 (타자 애니메이션) */}
-            <Card component="section" aria-label="계산 로그" className="info-card scrollable" sx={{ flex: 1, minHeight: 0 }}>
-              <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', flex: 1, '&:last-child': { pb: 2 } }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2" component="h3" className="card-title">📋 계산 로그</Typography>
-                  <IconButton
-                    size="small"
-                    onClick={() => setInfoPopupOpen(true)}
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: '#e3f2fd',
-                      border: '1px solid #90caf9',
-                      borderRadius: '50%',
-                      '&:hover': { bgcolor: '#bbdefb' }
-                    }}
-                  >
-                    <InfoOutlined style={{ fontSize: 16, color: '#1976d2' }} />
-                  </IconButton>
-                </Box>
-                <Box className="card-content-scroll" sx={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', fontSize: 11 }}>
-                  {typedLogText && typedLogText.length > 0 ? typedLogText : (
-                    <Typography variant="caption" className="empty-message">방책 리스트에서 경로를 선택하면 계산 과정을 타이핑 애니메이션으로 표시합니다.</Typography>
-                  )}
-                </Box>
-              </CardContent>
-            </Card>
           </Box>
         )}
 
@@ -1868,7 +1504,47 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         <Dialog open={treatAnalysisOpen} onClose={() => closePopup('treatAnalysis')} maxWidth="md" fullWidth PaperProps={{ sx: { height: '70vh', maxHeight: '70vh', m: 0, position: 'relative', overflow: 'hidden' } }}>
           <IconButton onClick={() => closePopup('treatAnalysis')} sx={{ position: 'absolute', right: 23, top: 8.5, color: '#000000ff', zIndex: 1, bgcolor: '#cac7d4ff', '&:hover': { bgcolor: '#39306b', color: '#ffffffff' } }}>x</IconButton>
           <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
-            <TreatAnalysis open={treatAnalysisOpen} isPopup={true} />
+            <TreatAnalysis open={treatAnalysisOpen} isPopup={true} logText={typedLogText} />
+          </DialogContent>
+        </Dialog>
+
+        {/* 계산 로그 팝업 */}
+        <Dialog
+          open={calculationLogPopupOpen}
+          onClose={() => setCalculationLogPopupOpen(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{ sx: { height: '70vh', maxHeight: '70vh', m: 0, position: 'relative', overflow: 'hidden', borderRadius: 0 } }}
+        >
+          <IconButton onClick={() => setCalculationLogPopupOpen(false)} sx={{ position: 'absolute', right: 23, top: 8.5, color: '#000000ff', zIndex: 1, bgcolor: '#cac7d4ff', '&:hover': { bgcolor: '#39306b', color: '#ffffffff' } }}>x</IconButton>
+          <DialogContent sx={{ p: 0, height: '100%', overflow: 'auto', bgcolor: 'background.paper' }}>
+            <div style={{
+              background: '#f0edfd',
+              color: '#39306b',
+              padding: '20px',
+              fontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif",
+              height: '100%',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              overflow: 'auto'
+            }}>
+              <div style={{ 
+                borderBottom: '2px solid #39306b', 
+                paddingBottom: '10px', 
+                marginBottom: '20px' 
+              }}>
+                <h2 style={{ margin: 0 }}>📋 계산 로그</h2>
+                <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                  Loading - Neo4j - neo4j://elf116i19.databases.neo4j.io
+                </div>
+              </div>
+              
+              <div style={{ fontFamily: 'monospace', fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#39306b' }}>
+                {typedLogText && typedLogText.length > 0 ? typedLogText : (
+                  <span style={{ opacity: 0.6 }}>방책 리스트에서 경로를 선택하면 계산 과정을 표시합니다.</span>
+                )}
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
@@ -1876,24 +1552,34 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         <Dialog
           open={infoPopupOpen}
           onClose={() => setInfoPopupOpen(false)}
-          maxWidth="sm"
+          maxWidth="lg"
           fullWidth
-          PaperProps={{ sx: { borderRadius: 2 } }}
+          PaperProps={{ sx: { height: '80vh', maxHeight: '80vh', m: 0, position: 'relative', overflow: 'hidden', borderRadius: 0 } }}
         >
-          <Box sx={{ p: 3, bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>📊 공격 가능도 & 성공 가능성 분석</Typography>
-              <IconButton
-                onClick={() => setInfoPopupOpen(false)}
-                sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}
-              >
-                ✕
-              </IconButton>
-            </Box>
-          </Box>
-
-          <DialogContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <IconButton onClick={() => setInfoPopupOpen(false)} sx={{ position: 'absolute', right: 23, top: 8.5, color: '#000000ff', zIndex: 1, bgcolor: '#cac7d4ff', '&:hover': { bgcolor: '#39306b', color: '#ffffffff' } }}>x</IconButton>
+          <DialogContent sx={{ p: 0, height: '100%', overflow: 'auto', bgcolor: 'background.paper' }}>
+            <div style={{
+              background: '#f0edfd',
+              color: '#39306b',
+              padding: '20px',
+              fontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif",
+              height: '100%',
+              fontSize: '14px',
+              lineHeight: '1.5',
+              overflow: 'auto'
+            }}>
+              <div style={{ 
+                borderBottom: '2px solid #39306b', 
+                paddingBottom: '10px', 
+                marginBottom: '20px' 
+              }}>
+                <h2 style={{ margin: 0 }}>📊 공격 가능도 & 성공 가능성 분석</h2>
+                <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                  위험 노출도 및 공격 가능도 측정
+                </div>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* HRN 설명 */}
               <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #ff6b6b' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#ff6b6b', mb: 1 }}>
@@ -1993,7 +1679,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
               {/* 종합 분석 */}
               <Paper sx={{ p: 2, bgcolor: '#e8f5e9', borderLeft: '4px solid #43a047' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#43a047' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#43a047', mb: 1 }}>
                   🎯 종합 분석
                 </Typography>
                 <Typography variant="body2" sx={{ lineHeight: 1.6, color: '#333' }}>
@@ -2004,7 +1690,8 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                   </ul>
                 </Typography>
               </Paper>
-            </Box>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
@@ -2081,19 +1768,20 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                               <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>CVE ID</th>
                               <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>CVSS 점수</th>
                               <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>심각도</th>
-                              <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>벡터 문자열</th>
+                              <th style={{ padding: '8px', textAlign: 'left', borderBottom: '2px solid #ff9800' }}>설명</th>
                             </tr>
                           </thead>
                           <tbody>
                             {cveInfos.map((cve, idx) => {
                               const cveProps = cve?.props || cve || {};
-                              const cveId = cveProps.cveId || `CVE-${idx + 1}`;
-                              const cvssScore = cveProps.baseScore || 'N/A';
-                              const severity = cvssScore !== 'N/A' && typeof cvssScore === 'number' ?
+                              const cveId = cveProps.cve || cveProps.cveId || cveProps.id || cveProps.name || `CVE-${idx + 1}`;
+                              const cvssScore = cveProps.cvss3 || cveProps.cvss || cveProps.baseScore || cveProps.score || cveProps.score_value || cveProps.severity_score || 'N/A';
+                              const severity = cveProps.severity || cveProps.severityLevel ||
+                                (cvssScore !== 'N/A' && typeof cvssScore === 'number' ?
                                   (cvssScore >= 9.0 ? 'CRITICAL' :
                                    cvssScore >= 7.0 ? 'HIGH' :
-                                   cvssScore >= 4.0 ? 'MEDIUM' : 'LOW') : 'N/A';
-                              const description = cveProps.vectorString || 'N/A';
+                                   cvssScore >= 4.0 ? 'MEDIUM' : 'LOW') : 'N/A');
+                              const description = cveProps.description || cveProps.summary || cveProps.desc || 'N/A';
 
                               const severityColor =
                                 severity === 'CRITICAL' ? '#d32f2f' :
