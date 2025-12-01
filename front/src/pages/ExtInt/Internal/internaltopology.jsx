@@ -153,8 +153,10 @@ function buildFilteredGraph(fullGraph, selectedZones) {
     });
   }
   fullGraph.nodes.forEach((n) => { if (normalizeZoneVal(n.zone) === 0 && String(n.kind).toLowerCase() === 'firewall') nodeIds.add(n.id); });
+  // 선택된 존의 모든 노드를 포함 (고립 노드 포함)
+  fullGraph.nodes.forEach((n) => { if (zonesSet.has(normalizeZoneVal(n.zone))) nodeIds.add(n.id); });
   const links = fullGraph.links.filter((l) => nodeIds.has(idOf(l.source)) && nodeIds.has(idOf(l.target)));
-  const nodes = fullGraph.nodes.filter((n) => nodeIds.has(n.id) || zonesSet.has(normalizeZoneVal(n.zone)));
+  const nodes = fullGraph.nodes.filter((n) => nodeIds.has(n.id));
   return { nodes, links };
 }
 
@@ -289,6 +291,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
   const allZones = useMemo(() => {
     const set = new Set();
     graph.nodes.forEach((n) => { const z = normalizeZoneVal(n.zone); if (z !== null && !Number.isNaN(z)) set.add(z); });
+    // 더 이상 Zone 7을 수동 추가하지 않음 (DB 데이터 기준 표시)
     return Array.from(set).sort((a, b) => a - b);
   }, [graph.nodes]);
 
@@ -312,14 +315,14 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
       const wantPhysical = linkTypeFilter === 'physical';
       links = links.filter((l) => (String(l.type || '').toLowerCase() === (wantPhysical ? 'physical' : 'logical')));
     }
-    const nodeIds = new Set();
-    links.forEach((l) => { nodeIds.add(idOf(l.source)); nodeIds.add(idOf(l.target)); });
-    let nodes;
-    if (linkTypeFilter === 'all') {
-      nodes = base.nodes.filter((n) => nodeIds.has(n.id) || selectedZones.includes(normalizeZoneVal(n.zone)));
-    } else {
-      nodes = base.nodes.filter((n) => nodeIds.has(n.id));
-    }
+    // Zone 7 링크 제외
+    links = links.filter((l) => {
+      const srcNode = base.nodes.find((n) => n.id === idOf(l.source));
+      const tgtNode = base.nodes.find((n) => n.id === idOf(l.target));
+      return normalizeZoneVal(srcNode?.zone) !== 7 && normalizeZoneVal(tgtNode?.zone) !== 7;
+    });
+    // Zone 7 노드 제외 (고립 노드 포함 모두 제외)
+    const nodes = base.nodes.filter((n) => normalizeZoneVal(n.zone) !== 7);
     return { nodes, links };
   }, [graph, selectedZones, linkTypeFilter]);
 
@@ -663,7 +666,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             <div className="zone-filter-section">
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#000000ff' }}>Zone Filter</Typography>
               <form>
-                {allZones.map((z) => (
+                {allZones.filter(z => z !== 7).map((z) => (
                   <label key={z}>
                     <input type="checkbox" checked={selectedZones.includes(z)} onChange={() => toggleZone(z)} />
                     <span>Zone {z} <span className="zone-count-inline">({countByZone.get(z) || 0})</span></span>
@@ -774,7 +777,12 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                 <div onClick={() => setActiveZone(null)} className="overlay-backdrop" />
                 <div onClick={(e)=>e.stopPropagation()} className="overlay-content">
                   <Suspense fallback={<div className="overlay-loading">Loading...</div>}>
-                    <ZonePage zone={activeZone} onBack={() => setActiveZone(null)} onInspectorChange={onInspectorChange} setEventLogs={setEventLogs} />
+                    <ZonePage
+                      zone={activeZone}
+                      onBack={() => setActiveZone(null)}
+                      onInspectorChange={onInspectorChange}
+                      setEventLogs={setEventLogs}
+                    />
                   </Suspense>
                 </div>
               </div>

@@ -104,6 +104,7 @@ class Neo4jConnector:
             return d
 
         def pick_id(props, raw):
+            if props is None: return None
             return (
                 props.get("id")
                 or getattr(raw, "element_id", None)
@@ -114,11 +115,8 @@ class Neo4jConnector:
 
         # === (A) 3계층: HOSTS + USES 모두 조회 ===
         if activeView in {"3layer", "cyber3layer", "threelayer", "multilayer"}:
-            # project 필터는 선택적이지만, Cypher에서 WITH $project AS p 를 사용하므로
-            # 항상 파라미터를 전달합니다 (없다면 None을 전달하여 p가 NULL이 되게 함).
             params = {"project": project}
 
-            # Some Neo4j setups don't support CALL {...} subqueries; split into two MATCH queries
             query_hosts = """
             MATCH p1 = (ph:Physical)-[r1:HOSTS]->(lg:Logical)
             WHERE $project IS NULL
@@ -137,7 +135,6 @@ class Neo4jConnector:
             LIMIT 400
             """
 
-            # 추가: Physical-Physical 동일 레이어 연결을 가져옴 (프로젝트 필터 적용)
             query_physical = """
             MATCH p3 = (ph1:Physical)-[r3]-(ph2:Physical)
             WHERE $project IS NULL
@@ -164,7 +161,7 @@ class Neo4jConnector:
                             src = safe_serialize(n_obj) if n_obj else {}
                             dst = safe_serialize(t_obj) if t_obj else {}
                             edge = dict(r_obj) if r_obj else {}
-                            edge["rel"] = rel_type  # "HOSTS" | "USES"
+                            edge["rel"] = rel_type
 
                             sid = pick_id(src, n_obj)
                             tid = pick_id(dst, t_obj)
@@ -179,21 +176,23 @@ class Neo4jConnector:
             return records
 
         # === (B) HS_DB.py 스타일 쿼리 (target, active, external) ===
-        # HS_DB.py에서 사용되던 activeView 처리
         if activeView == "target":
             return self._fetch_target(safe_serialize, pick_id)
         elif activeView == "external":
             return self._fetch_external(safe_serialize, pick_id)
 
-        # === (C) 그 외 뷰(HW_DB.py 기존) ===
+        # === (C) 그 외 뷰 (수정된 Zone 로직 포함) ===
         where_parts, params = [], {}
         order_clause = "ORDER BY rand()"
         limit_clause = ""
-
+        
+        # 1. 기본 쿼리: 연결된 것만 찾음 (Zone 뷰가 아닐 때 사용)
         base = """
         MATCH (n:Device)-[r]->(t:Device)
         WITH n, r, t, toLower(coalesce(r.type, TYPE(r))) AS _layer
         """
+
+        is_zone_view = False
 
         if activeView in {"physical", "logical", "persona"}:
             params["rtype"] = activeView
@@ -204,22 +203,83 @@ class Neo4jConnector:
             where_parts.append("coalesce(n.project,'') = 'internal' AND coalesce(t.project,'') = 'internal'")
         elif activeView == "externalOnly":
             where_parts.append("coalesce(n.project,'') = 'external' AND coalesce(t.project,'') = 'external'")
+        
+        # ---------------------------------------------------------
+        # [수정됨] Zone 뷰 처리: UNION을 사용하여 고립된 노드까지 확실하게 조회
+        # ---------------------------------------------------------
         elif activeView.startswith("zone"):
-            strict = activeView.endswith("_strict")
-            num_part = activeView.replace("zone", "").replace("_strict", "")
+            is_zone_view = True
+            
+            clean_view = activeView.replace("_includeIsolated", "").replace("_strict", "")
+            # includeIsolated 힌트가 있거나, 기본적으로 모든 것을 보고 싶다면 아래 로직을 탐
+            
             try:
+                num_part = clean_view.replace("zone", "")
                 params["zone"] = int(num_part)
-                where_parts.append(
-                    "n.zone = $zone AND t.zone = $zone" if strict else "n.zone = $zone OR t.zone = $zone"
-                )
             except ValueError:
                 pass
+            
+            # [Query Part 1] 연결된 노드들
+            query_connected = """
+            MATCH (n:Device)-[r]-(t:Device)
+            WHERE n.zone = $zone
+            RETURN n, r, t, toLower(type(r)) as _layer
+            """
+            
+            # [Query Part 2] 고립된 노드들 (관계 없음)
+            query_isolated = """
+            MATCH (n:Device)
+            WHERE n.zone = $zone AND NOT (n)--()
+            RETURN n, NULL as r, NULL as t, NULL as _layer
+            """
+            
+            # UNION으로 합침
+            base = f"{query_connected} UNION {query_isolated}"
+            
+            # Zone 뷰에서는 base 자체가 전체 쿼리 역할을 함
+            query = base 
+            
+            # 여기서 바로 실행하고 리턴 (아래 공통 로직 건너뜀)
+            records = []
+            with self.driver.session(database=DBNAME) as session:
+                result = session.run(query, **params)
+                for rec in result:
+                    n_obj = rec.get("n")
+                    t_obj = rec.get("t")
+                    r_obj = rec.get("r")
+                    layer = rec.get("_layer")
+
+                    src = safe_serialize(n_obj) if n_obj else {}
+                    
+                    if t_obj:
+                        dst = safe_serialize(t_obj)
+                        dst_id = pick_id(dst, t_obj)
+                        dst["id"] = dst_id
+                    else:
+                        dst = None
+                        dst_id = None
+
+                    if r_obj:
+                        edge = dict(r_obj)
+                        if layer: edge["layer"] = layer
+                        if dst_id:
+                            edge["sourceIP"] = pick_id(src, n_obj)
+                            edge["targetIP"] = dst_id
+                    else:
+                        edge = None
+                    
+                    src["id"] = pick_id(src, n_obj)
+                    records.append({"src_IP": src, "dst_IP": dst, "edge": edge})
+            
+            return records
+
         elif activeView.startswith("subnet:"):
             subnet = activeView.split("subnet:", 1)[1].strip()
             if subnet:
                 params["subnet"] = subnet
                 where_parts.append("n.subnet = $subnet AND t.subnet = $subnet")
 
+        # 쿼리 조립 (Zone 뷰가 아닐 때만 실행됨)
         where_clause = f"WHERE {' AND '.join(where_parts)}" if where_parts else ""
         query = f"""
             {base}
@@ -246,15 +306,16 @@ class Neo4jConnector:
 
                 sid = pick_id(src, n_obj)
                 tid = pick_id(dst, t_obj)
+                
                 src["id"], dst["id"] = sid, tid
                 edge["sourceIP"], edge["targetIP"] = sid, tid
 
                 records.append({"src_IP": src, "dst_IP": dst, "edge": edge})
+
         return records
 
     # HS_DB.py 스타일 쿼리 함수들
     def _fetch_external(self, safe_serialize, pick_id):
-        # 외부 네트워크 노드 반환 로직
         return []
 
     def _fetch_target(self, safe_serialize, pick_id):
@@ -311,10 +372,15 @@ class Neo4jConnector:
 # ------------------ Routes ------------------
 
 @app.get("/neo4j/nodes")
-def get_nodes(activeView: str = "default", project: Optional[str] = None):
+def get_nodes(activeView: str = "default", project: Optional[str] = None, includeIsolated: bool = False):
     neo4j = Neo4jConnector(URI, USERNAME, PASSWORD)
     try:
-        data = neo4j.fetch_nodes(activeView, project)
+        # includeIsolated 플래그를 처리하기 위해 activeView에 힌트 추가
+        view = activeView
+        if includeIsolated and activeView.startswith("zone"):
+            view = activeView + "_includeIsolated"
+            
+        data = neo4j.fetch_nodes(view, project)
         return JSONResponse(content=data)
     except AuthError as e:
         raise HTTPException(status_code=401, detail=f"Neo4j auth failed: {e}")
@@ -342,4 +408,3 @@ def neo4j_ping():
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
-

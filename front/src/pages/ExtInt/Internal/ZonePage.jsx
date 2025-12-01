@@ -17,7 +17,7 @@ const TYPE_COLORS = {
   default: "#a0b4ff",
 };
 
-export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs }) {
+export default function ZonePage({ zone, staticData, onBack, onInspectorChange, setEventLogs }) {
   const fgRef = useRef();
   const graphContainerRef = useRef(null);
   const [zoneGraph, setZoneGraph] = useState({ nodes: [], links: [] });
@@ -33,8 +33,8 @@ export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs
     (async () => {
       try {
         setLoading(true);
-        const res = await fetch(`http://localhost:8000/neo4j/nodes?activeView=zone${zone}`);
-        const data = await res.json();
+        // 백엔드에서 모든 존 데이터를 동일하게 처리 (고립 노드 포함)
+        const data = staticData || await fetch(`http://localhost:8000/neo4j/nodes?activeView=zone${zone}&includeIsolated=true`).then((r) => r.json());
 
         const nodesMap = new Map();
         const rawLinks = [];
@@ -64,6 +64,7 @@ export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs
           links.push(l);
         }
 
+        // 모든 노드를 렌더링 (고립 노드 포함)
         const nodes = Array.from(nodesMap.values()).map((n) => {
           const kind = (n.kind || n.type || "host").toLowerCase();
           const label = n.label || n.ip || String(n.id);
@@ -88,7 +89,7 @@ export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs
       }
     })();
     return () => { mounted = false; };
-  }, [zone]);
+  }, [zone, staticData]);
 
   const geoCache = useMemo(
     () => ({
@@ -314,6 +315,21 @@ export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs
         };
       });
     
+    // 독립 노드(연결이 없는 노드)인 경우 기본 정보만 표시
+    const finalDbInfo = dbInfo.length === 0 ? [{
+      src_IP: {
+        id: selected.id,
+        ip: selected.ip,
+        subnet: selected.subnet,
+        gateway: selected.gateway,
+        __labels: [selected.kind],
+        __id: selected.id,
+        index: selected.zone
+      },
+      dst_IP: null,
+      edge: null
+    }] : dbInfo;
+    
     const newLog = {
       message: `Zone ${zone} - 노드 선택: ${selected.label || selected.id}`,
       nodeInfo: { 
@@ -322,11 +338,12 @@ export default function ZonePage({ zone, onBack, onInspectorChange, setEventLogs
         ip: selected.ip,
         subnet: selected.subnet,
         zone: selected.zone,
-        id: selected.id
+        id: selected.id,
+        gateway: selected.gateway
       },
       connectedCount: connectedNodes.size,
       connectedIps: connectedIps,
-      dbInfo: dbInfo
+      dbInfo: finalDbInfo
     };
     
     setEventLogs([newLog]);
