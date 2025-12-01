@@ -642,6 +642,19 @@ const EarthGlobe = () => {
       }
     }
 
+    // 모든 광선을 다시 순회하며 강제로 빨간색 복원
+    for (let i = 0; i < entities.length; i++) {
+      const entity = entities[i];
+      if (entity && entity.id && entity.id.startsWith('beam-3d-')) {
+        if (entity.polyline && entity.polyline.material) {
+          entity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
+            glowPower: 0.05,
+            color: Cesium.Color.RED.withAlpha(0.08)
+          });
+        }
+      }
+    }
+
     // 상태 초기화
     setHighlightedBuildings([]);
     setMarkerHighlights([]);
@@ -660,14 +673,25 @@ const EarthGlobe = () => {
       if (entity) {
         resetEntityColors(entity, entityId);
       }
+      // 기존 광선도 빨간색으로 복원
+      const beamId = entityId.replace(/^(source|target)-building-3d-/, 'beam-3d-');
+      const beamEntity = viewer.current.entities.getById(beamId);
+      if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
+        beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
+          glowPower: 0.05,
+          color: Cesium.Color.RED.withAlpha(0.08)
+        });
+      }
     });
 
     // 새로운 하이라이트 적용 (3D 모드용 ID)
     const targetPrefix = `target-building-3d-${attack.id}`;
     const sourcePrefix = `source-building-3d-${attack.id}`;
+    const beamPrefix = `beam-3d-${attack.id}`;
 
     const targetEntity = viewer.current.entities.getById(targetPrefix);
     const sourceEntity = viewer.current.entities.getById(sourcePrefix);
+    const beamEntity = viewer.current.entities.getById(beamPrefix);
 
     const newHighlighted = [];
 
@@ -681,6 +705,14 @@ const EarthGlobe = () => {
       newHighlighted.push(sourcePrefix);
     }
 
+    // 광선(아크 노드)을 파란색으로 변경
+    if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
+      beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
+        glowPower: 0.15,
+        color: Cesium.Color.BLUE.withAlpha(0.6)
+      });
+    }
+
     setHighlightedBuildings(newHighlighted);
   }, [attacks, highlightedBuildings]);
 
@@ -691,15 +723,25 @@ const EarthGlobe = () => {
     // 모든 하이라이트 강제 제거
     clearAllHighlights();
 
-    // 클릭된 건물을 타겟으로 하는 모든 공격 찾기
-    const clickedBuildingName = entityId.includes('target')
-      ? clickedAttack.target.building.name
-      : clickedAttack.source.building.name;
+    // 클릭된 건물의 정확한 좌표 가져오기
     const isTargetClick = entityId.includes('target');
+    const clickedLat = isTargetClick
+      ? clickedAttack.target.building.lat
+      : clickedAttack.source.building.lat;
+    const clickedLon = isTargetClick
+      ? clickedAttack.target.building.lon
+      : clickedAttack.source.building.lon;
 
+    // 같은 좌표를 가진 모든 공격 찾기 (같은 건물의 공격들만)
     const relatedAttacks = isTargetClick
-      ? attacks.filter(attack => attack.target.building.name === clickedBuildingName)
-      : attacks.filter(attack => attack.source.building.name === clickedBuildingName);
+      ? attacks.filter(attack =>
+          attack.target.building.lat === clickedLat &&
+          attack.target.building.lon === clickedLon
+        )
+      : attacks.filter(attack =>
+          attack.source.building.lat === clickedLat &&
+          attack.source.building.lon === clickedLon
+        );
 
     if (relatedAttacks.length === 0) return;
 
@@ -709,9 +751,11 @@ const EarthGlobe = () => {
     relatedAttacks.forEach(attack => {
       const sourceEntityId = `source-building-3d-${attack.id}`;
       const targetEntityId = `target-building-3d-${attack.id}`;
+      const beamEntityId = `beam-3d-${attack.id}`;
 
       const sourceEntity = viewer.current.entities.getById(sourceEntityId);
       const targetEntity = viewer.current.entities.getById(targetEntityId);
+      const beamEntity = viewer.current.entities.getById(beamEntityId);
 
       if (sourceEntity) {
         highlightEntity(sourceEntity, true);
@@ -721,6 +765,14 @@ const EarthGlobe = () => {
       if (targetEntity) {
         highlightEntity(targetEntity, false);
         newMarkerHighlights.push(targetEntityId);
+      }
+
+      // 광선(아크 노드)을 파란색으로 변경
+      if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
+        beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
+          glowPower: 0.15,
+          color: Cesium.Color.BLUE.withAlpha(0.6)
+        });
       }
     });
 
@@ -760,9 +812,11 @@ const EarthGlobe = () => {
       relatedAttacks.forEach(attack => {
         const sourceEntityId = `source-building-3d-${attack.id}`;
         const targetEntityId = `target-building-3d-${attack.id}`;
+        const beamEntityId = `beam-3d-${attack.id}`;
 
         const sourceEntity = viewer.current.entities.getById(sourceEntityId);
         const targetEntity = viewer.current.entities.getById(targetEntityId);
+        const beamEntity = viewer.current.entities.getById(beamEntityId);
 
         // Source 마커 하이라이트
         if (sourceEntity && attack.source.ip === clickedIP) {
@@ -774,6 +828,14 @@ const EarthGlobe = () => {
         if (targetEntity && attack.target.ip === clickedIP) {
           highlightEntity(targetEntity, false);
           newMarkerHighlights.push(targetEntityId);
+        }
+
+        // 광선(아크 노드)을 파란색으로 변경
+        if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
+          beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
+            glowPower: 0.15,
+            color: Cesium.Color.BLUE.withAlpha(0.6)
+          });
         }
       });
 
@@ -796,9 +858,6 @@ const EarthGlobe = () => {
     if (!viewer.current || !attacks || attacks.length === 0) return;
 
     try {
-      const beamColor = '#FF0000';
-      const startTime = viewer.current.clock.currentTime;
-
       attacks.forEach((attack) => {
         // 좌표 유효성 검증
         const sourceLon = parseFloat(attack.source.building.lon);
@@ -917,12 +976,7 @@ const EarthGlobe = () => {
             width: 6,
             material: new Cesium.PolylineGlowMaterialProperty({
               glowPower: 0.05,
-              color: new Cesium.CallbackProperty((time) => {
-                const t = Cesium.JulianDate.secondsDifference(time, startTime) % 3.0;
-                const progress = t / 3.0;
-                const alpha = 0.15 + 0.05 * Math.sin(progress * Math.PI * 2);
-                return Cesium.Color.fromCssColorString(beamColor).withAlpha(alpha);
-              }, false)
+              color: Cesium.Color.RED.withAlpha(0.08)
             }),
             clampToGround: false
           },

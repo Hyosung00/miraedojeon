@@ -30,9 +30,9 @@ const COLORS = {
 };
 
 const MARKER_SIZES = {
-  NORMAL: 6,
-  HIGHLIGHT: 10,
-  OUTLINE_WIDTH_NORMAL: 2,
+  NORMAL: 8,
+  HIGHLIGHT: 12,
+  OUTLINE_WIDTH_NORMAL: 3,
   OUTLINE_WIDTH_HIGHLIGHT: 4
 };
 
@@ -697,19 +697,6 @@ const TwoDPage = () => {
       }
     }
 
-    // 모든 광선을 다시 순회하며 강제로 빨간색 복원
-    for (let i = 0; i < entities.length; i++) {
-      const entity = entities[i];
-      if (entity && entity.id && entity.id.startsWith('beam-2d-')) {
-        if (entity.polyline && entity.polyline.material) {
-          entity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-            glowPower: 0.05,
-            color: Cesium.Color.RED.withAlpha(0.08)
-          });
-        }
-      }
-    }
-
     // 상태 초기화
     setHighlightedBuildings([]);
     setMarkerHighlights([]);
@@ -728,25 +715,14 @@ const TwoDPage = () => {
       if (entity) {
         resetEntityColors(entity, entityId);
       }
-      // 기존 광선(아크 노드)도 빨간색으로 복원
-      const beamId = entityId.replace(/^(source|target)-2d-/, 'beam-2d-');
-      const beamEntity = viewer.current.entities.getById(beamId);
-      if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-        beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.05,
-          color: Cesium.Color.RED.withAlpha(0.08)
-        });
-      }
     });
 
     // 새로운 하이라이트 적용 (2D 모드용 ID)
     const targetPrefix = `target-2d-${attack.id}`;
     const sourcePrefix = `source-2d-${attack.id}`;
-    const beamPrefix = `beam-2d-${attack.id}`;
 
     const targetEntity = viewer.current.entities.getById(targetPrefix);
     const sourceEntity = viewer.current.entities.getById(sourcePrefix);
-    const beamEntity = viewer.current.entities.getById(beamPrefix);
 
     const newHighlighted = [];
 
@@ -760,14 +736,6 @@ const TwoDPage = () => {
       newHighlighted.push(sourcePrefix);
     }
 
-    // 광선(아크 노드)을 파란색으로 변경
-    if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-      beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-        glowPower: 0.15,
-        color: Cesium.Color.BLUE.withAlpha(0.6)
-      });
-    }
-
     setHighlightedBuildings(newHighlighted);
   }, [attacks, highlightedBuildings]);
 
@@ -778,25 +746,15 @@ const TwoDPage = () => {
     // 모든 하이라이트 강제 제거
     clearAllHighlights();
 
-    // 클릭된 건물의 정확한 좌표 가져오기
+    // 클릭된 건물을 타겟으로 하는 모든 공격 찾기
     const isTargetClick = entityId.includes('target');
-    const clickedLat = isTargetClick
-      ? clickedAttack.target.building.lat
-      : clickedAttack.source.building.lat;
-    const clickedLon = isTargetClick
-      ? clickedAttack.target.building.lon
-      : clickedAttack.source.building.lon;
+    const clickedBuildingName = isTargetClick
+      ? clickedAttack.target.building.name
+      : clickedAttack.source.building.name;
 
-    // 같은 좌표를 가진 모든 공격 찾기 (같은 건물의 공격들만)
     const relatedAttacks = isTargetClick
-      ? attacks.filter(attack =>
-          attack.target.building.lat === clickedLat &&
-          attack.target.building.lon === clickedLon
-        )
-      : attacks.filter(attack =>
-          attack.source.building.lat === clickedLat &&
-          attack.source.building.lon === clickedLon
-        );
+      ? attacks.filter(attack => attack.target.building.name === clickedBuildingName)
+      : attacks.filter(attack => attack.source.building.name === clickedBuildingName);
 
     if (relatedAttacks.length === 0) return;
 
@@ -806,11 +764,9 @@ const TwoDPage = () => {
     relatedAttacks.forEach(attack => {
       const sourceEntityId = `source-2d-${attack.id}`;
       const targetEntityId = `target-2d-${attack.id}`;
-      const beamEntityId = `beam-2d-${attack.id}`;
 
       const sourceEntity = viewer.current.entities.getById(sourceEntityId);
       const targetEntity = viewer.current.entities.getById(targetEntityId);
-      const beamEntity = viewer.current.entities.getById(beamEntityId);
 
       if (sourceEntity) {
         highlightEntity(sourceEntity, true);
@@ -820,14 +776,6 @@ const TwoDPage = () => {
       if (targetEntity) {
         highlightEntity(targetEntity, false);
         newMarkerHighlights.push(targetEntityId);
-      }
-
-      // 광선(아크 노드)을 파란색으로 변경
-      if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-        beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.15,
-          color: Cesium.Color.BLUE.withAlpha(0.6)
-        });
       }
     });
 
@@ -867,11 +815,9 @@ const TwoDPage = () => {
       relatedAttacks.forEach(attack => {
         const sourceEntityId = `source-2d-${attack.id}`;
         const targetEntityId = `target-2d-${attack.id}`;
-        const beamEntityId = `beam-2d-${attack.id}`;
 
         const sourceEntity = viewer.current.entities.getById(sourceEntityId);
         const targetEntity = viewer.current.entities.getById(targetEntityId);
-        const beamEntity = viewer.current.entities.getById(beamEntityId);
 
         // Source 마커 하이라이트
         if (sourceEntity && attack.source.ip === clickedIP) {
@@ -883,14 +829,6 @@ const TwoDPage = () => {
         if (targetEntity && attack.target.ip === clickedIP) {
           highlightEntity(targetEntity, false);
           newMarkerHighlights.push(targetEntityId);
-        }
-
-        // 광선(아크 노드)을 파란색으로 변경
-        if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-          beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-            glowPower: 0.15,
-            color: Cesium.Color.BLUE.withAlpha(0.6)
-          });
         }
       });
 
@@ -1003,7 +941,11 @@ const TwoDPage = () => {
             width: 6,
             material: new Cesium.PolylineGlowMaterialProperty({
               glowPower: 0.05,
-              color: Cesium.Color.RED.withAlpha(0.08)
+              color: new Cesium.CallbackProperty((time) => {
+                const seconds = Cesium.JulianDate.secondsDifference(time, viewer.current.clock.startTime) % 2;
+                const alpha = 0.15 + 0.05 * Math.sin(seconds * Math.PI);
+                return Cesium.Color.RED.withAlpha(alpha);
+              }, false)
             }),
             clampToGround: false,
             followSurface: false,

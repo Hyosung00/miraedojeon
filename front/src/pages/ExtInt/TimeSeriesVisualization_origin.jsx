@@ -1,10 +1,8 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import * as Cesium from 'cesium';
-import { Box, Typography, Card, CardContent, Grid, IconButton, Slider, Dialog, DialogContent, DialogTitle } from '@mui/material';
-import { FundOutlined, DatabaseOutlined, CloseOutlined } from '@ant-design/icons';
+import { Box, Typography, Card, CardContent, Grid, IconButton, Slider, Button } from '@mui/material';
+import { ClusterOutlined, GlobalOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import FusionDBConsole from '../FusionDB/FusionDB';
-import { usePopup } from '../../../context/PopupContext';
 
 // ==================== 상수 정의 ====================
 const API_CONFIG = {
@@ -41,6 +39,8 @@ const ANIMATION_TIMINGS = {
   PULSE_DURATION: 1200
 };
 
+const MARKER_HEIGHT_3D = 5000; // 3D 마커 높이
+
 // CSS 애니메이션 추가
 const style = document.createElement('style');
 style.textContent = `
@@ -53,11 +53,7 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Cesium Ion Access Token 설정
-// 원본 토큰
 Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzODNiZmZiNC04YTUxLTQ1YzgtOWU1Mi1kNDUyY2I2ZDRkNTQiLCJpZCI6MzQyNDEzLCJpYXQiOjE3NTgxNzMyNDh9.zZRyMPovg5ALhNtG2_E-0ED0qHqd_uQQnAG84eQUyG4';
-
-// 수정 된 토큰
-// Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiYmM5NTM1NC05YjlkLTQ3NmItOTRhYi0zOWFlNmRkOTU4OWEiLCJpZCI6MzUzNTE4LCJpYXQiOjE3NjEyNjk2OTh9.0pxPJQdwLFl9wTzqp60Zr1rbgPJLdhT00OaBhS84ORs';
 
 // AS 정보 생성 함수
 const generateAS = (country) => {
@@ -165,7 +161,7 @@ const fetchAndFormatAttackData = async (startDate = null, endDate = null) => {
     }
 
     console.log(`✅ ${data.count}개의 공격 데이터를 가져왔습니다.`);
-    console.log('📊 [2D] 전체 작전 데이터:', data.attacks);
+    console.log('📊 [3D] 전체 작전 데이터:', data.attacks);
 
     // API 데이터를 기존 형식에 맞게 변환
     const attacks = data.attacks.map((attack) => {
@@ -208,9 +204,9 @@ const fetchAndFormatAttackData = async (startDate = null, endDate = null) => {
     });
 
     // 변환된 작전 데이터를 모두 로그로 출력
-    console.log('🔍 [2D] 변환된 작전 데이터 (전체):', attacks);
+    console.log('🔍 [3D] 변환된 작전 데이터 (전체):', attacks);
     attacks.forEach((attack, index) => {
-      console.log(`\n[2D 작전 ${index + 1}/${attacks.length}]`, {
+      console.log(`\n[3D 작전 ${index + 1}/${attacks.length}]`, {
         id: attack.id,
         type: attack.type,
         출발지: {
@@ -251,8 +247,7 @@ const fetchAndFormatAttackData = async (startDate = null, endDate = null) => {
   }
 };
 
-
-const TwoDPage = () => {
+const EarthGlobe = () => {
   const navigate = useNavigate();
   const cesiumContainer = useRef(null);
   const viewer = useRef(null);
@@ -261,17 +256,6 @@ const TwoDPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(null);
   const [attacks, setAttacks] = useState([]);
-
-  // 통합 PopupContext 사용
-  const { popups, openPopup, closePopup } = usePopup();
-  const fusionDBOpen = popups.fusionDB;
-
-  // 메뉴에서 팝업 오픈 요청 시 자동으로 열리도록
-  useEffect(() => {
-    if (popups.fusionDB) {
-      // 팝업이 이미 열려있으면 아무것도 하지 않음
-    }
-  }, [popups.fusionDB]);
 
   // 날짜 및 시간 필터링 상태
   const [allAttacks, setAllAttacks] = useState([]); // 전체 데이터 저장 (일주일, 하루당 20개 = 총 140개)
@@ -435,23 +419,23 @@ const TwoDPage = () => {
 
     const initializeCesium = async () => {
       try {
-        console.log('Cesium 2D 모드 초기화 시작...');
+        console.log('Cesium 초기화 시작...');
         console.log('Access Token:', Cesium.Ion.defaultAccessToken ? '설정됨' : '없음');
 
-        // Cesium Viewer 생성 - 2D 모드만 지원
+        // Cesium Viewer 생성 - 3D 모드만 지원
         viewer.current = new Cesium.Viewer(cesiumContainer.current, {
           // UI 요소들 정리
           animation: false,
           baseLayerPicker: true,
-          fullscreenButton: false,
+          fullscreenButton: true,
           geocoder: true,
           homeButton: true,
           infoBox: true,
           sceneModePicker: false,
-          scene3DOnly: false, // 2D 모드 지원
+          scene3DOnly: true, // 3D 모드만 지원
           selectionIndicator: true,
           timeline: false,
-          navigationHelpButton: false,
+          navigationHelpButton: true,
           navigationInstructionsInitiallyVisible: false,
 
           // 고품질 지형 데이터 사용
@@ -467,9 +451,14 @@ const TwoDPage = () => {
 
         console.log('Cesium Viewer 생성 완료');
 
-        // 즉시 2D 모드로 전환
-        viewer.current.scene.morphTo2D(0);
-        console.log('2D 모드로 강제 전환');
+        // 3D 건물 타일셋 추가
+        try {
+          const buildingTileset = await Cesium.Cesium3DTileset.fromIonAssetId(96188);
+          viewer.current.scene.primitives.add(buildingTileset);
+          console.log('3D 건물 데이터 로드 완료');
+        } catch (error) {
+          console.log('3D 건물 데이터 로드 실패:', error);
+        }
 
         // 고해상도 이미지 레이어 추가
         try {
@@ -502,67 +491,29 @@ const TwoDPage = () => {
         globe.maximumScreenSpaceError = 1.0;
         globe.tileCacheSize = 1000;
 
-        // 2D 모드 카메라 컨트롤 설정
-        scene.screenSpaceCameraController.enableRotate = false;
+        // 3D 모드 카메라 컨트롤 설정
+        scene.screenSpaceCameraController.enableRotate = true;
         scene.screenSpaceCameraController.enableTranslate = true;
         scene.screenSpaceCameraController.enableZoom = true;
-        scene.screenSpaceCameraController.enableTilt = false;
+        scene.screenSpaceCameraController.enableTilt = true;
         scene.screenSpaceCameraController.enableLook = false;
         scene.screenSpaceCameraController.enableInputs = true;
 
-        // 2D 모드 확대 범위 최적화 - 전체 지도를 볼 수 있도록
-        scene.screenSpaceCameraController.minimumZoomDistance = 100;
-        scene.screenSpaceCameraController.maximumZoomDistance = 40000000;  // 40,000km - 전체 지구 보기
+        // 3D 모드 줌 범위 최적화 - 자연스러운 범위로 조정
+        scene.screenSpaceCameraController.minimumZoomDistance = 500;        // 최소 500m (너무 가까이 못가게)
+        scene.screenSpaceCameraController.maximumZoomDistance = 20000000;   // 최대 20,000km (적절한 거리)
 
-        // 2D 모드에서 안전한 패닝 설정
-        scene.screenSpaceCameraController.translateEventTypes = [
-          Cesium.CameraEventType.LEFT_DRAG,
-          Cesium.CameraEventType.RIGHT_DRAG
-        ];
+        // 카메라가 항상 지구 중심을 바라보도록 설정
+        scene.screenSpaceCameraController.constrainedAxis = Cesium.Cartesian3.UNIT_Z;
 
-        // 2D 모드에서 줌 속도 조정
-        scene.screenSpaceCameraController.zoomEventTypes = [
-          Cesium.CameraEventType.WHEEL,
-          Cesium.CameraEventType.PINCH
-        ];
-
-        // 자연스러운 줌 속도 최적화
-        scene.screenSpaceCameraController.zoomFactor = 5.0;
-        scene.screenSpaceCameraController.wheelZoomFactor = 10.0;  // 정상적인 줌 속도
-
-        // 관성 설정 최적화 (부드러운 움직임)
+        // 부드러운 움직임을 위한 관성 설정 최적화
         scene.screenSpaceCameraController.inertiaSpin = 0.95;
         scene.screenSpaceCameraController.inertiaTranslate = 0.95;
         scene.screenSpaceCameraController.inertiaZoom = 0.9;
 
-        // 카메라 이동 후 지도 중앙 위치로 복귀하는 리스너 추가
-        scene.camera.moveEnd.addEventListener(() => {
-          const cameraHeight = scene.camera.positionCartographic.height;
-
-          // 최대 축소 상태일 때만 (38,000km 이상) 지도를 화면 중앙에 정렬
-          if (cameraHeight >= 38000000) {
-            const currentCenter = scene.camera.positionCartographic;
-            const mapCenterLon = 125.7625;  // 경도 126도 (북한 가로 위치) - 좌우 밸런스
-            const mapCenterLat = 0.0;       // 위도 0도 (적도) - 상하 밸런스
-
-            // 현재 위치가 지도 중심에서 많이 벗어났을 경우만 부드럽게 중앙으로 이동
-            const lonDiff = Math.abs(Cesium.Math.toDegrees(currentCenter.longitude) - mapCenterLon);
-            const latDiff = Math.abs(Cesium.Math.toDegrees(currentCenter.latitude) - mapCenterLat);
-
-            // 30도 이상 벗어났을 때만 복귀
-            if (lonDiff > 30 || latDiff > 30) {
-              scene.camera.flyTo({
-                destination: Cesium.Cartesian3.fromDegrees(mapCenterLon, mapCenterLat, cameraHeight),
-                orientation: {
-                  heading: 0.0,
-                  pitch: -Cesium.Math.PI_OVER_TWO,
-                  roll: 0.0
-                },
-                duration: 1.0
-              });
-            }
-          }
-        });
+        // 자연스러운 줌 속도 최적화
+        scene.screenSpaceCameraController.zoomFactor = 5.0;
+        scene.screenSpaceCameraController.wheelZoomFactor = 10.0;  // 정상적인 줌 속도
 
         // 마우스 상호작용 및 정보 표시 활성화
         viewer.current.cesiumWidget.creditContainer.style.display = "none";
@@ -580,29 +531,23 @@ const TwoDPage = () => {
           }
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-        // 초기 카메라 위치 - 북한 중심으로 설정 (2D 모드)
-        // 2D 모드에서는 정확한 중앙 정렬이 필요
+        // 초기 카메라 위치 - 북한 중심으로 설정
         const northKoreaView = {
-          destination: Cesium.Cartesian3.fromDegrees(125.7625, 39.0392, 5000000),
+          destination: Cesium.Cartesian3.fromDegrees(125.7625, 39.0392, 8000000),
           orientation: {
-            heading: 0.0,
-            pitch: -Cesium.Math.PI_OVER_TWO,  // 정확히 위에서 아래를 바라봄
-            roll: 0.0
+            heading: 0,
+            pitch: -Cesium.Math.PI_OVER_TWO,
+            roll: 0
           }
         };
 
-        // 2D 모드 전환 완료 후 카메라 설정
-        setTimeout(() => {
-          viewer.current.camera.setView(northKoreaView);
-        }, 500);
+        viewer.current.camera.setView(northKoreaView);
 
-        // 홈 버튼이 활성화되어 있을 때만 이벤트 등록
-        if (viewer.current.homeButton) {
-          viewer.current.homeButton.viewModel.command.beforeExecute.addEventListener((e) => {
-            e.cancel = true;
-            viewer.current.camera.setView(northKoreaView);
-          });
-        }
+        // 홈 버튼을 눌렀을 때도 북한 중심으로
+        viewer.current.homeButton.viewModel.command.beforeExecute.addEventListener((e) => {
+          e.cancel = true;
+          viewer.current.camera.setView(northKoreaView);
+        });
 
         // 고품질 렌더링 설정
         if (Cesium.FeatureDetection.supportsImageRenderingPixelated()) {
@@ -691,21 +636,8 @@ const TwoDPage = () => {
       if (entity && entity.id) {
         const entityId = entity.id;
         // source 또는 target 마커인 경우에만 색상 복원
-        if (entityId.startsWith('source-2d-') || entityId.startsWith('target-2d-')) {
+        if (entityId.startsWith('source-building-3d-') || entityId.startsWith('target-building-3d-')) {
           resetEntityColors(entity, entityId);
-        }
-      }
-    }
-
-    // 모든 광선을 다시 순회하며 강제로 빨간색 복원
-    for (let i = 0; i < entities.length; i++) {
-      const entity = entities[i];
-      if (entity && entity.id && entity.id.startsWith('beam-2d-')) {
-        if (entity.polyline && entity.polyline.material) {
-          entity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-            glowPower: 0.05,
-            color: Cesium.Color.RED.withAlpha(0.08)
-          });
         }
       }
     }
@@ -728,25 +660,14 @@ const TwoDPage = () => {
       if (entity) {
         resetEntityColors(entity, entityId);
       }
-      // 기존 광선(아크 노드)도 빨간색으로 복원
-      const beamId = entityId.replace(/^(source|target)-2d-/, 'beam-2d-');
-      const beamEntity = viewer.current.entities.getById(beamId);
-      if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-        beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.05,
-          color: Cesium.Color.RED.withAlpha(0.08)
-        });
-      }
     });
 
-    // 새로운 하이라이트 적용 (2D 모드용 ID)
-    const targetPrefix = `target-2d-${attack.id}`;
-    const sourcePrefix = `source-2d-${attack.id}`;
-    const beamPrefix = `beam-2d-${attack.id}`;
+    // 새로운 하이라이트 적용 (3D 모드용 ID)
+    const targetPrefix = `target-building-3d-${attack.id}`;
+    const sourcePrefix = `source-building-3d-${attack.id}`;
 
     const targetEntity = viewer.current.entities.getById(targetPrefix);
     const sourceEntity = viewer.current.entities.getById(sourcePrefix);
-    const beamEntity = viewer.current.entities.getById(beamPrefix);
 
     const newHighlighted = [];
 
@@ -760,14 +681,6 @@ const TwoDPage = () => {
       newHighlighted.push(sourcePrefix);
     }
 
-    // 광선(아크 노드)을 파란색으로 변경
-    if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-      beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-        glowPower: 0.15,
-        color: Cesium.Color.BLUE.withAlpha(0.6)
-      });
-    }
-
     setHighlightedBuildings(newHighlighted);
   }, [attacks, highlightedBuildings]);
 
@@ -778,25 +691,15 @@ const TwoDPage = () => {
     // 모든 하이라이트 강제 제거
     clearAllHighlights();
 
-    // 클릭된 건물의 정확한 좌표 가져오기
+    // 클릭된 건물을 타겟으로 하는 모든 공격 찾기
+    const clickedBuildingName = entityId.includes('target')
+      ? clickedAttack.target.building.name
+      : clickedAttack.source.building.name;
     const isTargetClick = entityId.includes('target');
-    const clickedLat = isTargetClick
-      ? clickedAttack.target.building.lat
-      : clickedAttack.source.building.lat;
-    const clickedLon = isTargetClick
-      ? clickedAttack.target.building.lon
-      : clickedAttack.source.building.lon;
 
-    // 같은 좌표를 가진 모든 공격 찾기 (같은 건물의 공격들만)
     const relatedAttacks = isTargetClick
-      ? attacks.filter(attack =>
-          attack.target.building.lat === clickedLat &&
-          attack.target.building.lon === clickedLon
-        )
-      : attacks.filter(attack =>
-          attack.source.building.lat === clickedLat &&
-          attack.source.building.lon === clickedLon
-        );
+      ? attacks.filter(attack => attack.target.building.name === clickedBuildingName)
+      : attacks.filter(attack => attack.source.building.name === clickedBuildingName);
 
     if (relatedAttacks.length === 0) return;
 
@@ -804,13 +707,11 @@ const TwoDPage = () => {
     const newMarkerHighlights = [];
 
     relatedAttacks.forEach(attack => {
-      const sourceEntityId = `source-2d-${attack.id}`;
-      const targetEntityId = `target-2d-${attack.id}`;
-      const beamEntityId = `beam-2d-${attack.id}`;
+      const sourceEntityId = `source-building-3d-${attack.id}`;
+      const targetEntityId = `target-building-3d-${attack.id}`;
 
       const sourceEntity = viewer.current.entities.getById(sourceEntityId);
       const targetEntity = viewer.current.entities.getById(targetEntityId);
-      const beamEntity = viewer.current.entities.getById(beamEntityId);
 
       if (sourceEntity) {
         highlightEntity(sourceEntity, true);
@@ -820,14 +721,6 @@ const TwoDPage = () => {
       if (targetEntity) {
         highlightEntity(targetEntity, false);
         newMarkerHighlights.push(targetEntityId);
-      }
-
-      // 광선(아크 노드)을 파란색으로 변경
-      if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-        beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.15,
-          color: Cesium.Color.BLUE.withAlpha(0.6)
-        });
       }
     });
 
@@ -865,13 +758,11 @@ const TwoDPage = () => {
       const newMarkerHighlights = [];
 
       relatedAttacks.forEach(attack => {
-        const sourceEntityId = `source-2d-${attack.id}`;
-        const targetEntityId = `target-2d-${attack.id}`;
-        const beamEntityId = `beam-2d-${attack.id}`;
+        const sourceEntityId = `source-building-3d-${attack.id}`;
+        const targetEntityId = `target-building-3d-${attack.id}`;
 
         const sourceEntity = viewer.current.entities.getById(sourceEntityId);
         const targetEntity = viewer.current.entities.getById(targetEntityId);
-        const beamEntity = viewer.current.entities.getById(beamEntityId);
 
         // Source 마커 하이라이트
         if (sourceEntity && attack.source.ip === clickedIP) {
@@ -883,14 +774,6 @@ const TwoDPage = () => {
         if (targetEntity && attack.target.ip === clickedIP) {
           highlightEntity(targetEntity, false);
           newMarkerHighlights.push(targetEntityId);
-        }
-
-        // 광선(아크 노드)을 파란색으로 변경
-        if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-          beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-            glowPower: 0.15,
-            color: Cesium.Color.BLUE.withAlpha(0.6)
-          });
         }
       });
 
@@ -908,22 +791,15 @@ const TwoDPage = () => {
     }
   }, [attacks, clearAllHighlights]);
 
-  // 2D 모드용 엔티티 생성 함수
-  const create2DEntities = (attacks) => {
-    if (!viewer.current || !attacks || attacks.length === 0) {
-      console.warn('⚠️ create2DEntities: viewer 또는 attacks가 없음', {
-        viewer: !!viewer.current,
-        attacksCount: attacks?.length || 0
-      });
-      return;
-    }
-
-    console.log(`🎨 create2DEntities 시작: ${attacks.length}개 작전 시각화`);
-    let successCount = 0;
-    let failCount = 0;
+  // 3D 모드용 엔티티 생성 함수
+  const create3DEntities = (attacks) => {
+    if (!viewer.current || !attacks || attacks.length === 0) return;
 
     try {
-      attacks.forEach((attack, index) => {
+      const beamColor = '#FF0000';
+      const startTime = viewer.current.clock.currentTime;
+
+      attacks.forEach((attack) => {
         // 좌표 유효성 검증
         const sourceLon = parseFloat(attack.source.building.lon);
         const sourceLat = parseFloat(attack.source.building.lat);
@@ -931,40 +807,37 @@ const TwoDPage = () => {
         const targetLat = parseFloat(attack.target.building.lat);
 
         if (isNaN(sourceLon) || isNaN(sourceLat) || isNaN(targetLon) || isNaN(targetLat)) {
-          console.warn('2D 모드: 잘못된 좌표 데이터', {
-            id: attack.id,
-            source: attack.source.name,
-            target: attack.target.name
-          });
-          failCount++;
+          console.warn('3D 모드: 잘못된 좌표 데이터');
           return;
         }
 
-        // 처음 5개는 상세 로그 출력
-        if (index < 5) {
-          console.log(`  작전 ${index + 1}:`, {
-            id: attack.id,
-            source: `${attack.source.name} (${sourceLat.toFixed(2)}, ${sourceLon.toFixed(2)})`,
-            target: `${attack.target.name} (${targetLat.toFixed(2)}, ${targetLon.toFixed(2)})`,
-            protocol: attack.type
-          });
-        }
+        // 3D에서는 건물 높이를 더 높게 설정
+        const markerHeight3D = 5000; // 마커 높이 증가
+        const buildingHeight = 0; // 지상 건물 높이
+        const sourceMarkerPos = Cesium.Cartesian3.fromDegrees(sourceLon, sourceLat, markerHeight3D);
+        const targetMarkerPos = Cesium.Cartesian3.fromDegrees(targetLon, targetLat, markerHeight3D);
+        const sourceBuildingPos = Cesium.Cartesian3.fromDegrees(sourceLon, sourceLat, buildingHeight);
+        const targetBuildingPos = Cesium.Cartesian3.fromDegrees(targetLon, targetLat, buildingHeight);
 
-        // 2D 모드에서는 높이를 0으로 설정
-        const markerHeight = 0;
-        const sourceMarkerPos = Cesium.Cartesian3.fromDegrees(sourceLon, sourceLat, markerHeight);
-        const targetMarkerPos = Cesium.Cartesian3.fromDegrees(targetLon, targetLat, markerHeight);
+        console.log('3D 마커 생성:', {
+          attack: attack.id,
+          source: `${attack.source.building.name} (${sourceLon}, ${sourceLat})`,
+          target: `${attack.target.building.name} (${targetLon}, ${targetLat})`,
+          sourceIP: attack.source.ip,
+          targetIP: attack.target.ip
+        });
 
-        // 2D 소스 마커 (공격 출발지)
+        // 3D 소스 마커 (공격 출발지)
         viewer.current.entities.add({
-          id: `source-2d-${attack.id}`,
+          id: `source-building-3d-${attack.id}`,
           position: sourceMarkerPos,
           point: {
-            pixelSize: MARKER_SIZES.NORMAL,
-            color: COLORS.SOURCE.NORMAL,
-            outlineColor: COLORS.SOURCE.OUTLINE,
-            outlineWidth: MARKER_SIZES.OUTLINE_WIDTH_NORMAL,
+            pixelSize: 6,
+            color: Cesium.Color.YELLOW,
+            outlineColor: Cesium.Color.RED,
+            outlineWidth: 2,
             heightReference: Cesium.HeightReference.NONE,
+            scaleByDistance: new Cesium.NearFarScalar(1.5e2, 2.0, 1.5e7, 0.5),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
             show: true
           },
@@ -975,16 +848,29 @@ const TwoDPage = () => {
           }
         });
 
-        // 2D 타겟 마커 (공격 받는 곳)
+        // 소스 마커에서 지상 건물로 연결선
         viewer.current.entities.add({
-          id: `target-2d-${attack.id}`,
+          id: `source-line-${attack.id}`,
+          polyline: {
+            positions: [sourceMarkerPos, sourceBuildingPos],
+            width: 3,
+            material: Cesium.Color.WHITE.withAlpha(0.2),
+            clampToGround: false,
+            show: true
+          }
+        });
+
+        // 3D 타겟 마커 (공격 받는 곳)
+        viewer.current.entities.add({
+          id: `target-building-3d-${attack.id}`,
           position: targetMarkerPos,
           point: {
-            pixelSize: MARKER_SIZES.NORMAL,
-            color: COLORS.TARGET.NORMAL,
-            outlineColor: COLORS.TARGET.OUTLINE,
-            outlineWidth: MARKER_SIZES.OUTLINE_WIDTH_NORMAL,
+            pixelSize: 6,
+            color: Cesium.Color.CYAN,
+            outlineColor: Cesium.Color.BLUE,
+            outlineWidth: 2,
             heightReference: Cesium.HeightReference.NONE,
+            scaleByDistance: new Cesium.NearFarScalar(1.5e2, 2.0, 1.5e7, 0.5),
             disableDepthTestDistance: Number.POSITIVE_INFINITY,
             show: true
           },
@@ -995,31 +881,59 @@ const TwoDPage = () => {
           }
         });
 
-        // 2D 직선 광선
+        // 타겟 마커에서 지상 건물로 연결선
         viewer.current.entities.add({
-          id: `beam-2d-${attack.id}`,
+          id: `target-line-${attack.id}`,
           polyline: {
-            positions: [sourceMarkerPos, targetMarkerPos],
+            positions: [targetMarkerPos, targetBuildingPos],
+            width: 3,
+            material: Cesium.Color.WHITE.withAlpha(0.2),
+            clampToGround: false,
+            show: true
+          }
+        });
+
+        // 3D 아치형 광선
+        const positions = [];
+        for (let i = 0; i <= 30; i++) {
+          const segmentProgress = i / 30;
+          const lerpedPos = Cesium.Cartesian3.lerp(sourceMarkerPos, targetMarkerPos, segmentProgress, new Cesium.Cartesian3());
+
+          // 아치 높이를 마커 높이 기준으로 추가
+          const archHeight = Math.sin(segmentProgress * Math.PI) * 50000;
+          const cartographic = Cesium.Cartographic.fromCartesian(lerpedPos);
+          cartographic.height = markerHeight3D + archHeight;
+          positions.push(Cesium.Cartographic.toCartesian(cartographic));
+        }
+
+        // 첫 번째와 마지막 점을 정확히 마커 위치로 설정
+        positions[0] = sourceMarkerPos;
+        positions[positions.length - 1] = targetMarkerPos;
+
+        viewer.current.entities.add({
+          id: `beam-3d-${attack.id}`,
+          polyline: {
+            positions: positions,
             width: 6,
             material: new Cesium.PolylineGlowMaterialProperty({
               glowPower: 0.05,
-              color: Cesium.Color.RED.withAlpha(0.08)
+              color: new Cesium.CallbackProperty((time) => {
+                const t = Cesium.JulianDate.secondsDifference(time, startTime) % 3.0;
+                const progress = t / 3.0;
+                const alpha = 0.15 + 0.05 * Math.sin(progress * Math.PI * 2);
+                return Cesium.Color.fromCssColorString(beamColor).withAlpha(alpha);
+              }, false)
             }),
-            clampToGround: false,
-            followSurface: false,
-            granularity: Cesium.Math.RADIANS_PER_DEGREE
+            clampToGround: false
           },
           description: `🔴 사이버 작전: ${attack.source.name} → ${attack.target.name}`,
           attackData: attack
         });
 
-        successCount++;
+        console.log(`✅ 3D 공격 처리 완료: ${attack.source.building.name} → ${attack.target.building.name}`);
       });
-
-      console.log(`✅ create2DEntities 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
-      console.log(`📊 생성된 엔티티: 마커 ${successCount * 2}개, 광선 ${successCount}개`);
     } catch (error) {
-      console.error('❌ 2D 엔티티 생성 오류:', error);
+      console.error('3D 엔티티 생성 오류:', error);
     }
   };
 
@@ -1037,8 +951,8 @@ const TwoDPage = () => {
       });
       setAnimationEntities([]);
 
-      // 2D 엔티티 생성
-      create2DEntities(attacks);
+      // 3D 엔티티 생성
+      create3DEntities(attacks);
     } catch (error) {
       console.error('엔티티 생성 중 오류 발생:', error);
     }
@@ -1069,16 +983,16 @@ const TwoDPage = () => {
           clearAllHighlights();
 
           // 건물 클릭 처리
-          const isSourceBuilding = entityId && entityId.startsWith('source-2d-');
-          const isTargetBuilding = entityId && entityId.startsWith('target-2d-');
+          const isSourceBuilding = entityId && entityId.startsWith('source-building-3d-');
+          const isTargetBuilding = entityId && entityId.startsWith('target-building-3d-');
 
           if (isSourceBuilding || isTargetBuilding) {
             // ID에서 attack ID 추출
             let attackId = null;
-            if (entityId.startsWith('source-2d-')) {
-              attackId = entityId.replace('source-2d-', '');
-            } else if (entityId.startsWith('target-2d-')) {
-              attackId = entityId.replace('target-2d-', '');
+            if (entityId.startsWith('source-building-3d-')) {
+              attackId = entityId.replace('source-building-3d-', '');
+            } else if (entityId.startsWith('target-building-3d-')) {
+              attackId = entityId.replace('target-building-3d-', '');
             }
 
             if (attackId) {
@@ -1122,8 +1036,8 @@ const TwoDPage = () => {
           }
 
           // 마커인지 확인
-          const isSourceMarker = entityId && entityId.startsWith('source-2d-');
-          const isTargetMarker = entityId && entityId.startsWith('target-2d-');
+          const isSourceMarker = entityId && entityId.startsWith('source-building-3d-');
+          const isTargetMarker = entityId && entityId.startsWith('target-building-3d-');
 
           if (isSourceMarker || isTargetMarker) {
             const entity = viewer.current.entities.getById(entityId);
@@ -1134,7 +1048,7 @@ const TwoDPage = () => {
                 const longitude = Cesium.Math.toDegrees(cartographic.longitude);
                 const latitude = Cesium.Math.toDegrees(cartographic.latitude);
 
-                // 2D 모드에서 적절한 줌 레벨로 이동
+                // 3D 모드에서 적절한 줌 레벨로 이동 (현재 각도 유지)
                 viewer.current.camera.flyTo({
                   destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, 50000), // 50km 고도
                   duration: 1.5,
@@ -1185,7 +1099,7 @@ const TwoDPage = () => {
     <Card 
       component="main"
       role="main"
-      aria-label="2D 지도 기반 사이버 공격 시각화"
+      aria-label="3D 지구본 기반 사이버 공격 시각화"
       sx={{
         width: '100%',
         height: 'calc(100vh - 120px)',
@@ -1206,7 +1120,7 @@ const TwoDPage = () => {
         {/* 지구본 영역 */}
         <Card 
           component="section"
-          aria-label="2D 지도 영역"
+          aria-label="3D 지구본 영역"
           sx={{
             flex: 1,
             position: 'relative',
@@ -1217,36 +1131,11 @@ const TwoDPage = () => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
           }}
         >
-          <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 }, position: 'relative' }}>
-            {/* MultilayerVisualization 이동 버튼 */}
-            <IconButton
-              size="small"
-              aria-label="3D 멀티레이어로 이동"
-              title="3D 멀티레이어로 이동"
-              onClick={() => navigate('/CyberObjectInfo/MultilayerVisualization')}
-              sx={{
-                position: 'absolute',
-                top: 6.5,
-                right: 125,
-                zIndex: 1000,
-                bgcolor: '#222b33',
-                color: '#fff',
-                borderRadius: '5%',
-                width: 32,
-                height: 32,
-                boxShadow: '0 2px 8px #222b33',
-                '&:hover': {
-                  bgcolor: '#5b89b1ff',
-                  color: '#fff',
-                },
-              }}
-            >
-              <FundOutlined style={{ fontSize: 18 }} />
-            </IconButton>
+          <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 } }}>
             <div
               ref={cesiumContainer}
               role="img"
-              aria-label="사이버 공격 경로를 표시하는 2D 지도"
+              aria-label="사이버 공격 경로를 표시하는 3D 지구본"
               style={{
                 width: '100%',
                 height: '100%'
@@ -1256,7 +1145,7 @@ const TwoDPage = () => {
               <Box
                 role="status"
                 aria-live="polite"
-                aria-label="지도 로딩 중"
+                aria-label="지구본 로딩 중"
                 sx={{
                   position: 'absolute',
                   top: 0,
@@ -1270,7 +1159,7 @@ const TwoDPage = () => {
                   color: 'white'
                 }}
               >
-                <Typography>2D 모드 로딩 중...</Typography>
+                <Typography>실제 지구본 로딩 중...</Typography>
               </Box>
             )}
 
@@ -1287,40 +1176,9 @@ const TwoDPage = () => {
                 fontSize: 10
               }}>
                 <Typography variant="caption" color="inherit">
-                  🗺️ Osint 정보 수집
+                  🌍 시계열 기반 이상탐지 
                 </Typography>
               </Box>
-            )}
-
-            {/* FusionDB 팝업 버튼 */}
-            {isLoaded && (
-              <IconButton
-                size="small"
-                aria-label="융합 데이터베이스 열기"
-                title="융합 데이터베이스 열기"
-                onClick={() => openPopup('fusionDB')}
-                sx={{
-                  position: 'absolute',
-                  bottom: '1%',
-                  left: '98%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 1000,
-                  bgcolor: '#222b33',
-                  color: '#fff',
-                  borderRadius: '5%',
-                  width: 48,
-                  height: 48,
-                  boxShadow: '0 4px 12px #222b33',
-                  '&:hover': {
-                    bgcolor: '#5b89b1ff',
-                    color: '#fff',
-                    transform: 'translateX(-50%) scale(1.1)',
-                  },
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                <DatabaseOutlined style={{ fontSize: 24 }} />
-              </IconButton>
             )}
           </CardContent>
         </Card>
@@ -1509,7 +1367,7 @@ const TwoDPage = () => {
                       height: 24
                     }}
                   >
-                    <FundOutlined style={{ fontSize: 12 }} />
+                    <ClusterOutlined style={{ fontSize: 12 }} />
                   </IconButton>
                 </Box>
               ))}
@@ -1609,9 +1467,8 @@ const TwoDPage = () => {
             aria-label="지도 범례"
             sx={{
               bgcolor: '#f0edfd',
-              color: '#333',
-              border: '1px solid #d0c9f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+              color: '#222',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
               flexShrink: 0,
               minHeight: 0
             }}
@@ -1623,67 +1480,29 @@ const TwoDPage = () => {
                     aria-hidden="true"
                     sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FFFF00', border: '2px solid #FF0000' }} 
                   />
-                  <Typography variant="caption" sx={{ color: '#666' }}>공격 출발지</Typography>
+                  <Typography variant="caption" sx={{ color: '#222' }}>공격 출발지</Typography>
                 </Box>
                 <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box 
                     aria-hidden="true"
                     sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#00FFFF', border: '2px solid #0000FF' }} 
                   />
-                  <Typography variant="caption" sx={{ color: '#666' }}>공격 목표지</Typography>
+                  <Typography variant="caption" sx={{ color: '#222' }}>공격 목표지</Typography>
                 </Box>
                 <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Box 
                     aria-hidden="true"
                     sx={{ width: 20, height: 2, bgcolor: '#FF0000', borderRadius: 1, boxShadow: '0 0 4px #FF0000' }} 
                   />
-                  <Typography variant="caption" sx={{ color: '#666' }}>🔴 사이버 작전</Typography>
+                  <Typography variant="caption" sx={{ color: '#222' }}>🔴 사이버 작전</Typography>
                 </Box>
               </Box>
             </CardContent>
           </Card>
         </Box>
       </CardContent>
-
-      {/* FusionDB 팝업 다이얼로그 */}
-      <Dialog
-        open={fusionDBOpen}
-        onClose={() => closePopup('fusionDB')}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            height: '70vh',
-            maxHeight: '70vh',
-            m: 0,
-            position: 'relative',
-            overflow: 'hidden'
-          }
-        }}
-      >
-        <IconButton
-          onClick={() => closePopup('fusionDB')}
-          sx={{
-            position: 'absolute',
-            right: 23,
-            top: 8.5,
-            color: '#000000ff',
-            zIndex: 1,
-            bgcolor: '#cac7d4ff',
-            '&:hover': {
-              bgcolor: '#39306b',
-              color: '#ffffffff'
-            }
-          }}
-        >
-          ✕
-        </IconButton>
-        <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
-          <FusionDBConsole open={fusionDBOpen} isPopup={true} />
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 };
 
-export default TwoDPage;
+export default memo(EarthGlobe);
