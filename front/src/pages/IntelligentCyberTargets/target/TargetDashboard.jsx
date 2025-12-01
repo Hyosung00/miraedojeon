@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, lazy, Suspense, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, Box, Grid, Typography, IconButton, Dialog, DialogContent } from "@mui/material";
+import { Card, CardContent, Box, Typography, IconButton, Dialog, DialogContent } from "@mui/material";
 import { PushpinOutlined, AreaChartOutlined } from '@ant-design/icons';
 
 // Lazy load components for better code splitting
@@ -199,6 +199,50 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         gap: 1,
         overflow: 'hidden'
       }}>
+        {/* 좌측: 노드 필터링 조건 사이드바 */}
+        <Box 
+          component="aside"
+          aria-label="필터 조건 패널"
+          sx={{
+            width: { xs: '100%', lg: 300 },
+            maxWidth: { xs: '100%', lg: 300 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            flexShrink: 0,
+            overflow: 'hidden'
+          }}
+        >
+          <Card 
+            component="section"
+            aria-label="필터 조건"
+            sx={{
+              flex: 1,
+              bgcolor: '#f0edfd',
+              overflow: 'auto',
+              minHeight: 0,
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)'
+            }}
+          >
+            <CardContent sx={{
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              p: 1.5,
+              '&:last-child': { pb: 1.5 }
+            }}>
+              <Suspense fallback={<LoadingFallback />}>
+                <TargetCondition 
+                  onConditionChange={handleConditionChange}
+                  data={originalNodes}
+                  trendData={trendData}
+                />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </Box>
+
         {/* 메인 콘텐츠 영역 */}
         <Box 
           component="section"
@@ -212,321 +256,25 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
             overflow: 'hidden'
           }}
         >
-          {/* 상단 통계 카드 및 트렌드 차트 영역 */}
+          {/* 그래프 (전체 영역) */}
           <Card 
             component="section"
-            aria-label="통계 및 트렌드 영역"
-            sx={{
-              bgcolor: 'transparent',
-              boxShadow: 'none',
-              flexShrink: 0
-            }}
-          >
-            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'row', 
-                gap: 2, // 1.5 → 2로 증가 (하단 gap과 동일)
-                alignItems: 'center',
-                justifyContent: 'space-between', // center → space-between으로 변경
-                flexWrap: 'nowrap',
-                height: '240px',
-                width: '100%'
-              }}>
-                {/* 통계 카드 그리드 */}
-                <Box sx={{ 
-                  flex: '0 0 auto',
-                  width: 'calc(50% - 8px)', // 정확한 절반 크기
-                  minWidth: 0,
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start' // 좌측 정렬
-                }}>
-                  <Grid container spacing={1} sx={{ height: '100%', justifyContent: 'flex-start' }}>
-                    <Grid item xs={12} sm={6} md={4} lg={2.4} sx={{ height: '100%' }}>
-                      <Card sx={{ 
-                        bgcolor: '#f0edfd', 
-                        boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-                        borderRadius: '12px',
-                        height: '100%',
-                        maxWidth: '220px'
-                      }}>
-                        <CardContent sx={{ 
-                          p: 2, 
-                          '&:last-child': { pb: 2 },
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <Box sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <Typography variant="h3" sx={{ color: '#39306b', fontWeight: 'bold', mb: 1, fontSize: '2.5rem' }}>
-                              {originalNodes.length}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 600, textAlign: 'center', mb: 0.5 }}>
-                              전체 노드 개수
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontSize: '0.8rem', color: '#767686', textAlign: 'center' }}>
-                              네트워크 내 모든 노드
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={4} lg={2.4} sx={{ height: '100%' }}>
-                      <Card sx={{ 
-                        bgcolor: '#f0edfd', 
-                        boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-                        borderRadius: '12px',
-                        height: '100%',
-                        maxWidth: '220px'
-                      }}>
-                        <CardContent sx={{ 
-                          p: 2, 
-                          '&:last-child': { pb: 2 },
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <Box sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <Typography variant="h3" sx={{ color: '#39306b', fontWeight: 'bold', mb: 1, fontSize: '2.5rem' }}>
-                              {filteredNodes.length}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 600, textAlign: 'center', mb: 0.5 }}>
-                              필터링된 노드
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontSize: '0.8rem', color: '#767686', textAlign: 'center' }}>
-                              {filterConditions.isActive ? `(전체: ${originalNodes.length})` : "총 노드 수"}
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={4} lg={2.4} sx={{ height: '100%' }}>
-                      <Card sx={{ 
-                        bgcolor: '#f0edfd', 
-                        boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-                        borderRadius: '12px',
-                        height: '100%',
-                        maxWidth: '220px'
-                      }}>
-                        <CardContent sx={{ 
-                          p: 2, 
-                          '&:last-child': { pb: 2 },
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <Box sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <Typography variant="h3" sx={{ color: '#39306b', fontWeight: 'bold', mb: 1, fontSize: '2.5rem' }}>
-                              {statistics.uniqueTypes}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 600, textAlign: 'center', mb: 0.5 }}>
-                              고유 타입 개수
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontSize: '0.8rem', color: '#767686', textAlign: 'center' }}>
-                              네트워크 내 타입
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={4} lg={2.4} sx={{ height: '100%' }}>
-                      <Card sx={{ 
-                        bgcolor: '#f0edfd', 
-                        boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-                        borderRadius: '12px',
-                        height: '100%',
-                        maxWidth: '220px'
-                      }}>
-                        <CardContent sx={{ 
-                          p: 2, 
-                          '&:last-child': { pb: 2 },
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <Box sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <Typography variant="h5" sx={{ color: '#39306b', fontWeight: 'bold', mb: 1, fontSize: '1.4rem' }}>
-                              {statistics.degreeScoreAvg} / {statistics.degreeScoreMax}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 600, textAlign: 'center', mb: 0.5 }}>
-                              degree_score
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontSize: '0.8rem', color: '#767686', textAlign: 'center' }}>
-                              평균 / 최고값
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                    <Grid item xs={12} sm={6} md={4} lg={2.4} sx={{ height: '100%' }}>
-                      <Card sx={{ 
-                        bgcolor: '#f0edfd', 
-                        boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-                        borderRadius: '12px',
-                        height: '100%',
-                        maxWidth: '220px'
-                      }}>
-                        <CardContent sx={{ 
-                          p: 2, 
-                          '&:last-child': { pb: 2 },
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <Box sx={{ 
-                            display: 'flex', 
-                            flexDirection: 'column', 
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}>
-                            <Typography variant="h5" sx={{ color: '#39306b', fontWeight: 'bold', mb: 1, fontSize: '1.4rem' }}>
-                              {statistics.conScoreAvg} / {statistics.conScoreMax}
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontSize: '0.9rem', fontWeight: 600, textAlign: 'center', mb: 0.5 }}>
-                              con_score
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontSize: '0.8rem', color: '#767686', textAlign: 'center' }}>
-                              평균 / 최고값
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  </Grid>
-                </Box>
-
-                {/* 트렌드 차트 */}
-                <Box sx={{ 
-                  flex: '0 0 auto',
-                  width: 'calc(50% - 8px)', // 정확한 절반 크기
-                  minWidth: 0,
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-end' // 우측 정렬
-                }}>
-                  <Card sx={{ 
-                    width: '100%',
-                    height: '100%',
-                    bgcolor: '#f0edfd',
-                    boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-                    borderRadius: '16px'
-                  }}>
-                    <CardContent sx={{ 
-                      p: 2, 
-                      '&:last-child': { pb: 2 }, 
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <Box sx={{ width: '100%', height: '100%' }}>
-                        <Suspense fallback={<LoadingFallback />}>
-                          <TrendChart data={trendData} />
-                        </Suspense>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* 하단 3분할 레이아웃 (필터/그래프/테이블) */}
-          <Box 
+            aria-label="네트워크 그래프 영역"
             sx={{
               flex: 1,
-              display: 'flex',
-              flexDirection: { xs: 'column', lg: 'row' },
-              gap: 2,
-              minHeight: 0,
-              overflow: 'hidden'
+              bgcolor: '#f0edfd',
+              overflow: 'hidden',
+              minWidth: 0,
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)'
             }}
           >
-            {/* 좌측: 필터 조건 */}
-            <Card 
-              component="section"
-              aria-label="필터 조건 영역"
-              sx={{
-                width: { xs: '100%', lg: 300 }, // 260 → 300으로 증가
-                flexShrink: 0,
-                bgcolor: '#f0edfd',
-                overflow: 'auto'
-              }}
-            >
-              <CardContent>
-                <Suspense fallback={<LoadingFallback />}>
-                  <TargetCondition 
-                    onConditionChange={handleConditionChange}
-                    data={originalNodes}
-                  />
-                </Suspense>
-              </CardContent>
-            </Card>
-
-            {/* 중앙: 그래프 */}
-            <Card 
-              component="section"
-              aria-label="네트워크 그래프 영역"
-              sx={{
-                flex: 1,
-                bgcolor: '#f0edfd',
-                overflow: 'hidden',
-                minWidth: 0
-              }}
-            >
-              <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 } }}>
-                <Suspense fallback={<LoadingFallback />}>
-                  <TargetGraphComp dbNodes={filteredNodes} onNodeClick={handleNodeClick} />
-                </Suspense>
-              </CardContent>
-            </Card>
-
-            {/* 우측: 데이터 테이블 */}
-            <Card 
-              component="section"
-              aria-label="데이터 테이블 영역"
-              sx={{
-                width: { xs: '100%', lg: 300 }, // 260 → 300으로 증가
-                flexShrink: 0,
-                bgcolor: '#f0edfd',
-                overflow: 'auto'
-              }}
-            >
-              <CardContent>
-                <Suspense fallback={<LoadingFallback />}>
-                  <DataTable dbData={dbData} />
-                </Suspense>
-              </CardContent>
-            </Card>
-          </Box>
+            <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 } }}>
+              <Suspense fallback={<LoadingFallback />}>
+                <TargetGraphComp dbNodes={filteredNodes} onNodeClick={handleNodeClick} />
+              </Suspense>
+            </CardContent>
+          </Card>
         </Box>
 
         {/* 우측: 이벤트 로그 사이드바 */}
@@ -551,7 +299,9 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
               flex: 1,
               bgcolor: '#f0edfd',
               overflow: 'auto',
-              minHeight: 0
+              minHeight: 0,
+              borderRadius: '12px',
+              boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)'
             }}
           >
             <CardContent sx={{

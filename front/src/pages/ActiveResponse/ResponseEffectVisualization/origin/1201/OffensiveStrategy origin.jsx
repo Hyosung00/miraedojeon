@@ -6,8 +6,8 @@ import { Network } from "vis-network/standalone";
 import "vis-network/styles/vis-network.css";
 import { Box, Typography, Card, CardContent, IconButton, Button, Dialog, DialogContent, Paper } from '@mui/material';
 import { MinusOutlined, PlusOutlined, FundOutlined, InfoOutlined } from '@ant-design/icons';
-import TreatAnalysis from '../ThreatAnalysis/TreatAnalysis';
-import { usePopup } from '../../../context/PopupContext';
+import TreatAnalysis from '../../../ThreatAnalysis/TreatAnalysis';
+import { usePopup } from '../../../../../context/PopupContext';
 import './OS.css';
 
 // 노드 타입 이미지
@@ -80,23 +80,13 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   const [internalSelected, setInternalSelected] = useState(null);
   const effectiveDeviceName = deviceElementId ?? internalSelected;
 
-  // 수동 선택 모드 (부모로부터 목적지를 전달받지 못했을 때)
-  // selectionStep: 0 = 목적지 선택 대기, 1 = 출발지 선택 대기, 2 = 선택 완료
-  const [manualSelectionMode, setManualSelectionMode] = useState(!deviceElementId);
-  const [selectionStep, setSelectionStep] = useState(0);
-  const [manualTargetNode, setManualTargetNode] = useState(null); // 수동 선택된 목적지 노드 정보
-
   // 재사용 refs
   const onSelectDeviceRef = useRef(onSelectDevice);
   const attackGraphDataRef = useRef(attackGraphData);
   const loadingAttackRef = useRef(loadingAttack);
-  const selectionStepRef = useRef(selectionStep);
-  const internalSelectedRef = useRef(internalSelected);
   useEffect(() => { attackGraphDataRef.current = attackGraphData; }, [attackGraphData]);
   useEffect(() => { loadingAttackRef.current = loadingAttack; }, [loadingAttack]);
   useEffect(() => { onSelectDeviceRef.current = onSelectDevice; }, [onSelectDevice]);
-  useEffect(() => { selectionStepRef.current = selectionStep; }, [selectionStep]);
-  useEffect(() => { internalSelectedRef.current = internalSelected; }, [internalSelected]);
 
   // Device name -> Physical id
   const resolvePhysicalIdByName = async (deviceName) => {
@@ -819,61 +809,174 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     return () => { canceled = true; };
   }, [effectiveDeviceName, selectedStartNode]);
 
-  // 순위별 색상 정의 (1순위부터 10순위까지)
-  const rankColors = [
-    { border: '#FF0000', edge: '#FF0000', shadow: 'rgba(255, 0, 0, 0.8)', name: '1순위 (빨강)' },      // 1순위: 빨강
-    { border: '#FF6600', edge: '#FF6600', shadow: 'rgba(255, 102, 0, 0.7)', name: '2순위 (주황)' },    // 2순위: 주황
-    { border: '#FFCC00', edge: '#FFCC00', shadow: 'rgba(255, 204, 0, 0.7)', name: '3순위 (노랑)' },    // 3순위: 노랑
-    { border: '#99CC00', edge: '#99CC00', shadow: 'rgba(153, 204, 0, 0.6)', name: '4순위 (연두)' },    // 4순위: 연두
-    { border: '#00CC00', edge: '#00CC00', shadow: 'rgba(0, 204, 0, 0.6)', name: '5순위 (초록)' },      // 5순위: 초록
-    { border: '#00CC66', edge: '#00CC66', shadow: 'rgba(0, 204, 102, 0.6)', name: '6순위 (민트)' },    // 6순위: 민트
-    { border: '#00CCCC', edge: '#00CCCC', shadow: 'rgba(0, 204, 204, 0.6)', name: '7순위 (청록)' },    // 7순위: 청록
-    { border: '#0099CC', edge: '#0099CC', shadow: 'rgba(0, 153, 204, 0.6)', name: '8순위 (하늘)' },    // 8순위: 하늘
-    { border: '#0066FF', edge: '#0066FF', shadow: 'rgba(0, 102, 255, 0.6)', name: '9순위 (파랑)' },    // 9순위: 파랑
-    { border: '#3333CC', edge: '#3333CC', shadow: 'rgba(51, 51, 204, 0.5)', name: '10순위 (남색)' },   // 10순위: 남색
-    { border: '#6600CC', edge: '#6600CC', shadow: 'rgba(102, 0, 204, 0.5)', name: '11순위 (보라)' },   // 11순위: 보라
-    { border: '#9933CC', edge: '#9933CC', shadow: 'rgba(153, 51, 204, 0.5)', name: '12순위 (자주)' },  // 12순위: 자주
-    { border: '#CC00CC', edge: '#CC00CC', shadow: 'rgba(204, 0, 204, 0.5)', name: '13순위 (자홍)' },   // 13순위: 자홍
-    { border: '#CC6699', edge: '#CC6699', shadow: 'rgba(204, 102, 153, 0.5)', name: '14순위 (분홍)' }, // 14순위: 분홍
-    { border: '#996633', edge: '#996633', shadow: 'rgba(153, 102, 51, 0.5)', name: '15순위 (갈색)' },  // 15순위: 갈색
-    { border: '#666666', edge: '#666666', shadow: 'rgba(102, 102, 102, 0.5)', name: '16순위 (회색)' }, // 16순위: 회색
-  ];
-
-  // DataSet refs를 컴포넌트 레벨에서 유지
-  const nodesDataSetRef = useRef(null);
-  const edgesDataSetRef = useRef(null);
-
-  // 3) Device topology 초기 렌더링 (topologyData 변경 시에만)
+  // 3) Device topology 렌더링 (메인)
   useEffect(() => {
-    if (!topologyRef.current || !topologyData.nodes?.length) return;
-    
-    // 네트워크가 이미 있으면 스킵 (초기 생성만)
-    if (topologyNetRef.current) return;
+    if (!topologyRef.current) return;
+
+    // 선택된 경로의 노드와 엣지 ID 수집
+    const selectedPathNodes = new Set();
+    const selectedPathEdges = new Set();
+
+    if (selectedPath !== null && pathList[selectedPath]) {
+      const pathNodes = pathList[selectedPath];
+      // 경로의 노드 ID들을 수집
+      pathNodes.forEach(node => {
+        selectedPathNodes.add(node.id);
+      });
+
+      // 경로의 엣지 ID들을 수집 (연속된 노드 간의 엣지)
+      for (let i = 0; i < pathNodes.length - 1; i++) {
+        const from = pathNodes[i].id;
+        const to = pathNodes[i + 1].id;
+        // 양방향 엣지 ID 모두 추가
+        selectedPathEdges.add(`${Math.min(from, to)}-${Math.max(from, to)}`);
+      }
+    }
+
+    // 최초 1회 생성 또는 재생성
+    if (topologyNetRef.current) {
+      topologyNetRef.current.destroy();
+      topologyNetRef.current = null;
+    }
 
     const baseTopology = initialTopologyRef.current ?? topologyData;
 
-    // 기본 노드/엣지 생성
-    const nodesToShow = (baseTopology.nodes || []).map(n => ({
-      ...n,
-      shape: 'image',
-      image: getNodeImage(n),
-      font: { color: '#7c3aed' },
-      borderWidth: 2,
-      size: 12,
-      color: { border: '#205AAA' },
-      shadow: { enabled: false }
-    }));
+    // 노드 매핑 생성 (Physical ID -> Device elementId, name)
+    const physicalToDevice = new Map();
+    const physicalToDeviceName = new Map();
+    if (attackGraphData.nodes) {
+      attackGraphData.nodes.forEach(n => {
+        // properties.id로 매핑
+        if (n.properties && n.properties.id) {
+          const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
+          physicalToDevice.set(n.id, elemId);
+        }
+        // label/name으로도 매핑
+        const nodeName = n.label || n.properties?.name;
+        if (nodeName) {
+          physicalToDeviceName.set(n.id, nodeName);
+        }
+      });
+    }
 
-    const edgesToShow = (baseTopology.edges || []).map(e => ({
-      ...e,
-      color: { color: '#848484' },
-      width: 1,
-      shadow: { enabled: false }
-    }));
+    // 노드 스타일 적용
+    const nodesToShow = (baseTopology.nodes || []).map(n => {
+      const copy = { ...n };
+      copy.shape = 'image';
+      copy.image = getNodeImage(copy);
+      copy.font = { color: '#7c3aed' };
+      copy.borderWidth = 2;
 
-    nodesDataSetRef.current = new DataSet(nodesToShow);
-    edgesDataSetRef.current = new DataSet(edgesToShow);
-    const data = { nodes: nodesDataSetRef.current, edges: edgesDataSetRef.current };
+      // 경로의 노드 찾기
+      let isInSelectedPath = false;
+      if (selectedPath !== null) {
+        // Physical ID로 매핑된 elementId 또는 name 확인
+        for (const [physId, elemId] of physicalToDevice.entries()) {
+          if (selectedPathNodes.has(physId) && elemId === copy.elementId) {
+            isInSelectedPath = true;
+            break;
+          }
+        }
+        // elementId로 못 찾으면 name으로 시도
+        if (!isInSelectedPath) {
+          for (const [physId, deviceName] of physicalToDeviceName.entries()) {
+            if (selectedPathNodes.has(physId) && deviceName === copy.name) {
+              isInSelectedPath = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // 시작 노드 확인
+      let isStartSelected = false;
+      if (selectedStartNode != null) {
+        const physElementId = physicalToDevice.get(selectedStartNode);
+        const physDeviceName = physicalToDeviceName.get(selectedStartNode);
+        if ((physElementId && physElementId === copy.elementId) ||
+            (physDeviceName && physDeviceName === copy.name)) {
+          isStartSelected = true;
+        }
+      }
+
+      // 목표 노드 확인
+      const isTarget = effectiveDeviceName && copy.name === effectiveDeviceName;
+
+      // 하이라이트 우선순위: 목표 > 시작 > 경로상 노드
+      if (isTarget) {
+        copy.size = 35;
+        copy.borderWidth = 4;
+        copy.color = { border: '#CC0000', background: '#FFE5E5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 0, 0, 0.8)',
+          size: 25,
+          x: 0,
+          y: 0
+        };
+      } else if (isStartSelected) {
+        copy.size = 30;
+        copy.borderWidth = 4;
+        copy.color = { border: '#00CC00', background: '#E5FFE5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(0, 204, 0, 0.8)',
+          size: 20,
+          x: 0,
+          y: 0
+        };
+      } else if (isInSelectedPath) {
+        copy.size = 25;
+        copy.borderWidth = 3;
+        copy.color = { border: '#FF8C00', background: '#FFF5E5' };
+        copy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 140, 0, 0.6)',
+          size: 15,
+          x: 0,
+          y: 0
+        };
+      } else {
+        copy.size = 12;
+        copy.color = { border: '#205AAA' };
+        copy.shadow = { enabled: false };
+      }
+
+      return copy;
+    });
+
+    // 엣지 스타일 적용
+    const edgesToShow = (baseTopology.edges || []).map(e => {
+      const edgeCopy = { ...e };
+
+      if (selectedPathEdges.has(e.id)) {
+        // 선택된 경로의 엣지는 노란색으로 하이라이트
+        edgeCopy.color = {
+          color: '#FFD700',
+          highlight: '#FFF000',
+          hover: '#FFF000'
+        };
+        edgeCopy.width = 8;
+        edgeCopy.hoverWidth = 10;
+        edgeCopy.smooth = { enabled: true, type: 'continuous', roundness: 0.5 };
+        edgeCopy.shadow = {
+          enabled: true,
+          color: 'rgba(255, 215, 0, 0.5)',
+          size: 10,
+          x: 0,
+          y: 0
+        };
+      } else {
+        edgeCopy.color = { color: '#848484' };
+        edgeCopy.width = 1;
+      }
+
+      return edgeCopy;
+    });
+
+    const nodes = new DataSet(nodesToShow);
+    const edges = new DataSet(edgesToShow);
+    const data = { nodes, edges };
 
     const options = {
       interaction: { hover: true, multiselect: false },
@@ -901,7 +1004,9 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       Object.keys(nodePositionsRef.current).forEach(id => {
         try {
           topologyNetRef.current.moveNode(id, nodePositionsRef.current[id].x, nodePositionsRef.current[id].y);
-        } catch (e) {}
+        } catch (e) {
+          // 노드가 존재하지 않을 수 있음
+        }
       });
     } else {
       topologyNetRef.current.once('stabilizationIterationsDone', () => {
@@ -915,51 +1020,56 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     // 노드 선택 이벤트
     topologyNetRef.current.on('selectNode', async (params) => {
       const nid = params.nodes && params.nodes[0];
-      if (!nid || !nodesDataSetRef.current) return;
-      const node = nodesDataSetRef.current.get(nid);
-      const deviceName = node?.name;
+      if (!nid) return;
+      const node = nodes.get(nid);
 
-      // 부모로부터 목적지를 전달받은 경우 (기존 로직)
-      if (deviceElementId) {
-        const physId = await resolvePhysicalIdByName(deviceName);
+      if (effectiveDeviceName) {
+        // 목표가 이미 선택된 경우, 시작 노드로 설정
+        const physId = await resolvePhysicalIdByName(node?.name);
         if (physId != null) {
+          console.log('시작 노드 선택:', node?.name, '-> Physical ID:', physId);
           setSelectedStartNode(physId);
+
+          // 선택된 노드 즉시 하이라이트
+          nodes.update({
+            id: nid,
+            size: 30,
+            borderWidth: 4,
+            color: { border: '#00CC00', background: '#E5FFE5' },
+            shadow: {
+              enabled: true,
+              color: 'rgba(0, 204, 0, 0.8)',
+              size: 20,
+              x: 0,
+              y: 0
+            }
+          });
+        } else {
+          console.warn('No Physical id found for Device name:', node?.name);
         }
       } else {
-        // 수동 선택 모드: 첫 번째 클릭 = 목적지, 두 번째 클릭 = 출발지
-        const currentStep = selectionStepRef.current;
-        const currentTarget = internalSelectedRef.current;
-        
-        if (currentStep === 0) {
-          // 목적지 선택
-          setInternalSelected(deviceName);
-          setManualTargetNode({ id: nid, name: deviceName, ...node });
-          setSelectionStep(1);
-          console.log('🎯 목적지 노드 선택:', deviceName);
-        } else if (currentStep === 1) {
-          // 출발지 선택 (목적지와 다른 노드여야 함)
-          if (deviceName === currentTarget) {
-            console.warn('⚠️ 출발지와 목적지가 같습니다. 다른 노드를 선택하세요.');
-            return;
-          }
-          const physId = await resolvePhysicalIdByName(deviceName);
-          if (physId != null) {
-            setSelectedStartNode(physId);
-            setSelectionStep(2);
-            console.log('🚀 출발지 노드 선택:', deviceName);
-          }
+        // 목표 노드 선택
+        const deviceName = node?.name;
+        if (onSelectDeviceRef.current) {
+          onSelectDeviceRef.current(deviceName);
         } else {
-          // 이미 선택 완료된 상태에서 다시 클릭하면 출발지만 변경
-          if (deviceName === currentTarget) {
-            console.warn('⚠️ 출발지와 목적지가 같습니다. 다른 노드를 선택하세요.');
-            return;
-          }
-          const physId = await resolvePhysicalIdByName(deviceName);
-          if (physId != null) {
-            setSelectedStartNode(physId);
-            console.log('🔄 출발지 노드 변경:', deviceName);
-          }
+          setInternalSelected(deviceName);
         }
+
+        // 선택된 목표 노드 즉시 하이라이트
+        nodes.update({
+          id: nid,
+          size: 35,
+          borderWidth: 4,
+          color: { border: '#CC0000', background: '#FFE5E5' },
+          shadow: {
+            enabled: true,
+            color: 'rgba(255, 0, 0, 0.8)',
+            size: 25,
+            x: 0,
+            y: 0
+          }
+        });
       }
     });
 
@@ -967,335 +1077,11 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       if (topologyNetRef.current) {
         topologyNetRef.current.destroy();
         topologyNetRef.current = null;
-        nodesDataSetRef.current = null;
-        edgesDataSetRef.current = null;
       }
     };
-  }, [topologyData]);
+  }, [topologyData, selectedStartNode, attackGraphData, effectiveDeviceName, selectedPath, pathList]);
 
-  // 4) 스타일 업데이트 (selectedPath, pathList 등 변경 시 - 네트워크 재생성 없이)
-  useEffect(() => {
-    if (!nodesDataSetRef.current || !edgesDataSetRef.current) return;
-
-    const baseTopology = initialTopologyRef.current ?? topologyData;
-
-    // pathList 기반으로 순위 맵 계산
-    const calcNodeRS = (node) => {
-      const props = node?.properties || node?.props || {};
-      const cves = props.cveInfos || props.vulnerabilities || props.cves || [];
-      const arr = Array.isArray(cves) ? cves : [];
-      const scores = [], cVals = [], iVals = [], aVals = [];
-      for (const cv of arr) {
-        const p = cv?.props || cv || {};
-        const sCand = p.cvss3 ?? p.cvss ?? p.baseScore ?? p.score ?? p.score_value ?? p.severity_score;
-        const sNum = typeof sCand === 'number' ? sCand : parseFloat(sCand);
-        if (!Number.isNaN(sNum)) scores.push(sNum);
-        const vStr = p.vectorString || p.vector || p.cvssVector || null;
-        if (vStr && typeof vStr === 'string') {
-          const map = { H: 1, M: 0.66, L: 0.33, N: 0 };
-          const pick = (tag) => { const m = vStr.match(new RegExp(`${tag}:([HNML])`)); return m ? (map[m[1]] ?? null) : null; };
-          const C = pick('C'), I = pick('I'), A = pick('A');
-          if (C != null) cVals.push(C);
-          if (I != null) iVals.push(I);
-          if (A != null) aVals.push(A);
-        }
-      }
-      const avgFn = (xs) => xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : null;
-      const avgScore = avgFn(scores), avgC = avgFn(cVals), avgI = avgFn(iVals), avgA = avgFn(aVals);
-      if (avgScore == null || avgC == null || avgI == null || avgA == null) return null;
-      return ((avgScore * (avgC + avgI + avgA)) / 3) / 10;
-    };
-
-    const allRS = (attackGraphData.nodes || []).map(calcNodeRS).filter(v => typeof v === 'number');
-    const localNetworkRSMean = allRS.length ? allRS.reduce((a,b)=>a+b,0)/allRS.length : null;
-
-    const localPathMetrics = (pathList || []).map((p, idx) => {
-      const nodes = Array.isArray(p) ? p : [];
-      const rsVals = nodes.map(node => {
-        const full = (attackGraphData.nodes || []).find(n => n.id === node.id) || node;
-        return calcNodeRS(full);
-      }).filter(v => typeof v === 'number');
-      const pathRS = rsVals.length ? rsVals.reduce((a,b)=>a+b,0)/rsVals.length : null;
-      let success = null;
-      if (pathRS != null && localNetworkRSMean != null && localNetworkRSMean > 0) {
-        success = Math.min(Math.max(pathRS / localNetworkRSMean, 0), 1);
-      }
-      return { index: idx, success };
-    });
-
-    const localSortedPathRanks = new Map();
-    const sorted = [...localPathMetrics].sort((a, b) => (b.success ?? -1) - (a.success ?? -1));
-    sorted.forEach((item, rank) => {
-      localSortedPathRanks.set(item.index, rank);
-    });
-
-    // 모든 경로의 노드와 엣지 정보 수집
-    const allPathNodes = new Map();
-    const allPathEdges = new Map();
-
-    (pathList || []).forEach((path, pathIdx) => {
-      const rank = localSortedPathRanks.get(pathIdx) ?? pathIdx;
-      const pathNodes = path || [];
-      
-      pathNodes.forEach(node => {
-        if (!allPathNodes.has(node.id)) {
-          allPathNodes.set(node.id, { ranks: new Set(), lowestRank: rank });
-        }
-        allPathNodes.get(node.id).ranks.add(rank);
-        if (rank < allPathNodes.get(node.id).lowestRank) {
-          allPathNodes.get(node.id).lowestRank = rank;
-        }
-      });
-
-      for (let i = 0; i < pathNodes.length - 1; i++) {
-        const from = pathNodes[i].id;
-        const to = pathNodes[i + 1].id;
-        const edgeId = `${Math.min(from, to)}-${Math.max(from, to)}`;
-        
-        if (!allPathEdges.has(edgeId)) {
-          allPathEdges.set(edgeId, { ranks: new Set(), lowestRank: rank });
-        }
-        allPathEdges.get(edgeId).ranks.add(rank);
-        if (rank < allPathEdges.get(edgeId).lowestRank) {
-          allPathEdges.get(edgeId).lowestRank = rank;
-        }
-      }
-    });
-
-    // 선택된 경로
-    const selectedPathNodes = new Set();
-    const selectedPathEdges = new Set();
-
-    if (selectedPath !== null && pathList[selectedPath]) {
-      const pathNodes = pathList[selectedPath];
-      pathNodes.forEach(node => selectedPathNodes.add(node.id));
-      for (let i = 0; i < pathNodes.length - 1; i++) {
-        const from = pathNodes[i].id;
-        const to = pathNodes[i + 1].id;
-        selectedPathEdges.add(`${Math.min(from, to)}-${Math.max(from, to)}`);
-      }
-    }
-
-    // 노드 매핑 생성
-    const physicalToDevice = new Map();
-    const physicalToDeviceName = new Map();
-    if (attackGraphData.nodes) {
-      attackGraphData.nodes.forEach(n => {
-        if (n.properties && n.properties.id) {
-          const elemId = n.properties.id.startsWith('ml:') ? n.properties.id.slice(3) : n.properties.id;
-          physicalToDevice.set(n.id, elemId);
-        }
-        const nodeName = n.label || n.properties?.name;
-        if (nodeName) {
-          physicalToDeviceName.set(n.id, nodeName);
-        }
-      });
-    }
-
-    // Physical ID -> Device Node ID 역매핑
-    const physicalToDeviceNodeId = new Map();
-    (baseTopology.nodes || []).forEach(deviceNode => {
-      for (const [physId, elemId] of physicalToDevice.entries()) {
-        if (elemId === deviceNode.elementId) {
-          physicalToDeviceNodeId.set(physId, deviceNode.id);
-          break;
-        }
-      }
-      for (const [physId, deviceName] of physicalToDeviceName.entries()) {
-        if (!physicalToDeviceNodeId.has(physId) && deviceName === deviceNode.name) {
-          physicalToDeviceNodeId.set(physId, deviceNode.id);
-        }
-      }
-    });
-
-    // Device ID 기반 엣지 맵 생성
-    const devicePathEdges = new Map();
-    for (const [physEdgeId, rankInfo] of allPathEdges.entries()) {
-      const [physFrom, physTo] = physEdgeId.split('-').map(Number);
-      const deviceFrom = physicalToDeviceNodeId.get(physFrom);
-      const deviceTo = physicalToDeviceNodeId.get(physTo);
-      
-      if (deviceFrom != null && deviceTo != null) {
-        const deviceEdgeId = `${Math.min(deviceFrom, deviceTo)}-${Math.max(deviceFrom, deviceTo)}`;
-        if (!devicePathEdges.has(deviceEdgeId)) {
-          devicePathEdges.set(deviceEdgeId, { ranks: new Set(rankInfo.ranks), lowestRank: rankInfo.lowestRank });
-        } else {
-          const existing = devicePathEdges.get(deviceEdgeId);
-          rankInfo.ranks.forEach(r => existing.ranks.add(r));
-          if (rankInfo.lowestRank < existing.lowestRank) {
-            existing.lowestRank = rankInfo.lowestRank;
-          }
-        }
-      }
-    }
-
-    const deviceSelectedPathEdges = new Set();
-    for (const physEdgeId of selectedPathEdges) {
-      const [physFrom, physTo] = physEdgeId.split('-').map(Number);
-      const deviceFrom = physicalToDeviceNodeId.get(physFrom);
-      const deviceTo = physicalToDeviceNodeId.get(physTo);
-      
-      if (deviceFrom != null && deviceTo != null) {
-        deviceSelectedPathEdges.add(`${Math.min(deviceFrom, deviceTo)}-${Math.max(deviceFrom, deviceTo)}`);
-      }
-    }
-
-    // 노드 스타일 업데이트 (update 메서드 사용)
-    const nodeUpdates = (baseTopology.nodes || []).map(n => {
-      let nodePhysicalId = null;
-      let nodeRankInfo = null;
-      
-      for (const [physId, elemId] of physicalToDevice.entries()) {
-        if (elemId === n.elementId) { nodePhysicalId = physId; break; }
-      }
-      if (nodePhysicalId === null) {
-        for (const [physId, deviceName] of physicalToDeviceName.entries()) {
-          if (deviceName === n.name) { nodePhysicalId = physId; break; }
-        }
-      }
-      
-      if (nodePhysicalId !== null && allPathNodes.has(nodePhysicalId)) {
-        nodeRankInfo = allPathNodes.get(nodePhysicalId);
-      }
-
-      const isInSelectedPath = nodePhysicalId !== null && selectedPathNodes.has(nodePhysicalId);
-      
-      let isStartSelected = false;
-      if (selectedStartNode != null) {
-        const physElementId = physicalToDevice.get(selectedStartNode);
-        const physDeviceName = physicalToDeviceName.get(selectedStartNode);
-        if ((physElementId && physElementId === n.elementId) || (physDeviceName && physDeviceName === n.name)) {
-          isStartSelected = true;
-        }
-      }
-
-      const isTarget = effectiveDeviceName && n.name === effectiveDeviceName;
-
-      let update = { id: n.id };
-
-      // 특정 경로를 선택한 경우: 다른 노드들 비활성화
-      if (selectedPath !== null) {
-        if (isTarget) {
-          // 목표 노드: 항상 강조
-          update.size = 35;
-          update.borderWidth = 4;
-          update.color = { border: '#CC0000', background: '#FFE5E5' };
-          update.shadow = { enabled: true, color: 'rgba(255, 0, 0, 0.8)', size: 25, x: 0, y: 0 };
-        } else if (isStartSelected) {
-          // 시작 노드: 항상 강조
-          update.size = 30;
-          update.borderWidth = 4;
-          update.color = { border: '#00CC00', background: '#E5FFE5' };
-          update.shadow = { enabled: true, color: 'rgba(0, 204, 0, 0.8)', size: 20, x: 0, y: 0 };
-        } else if (isInSelectedPath) {
-          // 선택된 경로의 노드: 강조
-          const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
-          const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-          update.size = 28;
-          update.borderWidth = 4;
-          update.color = { border: colorInfo.border, background: '#FFFFFF' };
-          update.shadow = { enabled: true, color: colorInfo.shadow, size: 20, x: 0, y: 0 };
-        } else if (nodeRankInfo) {
-          // 다른 경로의 노드: 완전 투명
-          update.size = 12;
-          update.borderWidth = 1;
-          update.color = { border: 'rgba(150, 150, 150, 0.15)', background: 'rgba(255, 255, 255, 0.1)' };
-          update.shadow = { enabled: false };
-        } else {
-          // 경로가 아닌 노드: 투명
-          update.size = 12;
-          update.borderWidth = 1;
-          update.color = { border: 'rgba(100, 100, 100, 0.15)' };
-          update.shadow = { enabled: false };
-        }
-      } else {
-        // 경로를 선택하지 않은 경우: 모든 경로 표시
-        if (isTarget) {
-          update.size = 35;
-          update.borderWidth = 4;
-          update.color = { border: '#CC0000', background: '#FFE5E5' };
-          update.shadow = { enabled: true, color: 'rgba(255, 0, 0, 0.8)', size: 25, x: 0, y: 0 };
-        } else if (isStartSelected) {
-          update.size = 30;
-          update.borderWidth = 4;
-          update.color = { border: '#00CC00', background: '#E5FFE5' };
-          update.shadow = { enabled: true, color: 'rgba(0, 204, 0, 0.8)', size: 20, x: 0, y: 0 };
-        } else if (nodeRankInfo) {
-          const lowestRank = nodeRankInfo.lowestRank;
-          const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
-          update.size = 20;
-          update.borderWidth = 3;
-          update.color = { border: colorInfo.border, background: '#FFFFFF' };
-          update.shadow = { enabled: true, color: colorInfo.shadow, size: 12, x: 0, y: 0 };
-        } else {
-          update.size = 12;
-          update.borderWidth = 2;
-          update.color = { border: '#205AAA' };
-          update.shadow = { enabled: false };
-        }
-      }
-
-      return update;
-    });
-
-    // 엣지 스타일 업데이트
-    const edgeUpdates = (baseTopology.edges || []).map(e => {
-      const edgeRankInfo = devicePathEdges.get(e.id);
-      const isInSelectedPathEdge = deviceSelectedPathEdges.has(e.id);
-
-      let update = { id: e.id };
-
-      // 특정 경로를 선택한 경우: 다른 엣지들 비활성화
-      if (selectedPath !== null) {
-        if (isInSelectedPathEdge) {
-          // 선택된 경로의 엣지: 강조
-          const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
-          const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-          update.width = 10;
-          update.shadow = { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 };
-        } else if (edgeRankInfo) {
-          // 다른 경로의 엣지: 완전 투명
-          update.color = { color: 'rgba(200, 200, 200, 0.1)', highlight: 'rgba(200, 200, 200, 0.1)', hover: 'rgba(200, 200, 200, 0.1)' };
-          update.width = 1;
-          update.shadow = { enabled: false };
-        } else {
-          // 경로가 아닌 엣지: 투명
-          update.color = { color: 'rgba(132, 132, 132, 0.1)' };
-          update.width = 0.5;
-          update.shadow = { enabled: false };
-        }
-      } else {
-        // 경로를 선택하지 않은 경우: 모든 경로 표시
-        if (isInSelectedPathEdge) {
-          const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
-          const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-          update.width = 10;
-          update.shadow = { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 };
-        } else if (edgeRankInfo) {
-          const lowestRank = edgeRankInfo.lowestRank;
-          const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
-          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-          update.width = 5;
-          update.shadow = { enabled: true, color: colorInfo.shadow, size: 8, x: 0, y: 0 };
-        } else {
-          update.color = { color: '#848484' };
-          update.width = 1;
-          update.shadow = { enabled: false };
-        }
-      }
-
-      return update;
-    });
-
-    // DataSet 업데이트 (깜빡임 없이)
-    nodesDataSetRef.current.update(nodeUpdates);
-    edgesDataSetRef.current.update(edgeUpdates);
-
-  }, [topologyData, selectedStartNode, attackGraphData, effectiveDeviceName, selectedPath, pathList, rankColors]);
-
-  // 5) Canvas에 파티클 애니메이션 그리기
+  // 4) Canvas에 파티클 애니메이션 그리기
   useEffect(() => {
     if (!canvasRef.current || !topologyNetRef.current || !isAnimating || selectedPath === null || !pathList[selectedPath]) {
       if (canvasRef.current) {
@@ -1520,22 +1306,6 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     });
   }, [pathList, attackGraphData.nodes, networkRSMean]);
 
-  // 순위별 정렬된 경로 인덱스 맵 생성
-  const sortedPathRanks = useMemo(() => {
-    if (!pathMetrics || pathMetrics.length === 0) return new Map();
-    
-    // 성공 가능성 내림차순 정렬
-    const sorted = [...pathMetrics].sort((a, b) => (b.success ?? -1) - (a.success ?? -1));
-    
-    // 원래 인덱스 -> 순위 맵 생성
-    const rankMap = new Map();
-    sorted.forEach((item, rank) => {
-      rankMap.set(item.index, rank); // 0부터 시작하는 순위
-    });
-    
-    return rankMap;
-  }, [pathMetrics]);
-
   const buildCalculationText = (pathIdx) => {
     const p = pathList?.[pathIdx] || []; const lines = []; lines.push(`방책 ${pathIdx + 1} 계산 시작`);
     const rsVals = [];
@@ -1649,98 +1419,14 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 }, position: 'relative' }}>
             <Box className="status-bar">
               <Typography variant="caption" color="inherit">
-                {loadingAttack ? '공격 경로 분석 중...' : 
-                  deviceElementId ? 
-                    // 부모로부터 목적지를 전달받은 경우
-                    `공격 목표: ${effectiveDeviceName}${selectedStartNode ? ' (시작 노드 선택됨)' : ''}` :
-                    // 수동 선택 모드
-                    selectionStep === 0 ? '🎯 목적지 노드를 먼저 클릭하세요' :
-                    selectionStep === 1 ? `🎯 목적지: ${effectiveDeviceName} | 🚀 출발지 노드를 클릭하세요` :
-                    `🎯 목적지: ${effectiveDeviceName} | 🚀 출발지 선택됨 (다른 출발지 클릭 가능)`
-                }
+                {loadingAttack ? '공격 경로 분석 중...' : (effectiveDeviceName ? `공격 목표: ${effectiveDeviceName}${selectedStartNode ? ' (시작 노드 선택됨)' : ''}` : '공격 목표 미선택')}
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <IconButton size="small" onClick={() => openPopup('treatAnalysis')} sx={{ bgcolor: '#7c3aed', color: 'white', '&:hover': { bgcolor: '#6d28d9' }, width: 32, height: 32 }} title="위험 분석 보기">
                   <FundOutlined style={{ fontSize: 16 }} />
                 </IconButton>
-                {/* 수동 선택 모드에서 전체 초기화 버튼 */}
-                {!deviceElementId && selectionStep > 0 && (
-                  <Button size="small" variant="contained" onClick={() => {
-                    // 애니메이션 즉시 중지
-                    animationActiveRef.current = false;
-                    if (animationFrameRef.current) {
-                      cancelAnimationFrame(animationFrameRef.current);
-                      animationFrameRef.current = null;
-                    }
-                    setIsAnimating(false);
-                    
-                    // 모든 상태 초기화
-                    setSelectedStartNode(null);
-                    setSelectedPath(null);
-                    setInternalSelected(null);
-                    setManualTargetNode(null);
-                    setSelectionStep(0);
-                    setTypedLogText("");
-                    setPathList([]);
-                    
-                    // 엣지/노드 스타일 즉시 초기화
-                    const baseTopology = initialTopologyRef.current ?? topologyData;
-                    if (nodesDataSetRef.current && edgesDataSetRef.current) {
-                      const nodeResets = (baseTopology.nodes || []).map(n => ({
-                        id: n.id,
-                        size: 12,
-                        borderWidth: 2,
-                        color: { border: '#205AAA' },
-                        shadow: { enabled: false }
-                      }));
-                      const edgeResets = (baseTopology.edges || []).map(e => ({
-                        id: e.id,
-                        color: { color: '#848484' },
-                        width: 1,
-                        shadow: { enabled: false }
-                      }));
-                      nodesDataSetRef.current.update(nodeResets);
-                      edgesDataSetRef.current.update(edgeResets);
-                    }
-                  }} sx={{ bgcolor: '#f44336', color: 'white', '&:hover': { bgcolor: '#d32f2f' }, fontSize: 11, py: 0.5, px: 1.5 }}>
-                    전체 초기화
-                  </Button>
-                )}
-                {/* 기존 시작 노드 초기화 버튼 (부모로부터 목적지 전달받은 경우) */}
-                {deviceElementId && selectedStartNode && (
-                  <Button size="small" variant="contained" onClick={() => {
-                    // 애니메이션 즉시 중지
-                    animationActiveRef.current = false;
-                    if (animationFrameRef.current) {
-                      cancelAnimationFrame(animationFrameRef.current);
-                      animationFrameRef.current = null;
-                    }
-                    setIsAnimating(false);
-                    
-                    // 상태 초기화
-                    setSelectedStartNode(null);
-                    setSelectedPath(null);
-                    
-                    // 엣지/노드 스타일 즉시 초기화
-                    const baseTopology = initialTopologyRef.current ?? topologyData;
-                    if (nodesDataSetRef.current && edgesDataSetRef.current) {
-                      const nodeResets = (baseTopology.nodes || []).map(n => ({
-                        id: n.id,
-                        size: 12,
-                        borderWidth: 2,
-                        color: { border: '#205AAA' },
-                        shadow: { enabled: false }
-                      }));
-                      const edgeResets = (baseTopology.edges || []).map(e => ({
-                        id: e.id,
-                        color: { color: '#848484' },
-                        width: 1,
-                        shadow: { enabled: false }
-                      }));
-                      nodesDataSetRef.current.update(nodeResets);
-                      edgesDataSetRef.current.update(edgeResets);
-                    }
-                  }} sx={{ bgcolor: '#4CAF50', color: 'white', '&:hover': { bgcolor: '#45a049' }, fontSize: 11, py: 0.5, px: 1.5 }}>
+                {selectedStartNode && (
+                  <Button size="small" variant="contained" onClick={() => setSelectedStartNode(null)} sx={{ bgcolor: '#4CAF50', color: 'white', '&:hover': { bgcolor: '#45a049' }, fontSize: 11, py: 0.5, px: 1.5 }}>
                     시작 노드 초기화
                   </Button>
                 )}
@@ -1759,39 +1445,22 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                 zIndex: 5
               }}
             />
-            <Box className="legend-box" sx={{ maxHeight: 200, overflowY: 'auto' }}>
+            <Box className="legend-box">
               <ul className="legend-list" role="list">
                 <li className="legend-item"><Box className="legend-dot start" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>시작 노드</Typography></li>
                 <li className="legend-item"><Box className="legend-dot target" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>목표 노드</Typography></li>
-                {/* 순위별 경로 색상 표시 */}
-                {pathList && pathList.length > 0 && (
-                  <>
-                    <li className="legend-item" style={{ marginTop: 8, marginBottom: 4 }}>
-                      <Typography variant="caption" sx={{ color: '#fff', fontWeight: 'bold' }}>순위별 경로:</Typography>
-                    </li>
-                    {[...Array(Math.min(pathList.length, 5))].map((_, idx) => (
-                      <li key={idx} className="legend-item">
-                        <Box sx={{ width: 20, height: 4, bgcolor: rankColors[idx].edge, borderRadius: 2, boxShadow: `0 0 6px ${rankColors[idx].edge}` }} aria-hidden="true" />
-                        <Typography variant="caption" sx={{ color: '#fff', ml: 0.5 }}>{idx + 1}순위</Typography>
-                      </li>
-                    ))}
-                    {pathList.length > 5 && (
-                      <li className="legend-item">
-                        <Typography variant="caption" sx={{ color: '#aaa', fontSize: 10 }}>...외 {pathList.length - 5}개</Typography>
-                      </li>
-                    )}
-                  </>
-                )}
+                <li className="legend-item"><Box className="legend-dot via" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>경로 노드</Typography></li>
                 {isAnimating && (
-                  <li className="legend-item" style={{ marginTop: 8 }}><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF1493', boxShadow: '0 0 10px #FF1493' }} aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>경로 이동 중</Typography></li>
+                  <li className="legend-item"><Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FF1493', boxShadow: '0 0 10px #FF1493' }} aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>경로 이동 중</Typography></li>
                 )}
+                {/*<li className="legend-item"><Box className="legend-line" aria-hidden="true" /><Typography variant="caption" sx={{ color: '#fff' }}>공격 경로</Typography></li>*/}
               </ul>
             </Box>
           </CardContent>
         </Card>
 
-        {/* 우측 패널 - 수동 선택 모드에서 목적지 선택 후 또는 시작 노드 선택 후 표시 */}
-        {(selectedStartNode || (!deviceElementId && selectionStep >= 1)) && (
+        {/* 우측 패널 */}
+        {selectedStartNode && (
           <Box component="aside" aria-label="경로 정보 패널" className="right-panel" sx={{ width: { xs: '100%', lg: 400 }, maxWidth: { xs: '100%', lg: 400 } }}>
             {/* 카드 1 */}
             <Card component="section" aria-label="시작 및 목표 노드 정보" className="info-card">
@@ -1803,18 +1472,8 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                       <span><strong>시작:</strong> {startNodeObj.label || startNodeObj.id}</span>
                       <Button size="small" variant="outlined" onClick={() => showNodeDetails(startNodeObj)} sx={{ ml: 1 }}>상세정보</Button>
                     </Box>
-                  ) : (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>
-                      <Typography variant="caption" sx={{ color: '#e65100' }}>🚀 출발지 노드를 클릭하세요</Typography>
-                    </Box>
-                  )}
-                  {/* 수동 선택 모드에서 목적지 정보 표시 */}
-                  {!deviceElementId && manualTargetNode ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span><strong>목표:</strong> {manualTargetNode.name || manualTargetNode.label}</span>
-                      <Button size="small" variant="outlined" onClick={() => showNodeDetails(manualTargetNode)} sx={{ ml: 1 }}>상세정보</Button>
-                    </Box>
-                  ) : targetNodeObj ? (
+                  ) : (<Typography variant="caption" className="empty-message">시작 노드를 선택하세요</Typography>)}
+                  {targetNodeObj ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span><strong>목표:</strong> {targetNodeObj.label || targetNodeObj.id}</span>
                       <Button size="small" variant="outlined" onClick={() => showNodeDetails(targetNodeObj)} sx={{ ml: 1 }}>상세정보</Button>
@@ -1827,12 +1486,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
             {/* 카드 2: 방책 리스트 (테이블) */}
             <Card component="section" aria-label="경로 리스트" className="info-card scrollable" sx={{ flex: 1, minHeight: 0 }}>
               <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column', flex: 1, '&:last-child': { pb: 2 } }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="body2" component="h3" className="card-title">🛤️ 방책 리스트</Typography>
-                  {selectedPath !== null && (
-                    <Button size="small" variant="outlined" onClick={() => setSelectedPath(null)} sx={{ fontSize: 11, py: 0.5, px: 1 }}>초기화</Button>
-                  )}
-                </Box>
+                <Typography variant="body2" component="h3" className="card-title">🛤️ 방책 리스트</Typography>
                 <Box className="card-content-scroll" sx={{ overflowX: 'auto' }}>
                   {pathMetrics.length === 0 ? (
                     <Typography variant="caption" className="empty-message">경로가 없습니다</Typography>
@@ -1840,52 +1494,24 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
                         <tr>
-                          <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>순위</th>
                           <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>방책 No.</th>
                           <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>노드 수</th>
+                          <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>순위</th>
                           <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #ccc' }}>성공 가능성</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {[...pathMetrics].sort((a, b) => (b.success ?? -1) - (a.success ?? -1)).map((m, sortedIdx) => {
-                          const rank = sortedIdx + 1;
-                          const colorInfo = rankColors[Math.min(sortedIdx, rankColors.length - 1)];
+                        {pathMetrics.map((m) => {
+                          const sorted = [...pathMetrics].sort((a, b) => (b.success ?? -1) - (a.success ?? -1));
+                          const rank = (sorted.findIndex(x => x.index === m.index) + 1) || '-';
                           const successDisplay = m.success == null ? 'N/A' : `${((m.success) * 100).toFixed(2)}%`;
                           const isSelected = selectedPath === m.index;
-                          const isOtherSelected = selectedPath !== null && selectedPath !== m.index;
                           return (
-                            <tr 
-                              key={m.index} 
-                              onClick={() => onSelectPathWithLogs(m.index)} 
-                              style={{ 
-                                background: isSelected ? colorInfo.edge + '30' : '#f9f9f9', 
-                                opacity: isOtherSelected ? 0.35 : 1,
-                                cursor: 'pointer', 
-                                borderLeft: `4px solid ${colorInfo.edge}`,
-                                borderBottom: '1px solid #eee',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <td style={{ padding: '8px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <Box sx={{ 
-                                  width: 20, 
-                                  height: 20, 
-                                  borderRadius: '50%', 
-                                  bgcolor: colorInfo.edge, 
-                                  color: '#fff', 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center',
-                                  fontSize: 11,
-                                  fontWeight: 'bold',
-                                  boxShadow: `0 0 6px ${colorInfo.shadow}`
-                                }}>
-                                  {rank}
-                                </Box>
-                              </td>
+                            <tr key={m.index} onClick={() => onSelectPathWithLogs(m.index)} style={{ background: isSelected ? '#fff' : '#f9f9f9', cursor: 'pointer', border: isSelected ? '2px solid #4CAF50' : '1px solid #ccc' }}>
                               <td style={{ padding: '8px' }}>{`방책 ${m.index + 1}`}</td>
                               <td style={{ padding: '8px' }}>{m.nodeCount}</td>
-                              <td style={{ padding: '8px', fontWeight: isSelected ? 'bold' : 'normal' }}>{successDisplay}</td>
+                              <td style={{ padding: '8px' }}>{rank}</td>
+                              <td style={{ padding: '8px' }}>{successDisplay}</td>
                             </tr>
                           );
                         })}
@@ -2073,10 +1699,10 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           onClose={() => setInfoPopupOpen(false)}
           maxWidth="sm"
           fullWidth
-          PaperProps={{ sx: { borderRadius: 2, bgcolor: '#f0edfd' } }}
+          PaperProps={{ sx: { borderRadius: 2 } }}
         >
-          <Box sx={{ p: 3, bgcolor: '#7c3aed', color: 'white' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0 }}>
+          <Box sx={{ p: 3, bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold' }}>📊 공격 가능도 & 성공 가능성 분석</Typography>
               <IconButton
                 onClick={() => setInfoPopupOpen(false)}
@@ -2087,10 +1713,10 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
             </Box>
           </Box>
 
-          <DialogContent sx={{ p: 3, bgcolor: '#f0edfd' }}>
+          <DialogContent sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {/* HRN 설명 */}
-              <Paper sx={{ p: 2, bgcolor: '#fff', borderLeft: '4px solid #ff6b6b', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #ff6b6b' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#ff6b6b', mb: 1 }}>
                   🔴 HRN (고위험 노드 점수)
                 </Typography>
@@ -2107,7 +1733,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               </Paper>
 
               {/* NLS 설명 */}
-              <Paper sx={{ p: 2, bgcolor: '#fff', borderLeft: '4px solid #4ecdc4', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #4ecdc4' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#4ecdc4', mb: 1 }}>
                   🔗 NLS (연결 중요도 점수)
                 </Typography>
@@ -2124,7 +1750,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               </Paper>
 
               {/* 공격 가능도 설명 */}
-              <Paper sx={{ p: 2, bgcolor: '#fff', borderLeft: '4px solid #ffa502', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #ffa502' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#ffa502', mb: 1 }}>
                   ⚔️ 공격 가능도 (Exploitability)
                 </Typography>
@@ -2155,7 +1781,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               </Paper>
 
               {/* 성공 가능성 설명 */}
-              <Paper sx={{ p: 2, bgcolor: '#fff', borderLeft: '4px solid #00b4d8', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              <Paper sx={{ p: 2, bgcolor: '#f5f5f5', borderLeft: '4px solid #00b4d8' }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#00b4d8', mb: 1 }}>
                   ✅ 공격 성공 가능성 (Success Probability)
                 </Typography>
@@ -2187,8 +1813,8 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               </Paper>
 
               {/* 종합 분석 */}
-              <Paper sx={{ p: 2, bgcolor: '#e8f0fd', borderLeft: '4px solid #7c3aed', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#7c3aed' }}>
+              <Paper sx={{ p: 2, bgcolor: '#e8f5e9', borderLeft: '4px solid #43a047' }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#43a047' }}>
                   🎯 종합 분석
                 </Typography>
                 <Typography variant="body2" sx={{ lineHeight: 1.6, color: '#333' }}>

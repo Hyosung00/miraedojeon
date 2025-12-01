@@ -6,6 +6,7 @@ import Box from '@mui/material/Box';
 
 // project import
 import NavItem from './NavItem';
+import NavCollapse from './NavCollapse';
 import { useGetMenuMaster } from 'api/menu';
 
 export default function NavGroup({ item }) {
@@ -15,13 +16,11 @@ export default function NavGroup({ item }) {
   const navCollapse = item.children?.map((menuItem) => {
     switch (menuItem.type) {
       case 'collapse':
-        return (
-          <Typography key={menuItem.id} variant="caption" color="error" sx={{ p: 2.5 }}>
-            collapse - only available in paid version
-          </Typography>
-        );
+        return <NavCollapse key={menuItem.id} item={menuItem} level={1} />;
       case 'item':
         return <NavItem key={menuItem.id} item={menuItem} level={1} />;
+      case 'group':
+        return <NavGroup key={menuItem.id} item={menuItem} />;
       default:
         return (
           <Typography key={menuItem.id} variant="h6" color="textSecondary" align="center">
@@ -37,13 +36,13 @@ export default function NavGroup({ item }) {
         item.title &&
         drawerOpen && (
           <Box sx={{ pl: 3, mb: 1.5 }}>
-            <Typography variant="h6" color="black">
+            <Typography variant="h5" color="black" sx={{ fontWeight: 'bold', fontSize: 'var(--nav-group-font-size, 1.3rem)' }}>
               {item.title}
             </Typography>
           </Box>
         )
       }
-      sx={{ mb: drawerOpen ? 1.5 : 0, py: 0, zIndex: 0 }}
+      sx={{ mb: drawerOpen ? 5 : 0, py: 0, zIndex: 0 }} // 메뉴가 닫혀있을 때는 margin-bottom 제거, 각 메뉴 사이 간격 늘리기
     >
       {navCollapse}
     </List>

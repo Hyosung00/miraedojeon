@@ -6,8 +6,8 @@ import { Network } from "vis-network/standalone";
 import "vis-network/styles/vis-network.css";
 import { Box, Typography, Card, CardContent, IconButton, Button, Dialog, DialogContent, Paper } from '@mui/material';
 import { MinusOutlined, PlusOutlined, FundOutlined, InfoOutlined } from '@ant-design/icons';
-import TreatAnalysis from '../ThreatAnalysis/TreatAnalysis';
-import { usePopup } from '../../../context/PopupContext';
+import TreatAnalysis from '../../../ThreatAnalysis/TreatAnalysis';
+import { usePopup } from '../../../../../context/PopupContext';
 import './OS.css';
 
 // 노드 타입 이미지
@@ -1108,8 +1108,11 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       }
     });
 
-    // Device ID 기반 엣지 맵 생성
+    // Device ID 기반 엣지 맵 생성 (각 엣지에 대해 모든 순위 정보 저장)
     const devicePathEdges = new Map();
+    // 각 경로별로 엣지 정보 저장 (pathIdx -> [edgeId, ...])
+    const pathEdgesByRank = new Map();
+    
     for (const [physEdgeId, rankInfo] of allPathEdges.entries()) {
       const [physFrom, physTo] = physEdgeId.split('-').map(Number);
       const deviceFrom = physicalToDeviceNodeId.get(physFrom);
@@ -1118,10 +1121,15 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       if (deviceFrom != null && deviceTo != null) {
         const deviceEdgeId = `${Math.min(deviceFrom, deviceTo)}-${Math.max(deviceFrom, deviceTo)}`;
         if (!devicePathEdges.has(deviceEdgeId)) {
-          devicePathEdges.set(deviceEdgeId, { ranks: new Set(rankInfo.ranks), lowestRank: rankInfo.lowestRank });
+          devicePathEdges.set(deviceEdgeId, { ranks: new Set(rankInfo.ranks), lowestRank: rankInfo.lowestRank, allRanks: [...rankInfo.ranks] });
         } else {
           const existing = devicePathEdges.get(deviceEdgeId);
-          rankInfo.ranks.forEach(r => existing.ranks.add(r));
+          rankInfo.ranks.forEach(r => {
+            existing.ranks.add(r);
+            if (!existing.allRanks.includes(r)) {
+              existing.allRanks.push(r);
+            }
+          });
           if (rankInfo.lowestRank < existing.lowestRank) {
             existing.lowestRank = rankInfo.lowestRank;
           }
@@ -1238,60 +1246,123 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       return update;
     });
 
-    // 엣지 스타일 업데이트
-    const edgeUpdates = (baseTopology.edges || []).map(e => {
+    // 엣지 스타일 업데이트 - 여러 경로가 같은 엣지를 공유할 때 각각 다른 색상으로 표시
+    // 먼저 기존 추가 엣지 제거 (id에 '_rank' 포함된 엣지)
+    const currentEdgeIds = edgesDataSetRef.current.getIds();
+    const edgesToRemove = currentEdgeIds.filter(id => String(id).includes('_rank'));
+    if (edgesToRemove.length > 0) {
+      edgesDataSetRef.current.remove(edgesToRemove);
+    }
+
+    const edgeUpdates = [];
+    const newEdgesToAdd = [];
+
+    (baseTopology.edges || []).forEach(e => {
       const edgeRankInfo = devicePathEdges.get(e.id);
       const isInSelectedPathEdge = deviceSelectedPathEdges.has(e.id);
 
-      let update = { id: e.id };
-
-      // 특정 경로를 선택한 경우: 다른 엣지들 비활성화
+      // 특정 경로를 선택한 경우
       if (selectedPath !== null) {
         if (isInSelectedPathEdge) {
           // 선택된 경로의 엣지: 강조
           const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
           const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-          update.width = 10;
-          update.shadow = { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 };
+          edgeUpdates.push({
+            id: e.id,
+            color: { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge },
+            width: 10,
+            shadow: { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 },
+            smooth: { enabled: false }
+          });
         } else if (edgeRankInfo) {
           // 다른 경로의 엣지: 완전 투명
-          update.color = { color: 'rgba(200, 200, 200, 0.1)', highlight: 'rgba(200, 200, 200, 0.1)', hover: 'rgba(200, 200, 200, 0.1)' };
-          update.width = 1;
-          update.shadow = { enabled: false };
+          edgeUpdates.push({
+            id: e.id,
+            color: { color: 'rgba(200, 200, 200, 0.1)', highlight: 'rgba(200, 200, 200, 0.1)', hover: 'rgba(200, 200, 200, 0.1)' },
+            width: 1,
+            shadow: { enabled: false },
+            smooth: { enabled: false }
+          });
         } else {
           // 경로가 아닌 엣지: 투명
-          update.color = { color: 'rgba(132, 132, 132, 0.1)' };
-          update.width = 0.5;
-          update.shadow = { enabled: false };
+          edgeUpdates.push({
+            id: e.id,
+            color: { color: 'rgba(132, 132, 132, 0.1)' },
+            width: 0.5,
+            shadow: { enabled: false },
+            smooth: { enabled: false }
+          });
         }
       } else {
         // 경로를 선택하지 않은 경우: 모든 경로 표시
-        if (isInSelectedPathEdge) {
-          const selectedRank = localSortedPathRanks.get(selectedPath) ?? 0;
-          const colorInfo = rankColors[Math.min(selectedRank, rankColors.length - 1)];
-          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-          update.width = 10;
-          update.shadow = { enabled: true, color: colorInfo.shadow, size: 15, x: 0, y: 0 };
+        if (edgeRankInfo && edgeRankInfo.allRanks && edgeRankInfo.allRanks.length > 1) {
+          // 여러 경로가 이 엣지를 공유하는 경우 - 각각 다른 곡선으로 표시
+          const sortedRanks = [...edgeRankInfo.allRanks].sort((a, b) => a - b);
+          const numPaths = sortedRanks.length;
+          
+          // 기본 엣지는 첫 번째 순위로 표시
+          const firstRank = sortedRanks[0];
+          const firstColorInfo = rankColors[Math.min(firstRank, rankColors.length - 1)];
+          
+          // 곡선 방향 계산 (첫 번째는 위쪽으로)
+          const roundness = numPaths > 1 ? 0.2 : 0;
+          
+          edgeUpdates.push({
+            id: e.id,
+            color: { color: firstColorInfo.edge, highlight: firstColorInfo.edge, hover: firstColorInfo.edge },
+            width: 4,
+            shadow: { enabled: true, color: firstColorInfo.shadow, size: 6, x: 0, y: 0 },
+            smooth: numPaths > 1 ? { enabled: true, type: 'curvedCW', roundness: roundness } : { enabled: false }
+          });
+
+          // 나머지 순위들에 대해 추가 엣지 생성 (곡선으로 분리)
+          for (let i = 1; i < sortedRanks.length; i++) {
+            const rank = sortedRanks[i];
+            const colorInfo = rankColors[Math.min(rank, rankColors.length - 1)];
+            const direction = i % 2 === 0 ? 'curvedCW' : 'curvedCCW';
+            const curveRoundness = 0.15 + (Math.floor((i + 1) / 2) * 0.12);
+            
+            newEdgesToAdd.push({
+              id: `${e.id}_rank${rank}`,
+              from: e.from,
+              to: e.to,
+              color: { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge },
+              width: 4,
+              shadow: { enabled: true, color: colorInfo.shadow, size: 6, x: 0, y: 0 },
+              smooth: { enabled: true, type: direction, roundness: curveRoundness }
+            });
+          }
         } else if (edgeRankInfo) {
+          // 단일 경로만 사용하는 엣지
           const lowestRank = edgeRankInfo.lowestRank;
           const colorInfo = rankColors[Math.min(lowestRank, rankColors.length - 1)];
-          update.color = { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge };
-          update.width = 5;
-          update.shadow = { enabled: true, color: colorInfo.shadow, size: 8, x: 0, y: 0 };
+          edgeUpdates.push({
+            id: e.id,
+            color: { color: colorInfo.edge, highlight: colorInfo.edge, hover: colorInfo.edge },
+            width: 5,
+            shadow: { enabled: true, color: colorInfo.shadow, size: 8, x: 0, y: 0 },
+            smooth: { enabled: false }
+          });
         } else {
-          update.color = { color: '#848484' };
-          update.width = 1;
-          update.shadow = { enabled: false };
+          edgeUpdates.push({
+            id: e.id,
+            color: { color: '#848484' },
+            width: 1,
+            shadow: { enabled: false },
+            smooth: { enabled: false }
+          });
         }
       }
-
-      return update;
     });
 
     // DataSet 업데이트 (깜빡임 없이)
     nodesDataSetRef.current.update(nodeUpdates);
     edgesDataSetRef.current.update(edgeUpdates);
+    
+    // 새로운 분리된 엣지 추가
+    if (newEdgesToAdd.length > 0) {
+      edgesDataSetRef.current.add(newEdgesToAdd);
+    }
 
   }, [topologyData, selectedStartNode, attackGraphData, effectiveDeviceName, selectedPath, pathList, rankColors]);
 

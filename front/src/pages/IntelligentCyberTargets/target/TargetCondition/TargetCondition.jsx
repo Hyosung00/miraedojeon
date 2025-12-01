@@ -1,11 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import '../Target.css';
 import { extractUniqueTypes, normalizeAdScore } from './filterUtils';
 import ConnectionTypeField from './TargetConditionFields/ConnectionTypeField';
 import ScoreField from './TargetConditionFields/ScoreField';
 import NodeLabelField from './TargetConditionFields/NodeLabelField';
 
-const TargetCondition = ({ onConditionChange, data }) => {
+// Lazy load TrendChart
+const TrendChart = lazy(() => import('../TrendChart.jsx'));
+
+// Loading fallback for charts
+const ChartLoadingFallback = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100%',
+    color: '#666',
+    fontSize: '0.75rem'
+  }}>
+    Loading...
+  </div>
+);
+
+const TargetCondition = ({ onConditionChange, data, trendData }) => {
   // 최초 마운트 시 초기 데이터 전달 (그래프 자동 렌더링)
   React.useEffect(() => {
     if (onConditionChange) {
@@ -160,6 +177,38 @@ const TargetCondition = ({ onConditionChange, data }) => {
           filters={filters}
           onInputChange={handleInputChange}
         />
+
+        {/* 트렌드 차트 (1열 2행) - 2계층 위에 배치 */}
+        {trendData && trendData.length > 0 && (
+          <div className="trend-charts-container" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            marginBottom: '12px'
+          }}>
+            <Suspense fallback={<ChartLoadingFallback />}>
+              <div style={{ 
+                height: '110px', 
+                width: '100%',
+                backgroundColor: 'transparent',
+                borderRadius: '8px',
+                padding: '4px'
+              }}>
+                <TrendChart data={trendData} chartType="degree" compact={true} />
+              </div>
+              <div style={{ 
+                height: '110px', 
+                width: '100%',
+                backgroundColor: 'transparent',
+                borderRadius: '8px',
+                padding: '4px'
+              }}>
+                <TrendChart data={trendData} chartType="con" compact={true} />
+              </div>
+            </Suspense>
+          </div>
+        )}
+
         {/* 고급 조건 */}
         <NodeLabelField
           showAdvanced={showAdvanced}

@@ -16,7 +16,7 @@ const dashboard = {
   children: [
     {
       id: 'dashboard',
-      title: '대시보드',
+      title: '내외부망 가시화 및 표적분석',
       type: 'item',
       url: '/dashboard/default',
       icon: icons.DashboardOutlined,

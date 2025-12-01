@@ -143,7 +143,7 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
             <ListItemText
               primary={
                 // 메뉴 글자 스타일 조정
-                <Typography variant="h5" sx={{ color: isSelected ? iconSelectedColor : textColor }}> 
+                <Typography variant="h5" sx={{ color: isSelected ? iconSelectedColor : textColor, fontSize: 'var(--nav-item-font-size, 0.95rem)' }}> 
                   {item.title}
                 </Typography>
               }

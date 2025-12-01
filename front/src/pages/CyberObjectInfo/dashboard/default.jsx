@@ -170,7 +170,7 @@ export default function DashboardDefault() {
             <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', fontWeight: 'bold', mb: 1.5 }}>
               📊 실시간 네트워크 통계
             </Typography>
-            <Grid container spacing={2}>
+            <Grid container spacing={2} onClick={(e) => e.stopPropagation()}>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <AnalyticEcommerce title="일일 총 네트워크 공격" count="2,236" percentage={59.3} extra="35,000" />
               </Grid>
@@ -211,12 +211,15 @@ export default function DashboardDefault() {
             <Typography variant="h6" gutterBottom sx={{ color: 'text.primary', fontWeight: 'bold', mb: 1 }}>
               📈 사이버 작전 통계
             </Typography>
-            <Grid container alignItems="center" justifyContent="space-between">
+            <Grid container alignItems="center" justifyContent="space-between" onClick={(e) => e.stopPropagation()}>
               <Grid>
                 <Stack direction="row" sx={{ alignItems: 'center' }}>
                   <Button
                     size="small"
-                    onClick={() => setView('monthly')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setView('monthly');
+                    }}
                     color={view === 'monthly' ? 'primary' : 'secondary'}
                     variant={view === 'monthly' ? 'outlined' : 'text'}
                   >
@@ -224,7 +227,10 @@ export default function DashboardDefault() {
                   </Button>
                   <Button
                     size="small"
-                    onClick={() => setView('weekly')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setView('weekly');
+                    }}
                     color={view === 'weekly' ? 'primary' : 'secondary'}
                     variant={view === 'weekly' ? 'outlined' : 'text'}
                   >

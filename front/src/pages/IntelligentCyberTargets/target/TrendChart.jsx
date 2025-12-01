@@ -20,24 +20,80 @@ function getHistogram(normalizedScores) {
   return bins.map((count, i) => ({ range: `${(i/10).toFixed(1)}-${((i+1)/10).toFixed(1)}`, count }));
 }
 
-const TrendChart = React.memo(({ data }) => {
+function getDegreeHistogram(data) {
+  // degree_score 분포
+  const bins = Array(10).fill(0);
+  data.forEach(d => {
+    const score = d.degree_score || 0;
+    const idx = Math.min(9, Math.floor(score * 10));
+    bins[idx]++;
+  });
+  return bins.map((count, i) => ({ range: `${(i/10).toFixed(1)}-${((i+1)/10).toFixed(1)}`, count }));
+}
+
+function getConHistogram(data) {
+  // con_score 분포
+  const bins = Array(10).fill(0);
+  data.forEach(d => {
+    const score = d.con_score || 0;
+    const idx = Math.min(9, Math.floor(score * 10));
+    bins[idx]++;
+  });
+  return bins.map((count, i) => ({ range: `${(i/10).toFixed(1)}-${((i+1)/10).toFixed(1)}`, count }));
+}
+
+const TrendChart = React.memo(({ data, chartType, compact = false }) => {
   // Memoize calculations
-  const { histogram, lineData } = useMemo(() => {
+  const { histogram, lineData, degreeHistogram, conHistogram } = useMemo(() => {
     if (!Array.isArray(data) || data.length === 0) {
-      return { histogram: [], lineData: [] };
+      return { histogram: [], lineData: [], degreeHistogram: [], conHistogram: [] };
     }
     
     const normalizedScores = normalizeScores(data);
     const histogram = getHistogram(normalizedScores);
+    const degreeHistogram = getDegreeHistogram(data);
+    const conHistogram = getConHistogram(data);
     
     // 분포 곡선용 데이터
     const lineData = normalizedScores
       .map((score, idx) => ({ idx, score }))
       .sort((a, b) => a.score - b.score);
 
-    return { histogram, lineData };
+    return { histogram, lineData, degreeHistogram, conHistogram };
   }, [data]);
 
+  // compact 모드 (사이드바용): 단일 차트만 표시
+  if (compact) {
+    const chartData = chartType === 'degree' ? degreeHistogram : conHistogram;
+    const chartColor = chartType === 'degree' ? '#8884d8' : '#82ca9d';
+    const chartName = chartType === 'degree' ? '점수 별 표적 개수' : '표적 정규화 점수';
+
+    return (
+      <div style={{ width: '100%', height: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 18 }}>
+            <XAxis 
+              dataKey="range" 
+              tick={{ fontSize: 8 }}
+              interval={2}
+            />
+            <YAxis 
+              allowDecimals={false}
+              tick={{ fontSize: 8 }}
+            />
+            <Tooltip contentStyle={{ fontSize: '10px' }} />
+            <Legend 
+              wrapperStyle={{ fontSize: '9px', paddingTop: '2px' }}
+              iconSize={10}
+            />
+            <Bar dataKey="count" fill={chartColor} name={chartName} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
+
+  // 기본 모드 (2열 배치)
   return (
     <div style={{ 
       width: '100%', 
