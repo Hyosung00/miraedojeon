@@ -454,7 +454,7 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
   return (
     <div style={{ width: '100%', height: '100%', background: 'transparent', padding: 0 }}>
       {/* 전체 영역: 그래프만 표시 (Inspector 제거) */}
-      <div style={{ flex: 1, position: 'relative', background: '#181c23', borderRadius: 12, overflow: 'hidden', height: '100%' }}>
+      <div style={{ flex: 1, position: 'relative', background: '#f0edfd', borderRadius: 12, overflow: 'hidden', height: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, padding: 24 }}>
           <button
             onClick={onBack}
@@ -462,7 +462,7 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
           >
             ← Back
           </button>
-          <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#fff' }}>{`Zone ${zone}`}</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#000000ff' }}>{`Zone ${zone}`}</h2>
           <div style={{ color: '#cbd5e1' }}>
             {loading ? 'Loading…' : `${zoneGraph.nodes.length} nodes • ${zoneGraph.links.length} links`}
           </div>
@@ -471,7 +471,7 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
           <ForceGraph3D
             ref={fgRef}
             graphData={zoneGraph}
-            backgroundColor="#181c23"
+            backgroundColor="#f0edfd"
             width={containerSize.width}
             height={containerSize.height}
             nodeLabel={null}
@@ -484,8 +484,8 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
             linkColor={(l) => {
               const isLogical = String(l.type || '').toLowerCase() === 'logical';
               if (isLogical) return selected ? (isIncident(l) ? '#3a6fe2' : '#87aafc') : '#87aafc';
-              if (!selected) return '#bfc6d4';
-              return isIncident(l) ? '#24a0ff' : '#5b6475';
+              if (!selected) return '#6b7280';
+              return isIncident(l) ? '#1e40af' : '#000000ff';
             }}
             linkOpacity={(l) => {
               const isLogical = String(l.type || '').toLowerCase() === 'logical';
