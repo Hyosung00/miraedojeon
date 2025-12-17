@@ -28,8 +28,8 @@ export default function ReportAreaChart() {
         }
       ]}
       slotProps={{ legend: { hidden: true } }}
-      height={340}
-      margin={{ top: 30, bottom: 50, left: 20, right: 20 }}
+      height={120}
+      margin={{ top: 10, bottom: 20, left: 10, right: 10 }}
       sx={{ '& .MuiLineElement-root': { strokeWidth: 1 }, [`& .${chartsGridClasses.line}`]: { strokeDasharray: '5 3' } }}
     />
   );

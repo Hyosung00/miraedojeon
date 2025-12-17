@@ -2,7 +2,7 @@
 // 라우트 경로별로 헤더에 출력할 텍스트를 지정합니다.
 
 const headerTitles = {
-  "/dashboard/default": "대시보드",
+  "/dashboard/default": "내외부망 가시화 및 표적 분석",
   "/CyberObjectInfo/MultilayerVisualization": "사이버 3계층 멀티레이어 가시화",
   "/Osint&DataFusion/GeoIP": "OSINT 정보 수집",
   "/Osint&DataFusion/FusionDB": "융합 데이터베이스 구축",
