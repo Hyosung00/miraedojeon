@@ -149,7 +149,7 @@ export default function DashboardDefault() {
   }, []);
 
   const handleCardClick = () => {
-    navigate('/Osint&DataFusion/GeoIP');
+    navigate('/ExtInt/TimeSeriesVisualization');
   };
 
   // 각 카드별 네비게이션 함수

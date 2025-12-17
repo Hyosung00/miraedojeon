@@ -76,25 +76,7 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
     'TargetPriorityVisualization',
     'FusionDB'
   ];
-  // 항상 파란색으로 고정되는 메뉴 id 목록
-  const alwaysSelectedIds = [
-    'dashboard',
-    'TimeSeriesAnomalyDetection',
-    'internal-topology',
-    'Target',
-    'ResponseEffectvisualization'
-  ];
-  // 메뉴 끝에 번호 표시
-  const menuNumbers = {
-    'dashboard': '0',
-    'TimeSeriesAnomalyDetection': '1',
-    'internal-topology': '2',
-    'Target': '3',
-    'ResponseEffectvisualization': '4'
-  };
-  const isSelected = alwaysSelectedIds.includes(item.id)
-    ? true
-    : noSelectIds.includes(item.id)
+  const isSelected = noSelectIds.includes(item.id)
     ? false
     : !!matchPath({ path: item?.link ? item.link : item.url, end: false }, pathname);
 
@@ -158,21 +140,14 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
             </ListItemIcon>
           )}
           {(drawerOpen || (!drawerOpen && level !== 1)) && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              <ListItemText
-                primary={
-                  // 메뉴 글자 스타일 조정
-                  <Typography variant="h5" sx={{ color: isSelected ? iconSelectedColor : textColor, fontSize: 'var(--nav-item-font-size, 0.95rem)' }}> 
-                    {item.title}
-                  </Typography>
-                }
-              />
-              {menuNumbers[item.id] && (
-                <Box sx={{ color: 'primary.main', fontWeight: 'bold', fontSize: '0.95rem', mr: 1 }}>
-                  {menuNumbers[item.id]}
-                </Box>
-              )}
-            </Box>
+            <ListItemText
+              primary={
+                // 메뉴 글자 스타일 조정
+                <Typography variant="h5" sx={{ color: isSelected ? iconSelectedColor : textColor, fontSize: 'var(--nav-item-font-size, 0.95rem)' }}> 
+                  {item.title}
+                </Typography>
+              }
+            />
           )}
           {(drawerOpen || (!drawerOpen && level !== 1)) && item.chip && (
             <Chip

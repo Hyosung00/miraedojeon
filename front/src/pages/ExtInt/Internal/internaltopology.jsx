@@ -194,6 +194,21 @@ function estimateNodeScale(n) { const base = n.kind === "core" ? 1.8 : 1.35 + (n
 function getNodeBaseRadius(kind) { switch ((kind || 'default').toLowerCase()) { case 'core': return 7.5; case 'firewall': return 4.8; case 'router': return 4.6; case 'l3switch': case 'switchrouter': case 'layer3': return 5.0; case 'switch': case 'l2switch': return 4.2; case 'hub': return 4.2; default: return 3.4; } }
 function getNodeClearance(n) { return getNodeBaseRadius(n.kind) * estimateNodeScale(n) + 2.0; }
 
+// === Zone 이름 매핑 ===
+function getZoneName(zoneNum) {
+  const zoneNames = {
+    0: '운영망',
+    1: '관리망',
+    2: '업무망',
+    3: '테스트망',
+    4: '서버망',
+    5: '개발망',
+    6: '백업망',
+    7: '내부망'
+  };
+  return zoneNames[zoneNum] || `Zone ${zoneNum}`;
+}
+
 // === 컴포넌트 ===
 function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChange }) {
   const fgRef = useRef(null);
@@ -302,7 +317,16 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
   }, [graph.nodes, allZones]);
 
   const [selectedZones, setSelectedZones] = useState([]);
-  useEffect(() => { setSelectedZones(allZones); }, [allZones]);
+  useEffect(() => { 
+    // Zone 7(내부망)만 기본으로 선택 - allZones가 로드되었을 때만 실행
+    if (allZones.length > 0 && allZones.includes(7)) {
+      setSelectedZones(prev => {
+        // 이미 선택되어 있으면 변경하지 않음 (불필요한 리렌더링 방지)
+        if (prev.length === 1 && prev[0] === 7) return prev;
+        return [7];
+      });
+    }
+  }, [allZones]);
 
   const [linkTypeFilter, setLinkTypeFilter] = useState('all');
   const [activeZone, setActiveZone] = useState(null);
@@ -315,15 +339,8 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
       const wantPhysical = linkTypeFilter === 'physical';
       links = links.filter((l) => (String(l.type || '').toLowerCase() === (wantPhysical ? 'physical' : 'logical')));
     }
-    // Zone 7 링크 제외
-    links = links.filter((l) => {
-      const srcNode = base.nodes.find((n) => n.id === idOf(l.source));
-      const tgtNode = base.nodes.find((n) => n.id === idOf(l.target));
-      return normalizeZoneVal(srcNode?.zone) !== 7 && normalizeZoneVal(tgtNode?.zone) !== 7;
-    });
-    // Zone 7 노드 제외 (고립 노드 포함 모두 제외)
-    const nodes = base.nodes.filter((n) => normalizeZoneVal(n.zone) !== 7);
-    return { nodes, links };
+    // Zone 7 링크와 노드 제외 로직 제거 - Zone 7도 정상적으로 표시
+    return { nodes: base.nodes, links };
   }, [graph, selectedZones, linkTypeFilter]);
 
   const adjacency = useMemo(() => buildAdjacency(filtered.links), [filtered.links]);
@@ -647,11 +664,12 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
               {allZones.map((z) => {
                 const active = selectedZones.includes(z);
                 const ct = countByZone.get(z) || 0;
+                if (!active) return null;
                 return (
                   <div key={z} className={`zone-item ${active ? 'active' : 'inactive'}`}>
                     <button onClick={() => setActiveZone(z)} className={`zone-button ${active ? 'active' : 'inactive'}`}>
                       <div className="zone-header">
-                        <span>Zone {z}</span>
+                        <span>{getZoneName(z)}</span>
                         <span className="zone-count">{ct}</span>
                       </div>
                     </button>
@@ -666,10 +684,10 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             <div className="zone-filter-section">
               <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#000000ff' }}>Zone Filter</Typography>
               <form>
-                {allZones.filter(z => z !== 7).map((z) => (
+                {allZones.map((z) => (
                   <label key={z}>
                     <input type="checkbox" checked={selectedZones.includes(z)} onChange={() => toggleZone(z)} />
-                    <span>Zone {z} <span className="zone-count-inline">({countByZone.get(z) || 0})</span></span>
+                    <span>{getZoneName(z)} <span className="zone-count-inline">({countByZone.get(z) || 0})</span></span>
                   </label>
                 ))}
               </form>

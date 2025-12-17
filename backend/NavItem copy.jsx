@@ -78,7 +78,6 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
   ];
   // 항상 파란색으로 고정되는 메뉴 id 목록
   const alwaysSelectedIds = [
-    'dashboard',
     'TimeSeriesAnomalyDetection',
     'internal-topology',
     'Target',
@@ -86,7 +85,6 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
   ];
   // 메뉴 끝에 번호 표시
   const menuNumbers = {
-    'dashboard': '0',
     'TimeSeriesAnomalyDetection': '1',
     'internal-topology': '2',
     'Target': '3',
