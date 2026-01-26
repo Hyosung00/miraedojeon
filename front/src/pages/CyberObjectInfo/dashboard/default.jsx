@@ -345,8 +345,45 @@ export default function DashboardDefault() {
           overflow: 'hidden'
         }}
       >
-        <CardContent sx={{ p: 1.5, height: '100%', '&:last-child': { pb: 1.5 }, boxSizing: 'border-box' }}>
+        {/* overflow: 'auto' : 스크롤바 생성 유무*/}
+        <CardContent sx={{ p: 1.5, height: '100%', '&:last-child': { pb: 1.5 }, boxSizing: 'border-box', overflow: 'auto' }}> 
           <Grid container spacing={1.5} sx={{ height: '100%' }}>
+            {/* 카드 1 - 전체 화면: 위협 탐지 */}
+            <Grid size={12} sx={{ height: '100%' }}>
+              <Card
+                sx={{
+                  bgcolor: 'background.default',
+                  boxShadow: 1,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden'
+                }}
+              >
+                <CardContent sx={{ flex: 1, p: 0, '&:last-child': { pb: 0 }, position: 'relative' }}>
+                  <Box sx={{ position: 'absolute', top: 4, left: 8, zIndex: 10 }}>
+                    <Typography variant="h4" color="text.secondary" fontWeight="bold">
+                      💾 BGP Archive Data 수집 및 DB 저장
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleTimeSeries}
+                    sx={{ position: 'absolute', top: 4, right: 8, zIndex: 10 }}
+                  >
+                    이동하기
+                  </Button>
+                  <Box sx={{ width: '100%', height: '100%' }}>
+                    
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            
             {/* 카드 1 - 왼쪽 상단: 위협 탐지 */}
             <Grid size={6} sx={{ height: 'calc(50% - 6px)' }}>
               <Card
@@ -398,6 +435,7 @@ export default function DashboardDefault() {
                   overflow: 'hidden'
                 }}
               >
+                
                 <CardContent sx={{ flex: 1, p: 0, '&:last-child': { pb: 0 }, position: 'relative' }}>
                   <Box sx={{ position: 'absolute', top: 4, left: 8, zIndex: 10, bgcolor: 'rgba(255,255,255,0.85)', px: 0.5, borderRadius: 1 }}>
                     <Typography variant="h4" color="text.secondary" fontWeight="bold">
