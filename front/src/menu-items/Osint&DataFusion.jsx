@@ -1,13 +1,15 @@
 // assets
 import {
   QuestionOutlined,
-  DatabaseOutlined
+  DatabaseOutlined,
+  AimOutlined
 } from '@ant-design/icons';
 
 // icons
 const icons = {
   QuestionOutlined,
-  DatabaseOutlined
+  DatabaseOutlined,
+  AimOutlined
 };
 
 // ==============================|| MENU ITEMS - EXTERNAL NETWORK ||============================== //
@@ -23,6 +25,13 @@ const externalNetwork = {
       type: 'item',
       url: '/Osint&DataFusion/GeoIP',
       icon: icons.QuestionOutlined
+    },
+    {
+      id: 'PDR',
+      title: 'PDR',
+      type: 'item',
+      url: '/Osint&DataFusion/PDR',
+      icon: icons.AimOutlined
     },
     {
       id: 'FusionDB',

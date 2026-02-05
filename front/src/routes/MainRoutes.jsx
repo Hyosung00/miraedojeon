@@ -9,6 +9,7 @@ const DashboardDefault = Loadable(lazy(() => import('pages/CyberObjectInfo/dashb
 
 // Osint & Data Fusion
 const GeoIP = Loadable(lazy(() => import('pages/Osint&DataFusion/OsintInfocollect')));
+const PDR = Loadable(lazy(() => import('pages/Osint&DataFusion/OsintInfocollect/PDR')));
 
 // CyberObjectInfo
 const CyberDashboard = Loadable(lazy(() => import('pages/CyberObjectInfo/dashboard')));
@@ -65,7 +66,8 @@ const MainRoutes = {
     {
       path: 'Osint&DataFusion',
       children: [
-        { path: 'GeoIP', element: <GeoIP /> }
+        { path: 'GeoIP', element: <GeoIP /> },
+        { path: 'PDR', element: <PDR /> }
       ]
     }
   ]

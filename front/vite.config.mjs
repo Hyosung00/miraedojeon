@@ -41,6 +41,9 @@ export default defineConfig(({ mode }) => {
       outDir: '../../Hyosung00.github.io',
       // Production 빌드 최적화
       minify: 'terser',
+      commonjsOptions: {
+        transformMixedEsModules: true
+      },
       terserOptions: {
         compress: {
           drop_console: true, // console.log 제거
@@ -81,17 +84,25 @@ export default defineConfig(({ mode }) => {
       alias: [
         { find: '@', replacement: path.resolve(__dirname, 'src') },
         { find: 'assets', replacement: path.resolve(__dirname, 'src/assets') },
-        { find: 'components', replacement: path.resolve(__dirname, 'src/components') }
-      ]
+        { find: 'components', replacement: path.resolve(__dirname, 'src/components') },
+        { find: 'react-is', replacement: path.resolve(__dirname, 'node_modules/react-is') }
+      ],
+      dedupe: ['react', 'react-dom', 'react-is', 'hoist-non-react-statics']
+    },
+    ssr: {
+      noExternal: ['hoist-non-react-statics']
     },
     base: '/',
     optimizeDeps: {
       include: [
         'react',
         'react-dom',
+        'react-is',
+        'hoist-non-react-statics',
         'three',
         'react-force-graph-3d',
         '@mui/material',
+        '@mui/utils',
         'cesium'
       ],
       exclude: ['@mui/icons-material'] // 아이콘은 트리 쉐이킹에 맡김

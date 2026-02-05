@@ -1,0 +1,247 @@
+[
+  {
+    "id": "site_punggye",
+    "name": "풍계리 핵실험장",
+    "geo_info": {
+      "lat": 41.280000,
+      "lng": 129.085000,
+      "addr": "함경북도 길주군 풍계리 만탑산"
+    },
+    "detail": {
+      "용도": "지하 핵실험 및 계측",
+      "type": "nuclear",
+      "건물수": 5,
+      "건물년수": "2006~현재"
+    },
+    "buildings": [
+      {
+        "id": "p_b1",
+        "name": "1번 갱도 (동쪽 - 1차실험/폐쇄됨)",
+        "lat": 41.278056,
+        "lng": 129.087500,
+        "structure_info": {
+          "입구(폐쇄)": [
+            { "id": "E1-c", "name": "진입로(붕괴됨)", "type": "corridor", "status": "critical", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "E1-1", "name": "폐석 더미", "type": "room", "status": "critical", "x": 5, "y": 30, "w": 80, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "p_b2",
+        "name": "2번 갱도 (북쪽 - 주실험장)",
+        "lat": 41.293800,
+        "lng": 129.075300,
+        "structure_info": {
+          "심도 500m": [
+            { "id": "D-c", "name": "중앙 갱도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "D-1", "name": "기폭실", "type": "room", "status": "critical", "x": 5, "y": 20, "w": 30, "h": 50 },
+            { "id": "D-2", "name": "계측실", "type": "room", "status": "normal", "x": 65, "y": 20, "w": 30, "h": 50 }
+          ]
+        }
+      },
+      {
+        "id": "p_b3",
+        "name": "3번 갱도 (남쪽)",
+        "lat": 41.273100,
+        "lng": 129.083300,
+        "structure_info": {
+          "굴착 구역": [
+            { "id": "S-c", "name": "작업 통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "S-1", "name": "장비실", "type": "room", "status": "normal", "x": 5, "y": 10, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "p_b4",
+        "name": "4번 갱도 (서쪽)",
+        "lat": 41.285600,
+        "lng": 129.075200,
+        "structure_info": {
+          "준비 구역": [
+            { "id": "W-c", "name": "통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "W-1", "name": "배수 펌프", "type": "room", "status": "critical", "x": 5, "y": 10, "w": 30, "h": 30 }
+          ]
+        }
+      },
+      {
+        "id": "p_b5",
+        "name": "지휘 통제소",
+        "lat": 41.275500,
+        "lng": 129.091500,
+        "structure_info": {
+          "1F": [
+            { "id": "C-c", "name": "복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "C-1", "name": "종합 통제실", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 30, "h": 50 },
+            { "id": "C-2", "name": "통신실", "type": "room", "status": "critical", "x": 65, "y": 5, "w": 30, "h": 30 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "site_sohae",
+    "name": "서해위성발사장",
+    "geo_info": {
+      "lat": 39.660000,
+      "lng": 124.705000,
+      "addr": "평안북도 철산군 동창리"
+    },
+    "detail": {
+      "용도": "ICBM 및 위성 발사",
+      "type": "rocket",
+      "건물수": 5,
+      "건물년수": "2012~현재"
+    },
+    "buildings": [
+      {
+        "id": "s_b1",
+        "name": "위성 발사대 (Gantry)",
+        "lat": 39.660157,
+        "lng": 124.705307,
+        "structure_info": {
+          "Level 1": [
+            { "id": "L1-c", "name": "정비 통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "L1-1", "name": "화염 유도로", "type": "room", "status": "critical", "x": 65, "y": 5, "w": 30, "h": 80 }
+          ],
+          "Level 2": [
+            { "id": "L2-c", "name": "연결 브릿지", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "L2-1", "name": "연료 주입구", "type": "room", "status": "normal", "x": 5, "y": 20, "w": 30, "h": 30 }
+          ],
+          "Level 3": [
+            { "id": "L3-c", "name": "상단 데크", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "L3-1", "name": "산화제 주입구", "type": "room", "status": "critical", "x": 65, "y": 20, "w": 30, "h": 30 }
+          ],
+          "Level 4": [
+             { "id": "L4-c", "name": "최상단 데크", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+             { "id": "L4-1", "name": "페어링 작업대", "type": "room", "status": "normal", "x": 5, "y": 10, "w": 30, "h": 40 },
+             { "id": "L4-2", "name": "크레인 제어", "type": "room", "status": "normal", "x": 65, "y": 10, "w": 30, "h": 30 }
+          ]
+        }
+      },
+      {
+        "id": "s_b2",
+        "name": "수평 조립동",
+        "lat": 39.658252,
+        "lng": 124.703770,
+        "structure_info": {
+          "1F": [
+            { "id": "A-c", "name": "이송 레일", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "A-1", "name": "조립 구역", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 30, "h": 80 },
+            { "id": "A-2", "name": "부품 창고", "type": "room", "status": "normal", "x": 65, "y": 5, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "s_b3",
+        "name": "엔진 연소 시험장",
+        "lat": 39.654637,
+        "lng": 124.700599,
+        "structure_info": {
+          "벙커": [
+            { "id": "E-c", "name": "관측로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "E-1", "name": "연료 탱크", "type": "room", "status": "normal", "x": 5, "y": 10, "w": 30, "h": 30 },
+            { "id": "E-2", "name": "계측실", "type": "room", "status": "critical", "x": 65, "y": 10, "w": 30, "h": 50 }
+          ]
+        }
+      },
+      {
+        "id": "s_b4",
+        "name": "발사 통제소 (LCC)",
+        "lat": 39.651787,
+        "lng": 124.711200,
+        "structure_info": {
+          "Main": [
+            { "id": "L-c", "name": "복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "L-1", "name": "지휘소", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 80, "h": 40 },
+            { "id": "L-2", "name": "서버실", "type": "room", "status": "critical", "x": 65, "y": 50, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "s_b5",
+        "name": "VIP 관측소",
+        "lat": 39.653457,
+        "lng": 124.708573,
+        "structure_info": {
+          "1F": [
+            { "id": "V-c", "name": "복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "V-1", "name": "VIP 라운지", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 80, "h": 40 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "site_wpk",
+    "name": "조선노동당 본부",
+    "geo_info": {
+      "lat": 39.017778,
+      "lng": 125.744167,
+      "addr": "평양시 중구역 창광거리"
+    },
+    "detail": {
+      "용도": "당 중앙위 본부 및 집무실",
+      "type": "law_facility",
+      "건물수": 4,
+      "건물년수": "1970~현재"
+    },
+    "buildings": [
+      {
+        "id": "w_b1",
+        "name": "당 중앙위 본관 (1호 청사)",
+        "lat": 39.017778,
+        "lng": 125.744167,
+        "structure_info": {
+          "B2 (벙커)": [
+             { "id": "B2-c", "name": "지하 통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+             { "id": "B2-1", "name": "전시 지휘소", "type": "room", "status": "critical", "x": 5, "y": 10, "w": 30, "h": 50 },
+             { "id": "B2-2", "name": "물자실", "type": "room", "status": "normal", "x": 65, "y": 10, "w": 30, "h": 40 }
+          ],
+          "1F": [
+             { "id": "1F-c", "name": "로비", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+             { "id": "1F-1", "name": "회견장", "type": "room", "status": "normal", "x": 5, "y": 10, "w": 30, "h": 40 },
+             { "id": "1F-2", "name": "연회장", "type": "room", "status": "normal", "x": 65, "y": 10, "w": 30, "h": 50 }
+          ],
+          "2F": [
+             { "id": "2F-c", "name": "복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+             { "id": "2F-1", "name": "조직지도부", "type": "room", "status": "normal", "x": 5, "y": 10, "w": 30, "h": 30 },
+             { "id": "2F-2", "name": "선전선동부", "type": "room", "status": "normal", "x": 5, "y": 50, "w": 30, "h": 30 },
+             { "id": "2F-3", "name": "회의실", "type": "room", "status": "normal", "x": 65, "y": 20, "w": 30, "h": 50 }
+          ],
+          "3F (서기실)": [
+             { "id": "3F-c", "name": "전용 복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+             { "id": "3F-1", "name": "위원장 집무실", "type": "room", "status": "normal", "x": 5, "y": 10, "w": 30, "h": 50 },
+             { "id": "3F-2", "name": "전략실", "type": "room", "status": "critical", "x": 65, "y": 10, "w": 30, "h": 30 }
+          ]
+        }
+      },
+      {
+        "id": "w_b2",
+        "name": "조직지도부 청사",
+        "lat": 39.016500,
+        "lng": 125.743800,
+        "structure_info": {
+            "1F": [{ "id": "A-1", "name": "행정 사무실", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 30, "h": 80 }]
+        }
+      },
+      {
+        "id": "w_b3",
+        "name": "선전선동부 청사",
+        "lat": 39.018200,
+        "lng": 125.745500,
+        "structure_info": {
+            "1F": [{ "id": "B-1", "name": "자료실", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 30, "h": 80 }]
+        }
+      },
+      {
+        "id": "w_b4",
+        "name": "청사 경비총국",
+        "lat": 39.015800,
+        "lng": 125.742500,
+        "structure_info": {
+            "1F": [{ "id": "C-1", "name": "보안실", "type": "room", "status": "critical", "x": 5, "y": 5, "w": 30, "h": 80 }]
+        }
+      }
+    ]
+  }
+]
