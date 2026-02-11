@@ -132,7 +132,10 @@ export default function BGPConsole({ onNavigate }) {
         display: 'flex',
         flexDirection: 'column',
         bgcolor: '#F0EDFD',
-        borderRadius: 1,
+        boxShadow: 1,
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'divider',
         overflow: 'hidden',
         position: 'relative'
       }}
