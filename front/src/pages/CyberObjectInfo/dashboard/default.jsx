@@ -16,6 +16,7 @@ import { LineChart } from '@mui/x-charts/LineChart';
 // project imports
 import ReportAreaChart from 'sections/dashboard/default/ReportAreaChart';
 import { GlobeMini, Zone7Mini, OffensiveStrategyMini, TargetGraph2DMini } from './CardDisplay';
+import BGPConsole from 'components/BGPConsole';
 
 
 // Chart data for cyber operation statistics
@@ -348,44 +349,39 @@ export default function DashboardDefault() {
         {/* overflow: 'auto' : 스크롤바 생성 유무*/}
         <CardContent sx={{ p: 1.5, height: '100%', '&:last-child': { pb: 1.5 }, boxSizing: 'border-box', overflow: 'auto' }}> 
           <Grid container spacing={1.5} sx={{ height: '100%' }}>
-            {/* 카드 1 - 전체 화면: 위협 탐지 */}
-            <Grid size={12} sx={{ height: '100%' }}>
-              <Card
+            {/* 1행 - BGP Archive */}
+            <Grid size={6} sx={{ height: 'calc(33.33% - 8px)' }}>
+              <BGPConsole onNavigate={handleTimeSeries} />
+            </Grid>
+
+            {/* 1행 - 텍스트 영역 */}
+            <Grid size={6} sx={{ height: 'calc(33.33% - 8px)' }}>
+              <Box
                 sx={{
-                  bgcolor: 'background.default',
+                  bgcolor: '#F0EDFD',
                   boxShadow: 1,
                   borderRadius: 2,
                   border: '1px solid',
                   borderColor: 'divider',
                   height: '100%',
+                  p: 2,
                   display: 'flex',
                   flexDirection: 'column',
-                  overflow: 'hidden'
+                  justifyContent: 'center'
                 }}
               >
-                <CardContent sx={{ flex: 1, p: 0, '&:last-child': { pb: 0 }, position: 'relative' }}>
-                  <Box sx={{ position: 'absolute', top: 4, left: 8, zIndex: 10 }}>
-                    <Typography variant="h4" color="text.secondary" fontWeight="bold">
-                      💾 BGP Archive Data 수집 및 DB 저장
-                    </Typography>
-                  </Box>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    onClick={handleTimeSeries}
-                    sx={{ position: 'absolute', top: 4, right: 8, zIndex: 10 }}
-                  >
-                    이동하기
-                  </Button>
-                  <Box sx={{ width: '100%', height: '100%' }}>
-                    
-                  </Box>
-                </CardContent>
-              </Card>
+                <Typography variant="h3" gutterBottom fontWeight="bold">
+                  📝 BGP 데이터 수집 정보
+                </Typography>
+                <Typography variant="h4" color="text.secondary">
+                  BGP Archive에서 라우팅 데이터를 수집하여 MongoDB에 저장한다. 
+                  IP, 위치, 국가, 서브넷 정보를 포함하며, 네트워크 경로 변화 및 BGP Hijacking 등의 위협을 실시간으로 탐지하기 위한 데이터를 수집하여 가공한다.
+                </Typography>
+              </Box>
             </Grid>
             
-            {/* 카드 1 - 왼쪽 상단: 위협 탐지 */}
-            <Grid size={6} sx={{ height: 'calc(50% - 6px)' }}>
+            {/* 2행 - OSINT 시계열 */}
+            <Grid size={3} sx={{ height: 'calc(33.33% - 8px)' }}>
               <Card
                 sx={{
                   bgcolor: 'background.default',
@@ -420,8 +416,33 @@ export default function DashboardDefault() {
               </Card>
             </Grid>
 
-            {/* 카드 2 - 오른쪽 상단: 차단된 공격 */}
-            <Grid size={6} sx={{ height: 'calc(50% - 6px)' }}>
+            {/* 2행 - OSINT 텍스트 영역 */}
+            <Grid size={3} sx={{ height: 'calc(33.33% - 8px)' }}>
+              <Box
+                sx={{
+                  bgcolor: '#F0EDFD',
+                  boxShadow: 1,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  height: '100%',
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}
+              >
+                <Typography variant="h3" gutterBottom fontWeight="bold">
+                  🔍 OSINT 분석
+                </Typography>
+                <Typography variant="h4" color="text.secondary">
+                  글로벌 네트워크 트래픽을 3D Globe로 시각화하여 국가별 공격 패턴을 분석한다. 특히 적국 표적 공격을 필터링하여 실시간 위협 동향을 모니터링하고 시계열 기반 이상 패턴을 탐지한다.
+                </Typography>
+              </Box>
+            </Grid>
+
+            {/* 2행 - 후보 표적 개발 */}
+            <Grid size={3} sx={{ height: 'calc(33.33% - 8px)' }}>
               <Card
                 sx={{
                   bgcolor: 'background.default',
@@ -457,8 +478,33 @@ export default function DashboardDefault() {
               </Card>
             </Grid>
 
-            {/* 카드 3 - 왼쪽 하단: 경고 알림 */}
-            <Grid size={6} sx={{ height: 'calc(50% - 6px)' }}>
+            {/* 2행 - 후보 표적 텍스트 영역 */}
+            <Grid size={3} sx={{ height: 'calc(33.33% - 8px)' }}>
+              <Box
+                sx={{
+                  bgcolor: '#F0EDFD',
+                  boxShadow: 1,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  height: '100%',
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}
+              >
+                <Typography variant="h3" gutterBottom fontWeight="bold">
+                  🎯 표적 분석
+                </Typography>
+                <Typography variant="h4" color="text.secondary">
+                  수집한 노드를 기반으로 하여 표적 노드들의 연결 관계를 2D Force Graph로 시각화한다. 후보 표적 간의 네트워크 관계와 핵심 표적의 중심성을 분석하여 공격 경로를 모델링한다.
+                </Typography>
+              </Box>
+            </Grid>
+
+            {/* 3행 - 내부망 분석 */}
+            <Grid size={3} sx={{ height: 'calc(33.33% - 8px)' }}>
               <Card
                 sx={{
                   bgcolor: 'background.default',
@@ -493,8 +539,33 @@ export default function DashboardDefault() {
               </Card>
             </Grid>
 
-            {/* 카드 4 - 오른쪽 하단: 활성 세션 */}
-            <Grid size={6} sx={{ height: 'calc(50% - 6px)' }}>
+            {/* 3행 - 내부망 텍스트 영역 */}
+            <Grid size={3} sx={{ height: 'calc(33.33% - 8px)' }}>
+              <Box
+                sx={{
+                  bgcolor: '#F0EDFD',
+                  boxShadow: 1,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  height: '100%',
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}
+              >
+                <Typography variant="h3" gutterBottom fontWeight="bold">
+                  🌐 내부망 토폴로지
+                </Typography>
+                <Typography variant="h4" color="text.secondary">
+                  수집한 BGP Archive Data를 기반으로 내부 네트워크를 3계층(Physical-Logical-Persona) 모델로 3D 시각화한다. Zone 기반 세분화, 고립 노드 탐지, 관계 분석을 통해 내부망 보안 취약점을 식별한다.
+                </Typography>
+              </Box>
+            </Grid>
+
+            {/* 3행 - 노드 분석 */}
+            <Grid size={3} sx={{ height: 'calc(33.33% - 8px)' }}>
               <Card
                 sx={{
                   bgcolor: 'background.default',
@@ -527,6 +598,31 @@ export default function DashboardDefault() {
                   </Box>
                 </CardContent>
               </Card>
+            </Grid>
+
+            {/* 3행 - 노드 분석 텍스트 영역 */}
+            <Grid size={3} sx={{ height: 'calc(33.33% - 8px)' }}>
+              <Box
+                sx={{
+                  bgcolor: '#F0EDFD',
+                  boxShadow: 1,
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  height: '100%',
+                  p: 2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center'
+                }}
+              >
+                <Typography variant="h3" gutterBottom fontWeight="bold">
+                  ⚔️ 능동 대응
+                </Typography>
+                <Typography variant="h4" color="text.secondary">
+                  수집한 노드를 기반으로 하여 공격 경로를 분석한다. 위협 심각도를 평가하고 대응 우선순위를 자동 설정하여 차단, 격리, 감시 전략을 수립하고 효과를 실시간 가시화한다.
+                </Typography>
+              </Box>
             </Grid>
           </Grid>
         </CardContent>
