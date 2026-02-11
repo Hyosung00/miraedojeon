@@ -78,7 +78,7 @@ export default function BGPConsole({ onNavigate }) {
 
   // 자동 스크롤
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [logs]);
 
   // 애니메이션 시작
@@ -129,52 +129,20 @@ export default function BGPConsole({ onNavigate }) {
     <Box
       sx={{
         height: '100%',
+        width: '100%',
         display: 'flex',
         flexDirection: 'column',
         bgcolor: '#F0EDFD',
-        boxShadow: 1,
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
-        overflow: 'hidden',
-        position: 'relative'
+        overflow: 'hidden'
       }}
     >
-      {/* 제목과 이동하기 버튼 */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 8,
-          left: 12,
-          right: 12,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          zIndex: 10
-        }}
-      >
-        <Typography variant="h4" color="text.secondary" fontWeight="bold">
-          💾 BGP Archive Data 수집 및 DB 저장
-        </Typography>
-        {onNavigate && (
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={onNavigate}
-            sx={{ flexShrink: 0 }}
-          >
-            이동하기
-          </Button>
-        )}
-      </Box>
-
       {/* 컨트롤 버튼 */}
       <Box
         sx={{
           display: 'flex',
           gap: 1,
           p: 1,
-          pt: 6,
+          pt: 5,
           bgcolor: '#F0EDFD',
           borderBottom: '1px solid #D0C9F5'
         }}
