@@ -201,8 +201,16 @@ const Zone7Mini = () => {
             cooldownTicks={0}
             d3AlphaDecay={0.08}
             d3VelocityDecay={0.4}
-            onEngineStop={() => setPointerEnabled(true)}
+            onEngineStop={() => {
+              interactionTracker.log('Zone7Mini', 'Physics Engine Stopped - Interaction Enabled', {});
+              setPointerEnabled(true);
+            }}
             onNodeClick={handleNodeClick}
+            onNodeHover={(node) => {
+              if (node) {
+                interactionTracker.log('Zone7Mini', 'Node Hover', { nodeId: node.id, label: node.label });
+              }
+            }}
           />
         </Suspense>
       ) : (

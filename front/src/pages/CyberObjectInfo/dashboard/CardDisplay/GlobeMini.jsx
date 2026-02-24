@@ -161,27 +161,57 @@ const GlobeMini = () => {
         const attacks = await fetchAttackData();
         createAttackArcs(attacks);
 
-        // 클릭 이벤트 핸들러
+        // 클릭 이벤트 핸들러 생성 (먼저 선언)
         const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
-        handler.setInputAction((movement) => {
-          const pickedObject = viewer.current.scene.pick(movement.position);
-          
-          if (Cesium.defined(pickedObject) && pickedObject.id) {
-            const entityId = pickedObject.id.id;
-            
-            // 소스 또는 타겟 마커를 클릭한 경우
-            if (entityId && (entityId.startsWith('source-') || entityId.startsWith('target-'))) {
-              // 'source-attack-7' -> ['source', 'attack', '7'] -> 'attack-7'
-              const parts = entityId.split('-');
-              const attackId = parts.slice(1).join('-'); // 첫 번째 부분(source/target) 제외하고 나머지 합치기
-              handleAttackClick(attackId);
-            }
-          } else {
-            // 빈 공간 클릭 시 선택 해제
-            resetAllArcs();
+        
+        // 카메라 회전 시작/종료 추적
+        let rotationStartTime = null;
+        scene.screenSpaceCameraController.rotateEventTypes = [
+          Cesium.CameraEventType.LEFT_DRAG,
+          Cesium.CameraEventType.RIGHT_DRAG
+        ];
+        
+        // 드래그 시작
+        handler.setInputAction(() => {
+          rotationStartTime = performance.now();
+          interactionTracker.log('GlobeMini', 'Camera Rotation Started', {});
+        }, Cesium.ScreenSpaceEventType.LEFT_DOWN);
+        
+        // 드래그 종료
+        handler.setInputAction(() => {
+          if (rotationStartTime) {
+            const duration = performance.now() - rotationStartTime;
+            interactionTracker.log('GlobeMini', 'Camera Rotation Completed', { durationMs: duration.toFixed(2) });
+            rotationStartTime = null;
           }
-          
-          scene.requestRender();
+        }, Cesium.ScreenSpaceEventType.LEFT_UP);
+        handler.setInputAction((movement) => {
+          interactionTracker.measureResponseSync(
+            'GlobeMini',
+            'Canvas Click',
+            () => {
+              const pickedObject = viewer.current.scene.pick(movement.position);
+              
+              if (Cesium.defined(pickedObject) && pickedObject.id) {
+                const entityId = pickedObject.id.id;
+                
+                // 소스 또는 타겟 마커를 클릭한 경우
+                if (entityId && (entityId.startsWith('source-') || entityId.startsWith('target-'))) {
+                  // 'source-attack-7' -> ['source', 'attack', '7'] -> 'attack-7'
+                  const parts = entityId.split('-');
+                  const attackId = parts.slice(1).join('-'); // 첫 번째 부분(source/target) 제외하고 나머지 합치기
+                  handleAttackClick(attackId);
+                }
+              } else {
+                // 빈 공간 클릭 시 선택 해제
+                interactionTracker.log('GlobeMini', 'Empty Space Click - Reset Selection', {});
+                resetAllArcs();
+              }
+              
+              scene.requestRender();
+            },
+            { hasPickedObject: !!viewer.current.scene.pick(movement.position) }
+          );
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
         // 리사이즈 핸들러

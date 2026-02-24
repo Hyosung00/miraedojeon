@@ -148,6 +148,46 @@ const TargetGraph2DMini = memo(({ dbNodes = [] }) => {
 
     networkRef.current = new Network(containerRef.current, data, options);
 
+    // 줌 이벤트
+    networkRef.current.on('zoom', (params) => {
+      interactionTracker.log('TargetGraph2DMini', 'Network Zoom', { 
+        scale: params.scale?.toFixed(2),
+        pointer: params.pointer
+      });
+    });
+
+    // 드래그 이벤트
+    networkRef.current.on('dragStart', (params) => {
+      interactionTracker.log('TargetGraph2DMini', 'Network Drag Started', {});
+    });
+    
+    networkRef.current.on('dragging', (params) => {
+      if (params.nodes.length > 0) {
+        interactionTracker.log('TargetGraph2DMini', 'Node Being Dragged', { nodeId: params.nodes[0] });
+      }
+    });
+    
+    networkRef.current.on('dragEnd', (params) => {
+      interactionTracker.log('TargetGraph2DMini', 'Network Drag Ended', {});
+    });
+
+    // 노드 호버 이벤트
+    networkRef.current.on('hoverNode', (params) => {
+      const hoveredNode = nodes.find(n => n.id === params.node);
+      interactionTracker.log('TargetGraph2DMini', 'Node Hover', { 
+        nodeId: params.node,
+        label: hoveredNode?.label 
+      });
+    });
+
+    // 네트워크 안정화 완료
+    networkRef.current.once('stabilizationIterationsDone', () => {
+      interactionTracker.log('TargetGraph2DMini', 'Network Stabilized', { 
+        nodeCount: nodes.length,
+        edgeCount: edges.length 
+      });
+    });
+
     // 노드 클릭 이벤트
     networkRef.current.on('selectNode', (params) => {
       const nodeId = params.nodes && params.nodes[0];

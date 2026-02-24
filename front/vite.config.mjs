@@ -46,9 +46,8 @@ export default defineConfig(({ mode }) => {
       },
       terserOptions: {
         compress: {
-          drop_console: true, // console.log 제거
+          drop_console: false, // console.log 유지
           drop_debugger: true,
-          pure_funcs: ['console.log', 'console.info', 'console.debug'], // 특정 함수 제거
           passes: 2 // 최적화 패스 수 증가
         },
         mangle: {

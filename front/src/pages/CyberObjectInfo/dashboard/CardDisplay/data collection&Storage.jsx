@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Box, Typography, LinearProgress } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
+import interactionTracker from '../../../../utils/interactionTracker';
 
 // 타이핑 애니메이션
 const blink = keyframes`
@@ -41,6 +42,13 @@ export default function DataCollectionStorage() {
 
     setDisplayText('');
     setIsTyping(true);
+    
+    // 단계 시작 추적
+    interactionTracker.log('DataCollectionStorage', 'Step Started', { 
+      step: currentStep + 1, 
+      stepText: step.text,
+      totalSteps: DATA_COLLECTION_STEPS.length 
+    });
 
     const typingInterval = setInterval(() => {
       if (charIndex < text.length) {
@@ -53,8 +61,16 @@ export default function DataCollectionStorage() {
         // 다음 단계로 이동
         setTimeout(() => {
           if (currentStep < DATA_COLLECTION_STEPS.length - 1) {
+            interactionTracker.log('DataCollectionStorage', 'Step Completed', { 
+              completedStep: currentStep + 1,
+              nextStep: currentStep + 2 
+            });
             setCurrentStep(prev => prev + 1);
             setProgress(((currentStep + 2) / DATA_COLLECTION_STEPS.length) * 100);
+          } else {
+            interactionTracker.log('DataCollectionStorage', 'All Steps Completed', { 
+              totalSteps: DATA_COLLECTION_STEPS.length 
+            });
           }
         }, 1000);
       }
@@ -67,6 +83,7 @@ export default function DataCollectionStorage() {
   useEffect(() => {
     if (currentStep === DATA_COLLECTION_STEPS.length - 1 && !isTyping) {
       const resetTimer = setTimeout(() => {
+        interactionTracker.log('DataCollectionStorage', 'Pipeline Reset - Restarting', {});
         setCurrentStep(0);
         setProgress(0);
       }, 3000);

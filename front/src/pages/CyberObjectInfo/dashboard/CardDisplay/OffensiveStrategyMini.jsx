@@ -467,8 +467,26 @@ const OffensiveStrategyMini = () => {
 
     // 안정화 후 물리 엔진 끄기
     topologyNetRef.current.once('stabilized', () => {
+      interactionTracker.log('OffensiveStrategyMini', 'Network Stabilized', { nodeCount: topologyData.nodes.length });
       topologyNetRef.current.setOptions({ physics: { enabled: false } });
       topologyNetRef.current.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+    });
+
+    // 줌 이벤트
+    topologyNetRef.current.on('zoom', (params) => {
+      interactionTracker.log('OffensiveStrategyMini', 'Network Zoom', { 
+        scale: params.scale?.toFixed(2),
+        direction: params.direction
+      });
+    });
+
+    // 드래그 이벤트
+    topologyNetRef.current.on('dragStart', (params) => {
+      interactionTracker.log('OffensiveStrategyMini', 'Network Drag Started', {});
+    });
+    
+    topologyNetRef.current.on('dragEnd', (params) => {
+      interactionTracker.log('OffensiveStrategyMini', 'Network Drag Ended', {});
     });
 
     // 노드 클릭 이벤트
