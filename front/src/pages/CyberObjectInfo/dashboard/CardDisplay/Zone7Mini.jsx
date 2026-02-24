@@ -2,6 +2,7 @@
 import React, { useRef, useEffect, useState, useMemo, memo, lazy, Suspense } from "react";
 import * as THREE from "three";
 import { Box, Typography } from "@mui/material";
+import interactionTracker from "../../../../utils/interactionTracker";
 
 const ForceGraph3D = lazy(() => import("react-force-graph-3d"));
 
@@ -131,6 +132,19 @@ const Zone7Mini = () => {
     return type === 'logical' ? '#87aafc' : '#a9b9ff';
   }, []);
 
+  // 노드 클릭 핸들러
+  const handleNodeClick = (node) => {
+    interactionTracker.measureResponseSync(
+      'Zone7Mini',
+      'Node Click',
+      () => {
+        // 노드 정보 표시 로직 (현재는 콘솔에만 표시)
+        console.log('Node clicked:', node);
+      },
+      { nodeId: node.id, label: node.label, kind: node.kind }
+    );
+  };
+
   if (loading) {
     return (
       <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#F0EDFD' }}>
@@ -188,6 +202,7 @@ const Zone7Mini = () => {
             d3AlphaDecay={0.08}
             d3VelocityDecay={0.4}
             onEngineStop={() => setPointerEnabled(true)}
+            onNodeClick={handleNodeClick}
           />
         </Suspense>
       ) : (

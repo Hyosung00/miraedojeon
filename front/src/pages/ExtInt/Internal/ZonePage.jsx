@@ -2,6 +2,7 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
 import ForceGraph3D from "react-force-graph-3d";
 import * as THREE from "three";
+import interactionTracker from '../../../utils/interactionTracker';
 
 const TYPE_COLORS = {
   core: "#ffffff",
@@ -25,8 +26,33 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
   const [selected, setSelected] = useState(null);
   const NODE_SCALE_MULT = 1.7; // match network_topology scaling
   // 정확한 캔버스 크기 전달을 위한 컨테이너 측정 상태
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });  
 
+  // 컴포넌트 생애주기 추적
+  useEffect(() => {
+    interactionTracker.log('ZonePage', 'Component Mounted', { zone });
+    return () => {
+      interactionTracker.log('ZonePage', 'Component Unmounted', { zone });
+    };
+  }, [zone]);
+
+  // Node click handler with tracking
+  const handleNodeClick = (node) => {
+    interactionTracker.measureResponseSync(
+      'ZonePage',
+      'Node Click',
+      () => {
+        setSelected(node);
+      },
+      {
+        nodeId: node?.id,
+        label: node?.label,
+        zone: zone,
+        kind: node?.kind,
+        isDeselect: !node
+      }
+    );
+  };
   useEffect(() => {
     if (zone === null || zone === undefined) return;
     let mounted = true;
@@ -457,7 +483,14 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
       <div style={{ flex: 1, position: 'relative', background: '#f0edfd', borderRadius: 12, overflow: 'hidden', height: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, padding: 24 }}>
           <button
-            onClick={onBack}
+            onClick={() => {
+              interactionTracker.measureResponseSync(
+                'ZonePage',
+                'Back Button Click',
+                () => onBack(),
+                { zone }
+              );
+            }}
             style={{ background: 'transparent', border: 'none', color: '#93c5fd', cursor: 'pointer', fontSize: 14 }}
           >
             ← Back
@@ -545,16 +578,35 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
             d3AlphaDecay={0.028}
             d3VelocityDecay={0.35}
             style={{ height: '100%', width: '100%' }}
-            onNodeClick={setSelected}
+            onNodeClick={handleNodeClick}
             onBackgroundClick={() => {
-              setSelected(null);
-              if (setEventLogs) setEventLogs([]);
+              interactionTracker.measureResponseSync(
+                'ZonePage',
+                'Background Click (Deselect)',
+                () => {
+                  handleNodeClick(null);
+                  if (setEventLogs) setEventLogs([]);
+                },
+                { zone }
+              );
             }}
             onLinkClick={(l) => {
-              // when user clicks a link, select source node for inspector and highlight
-              const sid = getId(l.source);
-              const node = zoneGraph.nodes.find(n => n.id === sid) || zoneGraph.nodes[0];
-              if (node) setSelected(node);
+              interactionTracker.measureResponseSync(
+                'ZonePage',
+                'Link Click',
+                () => {
+                  // when user clicks a link, select source node for inspector and highlight
+                  const sid = getId(l.source);
+                  const node = zoneGraph.nodes.find(n => n.id === sid) || zoneGraph.nodes[0];
+                  if (node) setSelected(node);
+                },
+                { 
+                  zone,
+                  sourceId: getId(l.source),
+                  targetId: getId(l.target),
+                  linkType: l.type
+                }
+              );
             }}
             onLinkUpdate={(l, obj) => { try { const line = l.__lineObj || obj; if (line && line.computeLineDistances) line.computeLineDistances(); } catch {} }}
             onEngineTick={() => {

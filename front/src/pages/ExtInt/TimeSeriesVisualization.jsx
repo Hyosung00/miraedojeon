@@ -3,6 +3,7 @@ import * as Cesium from 'cesium';
 import { Box, Typography, Card, CardContent, Grid, IconButton, Slider, Button } from '@mui/material';
 import { ClusterOutlined, GlobalOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import interactionTracker from '../../utils/interactionTracker';
 
 // ==================== 상수 정의 ====================
 const API_CONFIG = {
@@ -130,7 +131,11 @@ const scrollToLog = (attackId) => {
 
 // API에서 실제 MongoDB 데이터를 가져와서 포맷팅하는 함수
 const fetchAndFormatAttackData = async (startDate = null, endDate = null) => {
-  try {
+  return await interactionTracker.measureResponse(
+    'TimeSeriesVisualization',
+    'Fetch Attack Data',
+    async () => {
+      try {
     let url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.NORTH_KOREA_ATTACKS}?limit=${API_CONFIG.DEFAULT_LIMIT}`;
 
     if (startDate) {
@@ -240,11 +245,14 @@ const fetchAndFormatAttackData = async (startDate = null, endDate = null) => {
 
     console.log(`✅ ${attacks.length}개 작전 변환 완료`);
     return attacks;
-  } catch (error) {
-    console.error('❌ API 호출 중 오류:', error);
-    console.error('❌ 에러 상세:', error.message, error.stack);
-    return [];
-  }
+      } catch (error) {
+        console.error('❌ API 호출 중 오류:', error);
+        console.error('❌ 에러 상세:', error.message, error.stack);
+        return [];
+      }
+    },
+    { startDate, endDate }
+  ).then(result => result.result);
 };
 
 const EarthGlobe = () => {
@@ -277,6 +285,14 @@ const EarthGlobe = () => {
       ]).size
     };
   }, [attacks]);
+
+  // 컴포넌트 마운트/언마운트 추적
+  useEffect(() => {
+    interactionTracker.log('TimeSeriesVisualization', 'Component Mounted', {});
+    return () => {
+      interactionTracker.log('TimeSeriesVisualization', 'Component Unmounted', {});
+    };
+  }, []);
 
   // 시작 날짜 설정 (9/2 00:00:00)
   const startDate = useMemo(() => {
@@ -1019,67 +1035,78 @@ const EarthGlobe = () => {
 
     // 싱글 클릭 이벤트
     viewer.current.screenSpaceEventHandler.setInputAction((click) => {
-      try {
-        const pickedObject = viewer.current.scene.pick(click.position);
+      interactionTracker.measureResponseSync(
+        'TimeSeriesVisualization',
+        'Building Click on Map',
+        () => {
+          try {
+            const pickedObject = viewer.current.scene.pick(click.position);
 
-        if (pickedObject && pickedObject.id) {
-          // ID 찾기
-          let entityId = null;
-          if (pickedObject.id.id) {
-            entityId = pickedObject.id.id;
-          } else if (pickedObject.id._id) {
-            entityId = pickedObject.id._id;
-          } else if (typeof pickedObject.id === 'string') {
-            entityId = pickedObject.id;
-          }
+            if (pickedObject && pickedObject.id) {
+              // ID 찾기
+              let entityId = null;
+              if (pickedObject.id.id) {
+                entityId = pickedObject.id.id;
+              } else if (pickedObject.id._id) {
+                entityId = pickedObject.id._id;
+              } else if (typeof pickedObject.id === 'string') {
+                entityId = pickedObject.id;
+              }
 
-          // 먼저 모든 하이라이트 제거
-          clearAllHighlights();
+              // 먼저 모든 하이라이트 제거
+              clearAllHighlights();
 
-          // 건물 클릭 처리
-          const isSourceBuilding = entityId && entityId.startsWith('source-building-3d-');
-          const isTargetBuilding = entityId && entityId.startsWith('target-building-3d-');
+              // 건물 클릭 처리
+              const isSourceBuilding = entityId && entityId.startsWith('source-building-3d-');
+              const isTargetBuilding = entityId && entityId.startsWith('target-building-3d-');
 
-          if (isSourceBuilding || isTargetBuilding) {
-            // ID에서 attack ID 추출
-            let attackId = null;
-            if (entityId.startsWith('source-building-3d-')) {
-              attackId = entityId.replace('source-building-3d-', '');
-            } else if (entityId.startsWith('target-building-3d-')) {
-              attackId = entityId.replace('target-building-3d-', '');
-            }
+              if (isSourceBuilding || isTargetBuilding) {
+                // ID에서 attack ID 추출
+                let attackId = null;
+                if (entityId.startsWith('source-building-3d-')) {
+                  attackId = entityId.replace('source-building-3d-', '');
+                } else if (entityId.startsWith('target-building-3d-')) {
+                  attackId = entityId.replace('target-building-3d-', '');
+                }
 
-            if (attackId) {
-              // 공격 찾기 (타입 안정성 개선된 유틸리티 함수 사용)
-              const clickedAttack = findAttackById(attacks, attackId);
+                if (attackId) {
+                  // 공격 찾기 (타입 안정성 개선된 유틸리티 함수 사용)
+                  const clickedAttack = findAttackById(attacks, attackId);
 
-              if (clickedAttack) {
-                // 새로운 마커 하이라이트
-                highlightBuildingAttacks(clickedAttack, entityId);
-                return;
+                  if (clickedAttack) {
+                    // 새로운 마커 하이라이트
+                    highlightBuildingAttacks(clickedAttack, entityId);
+                    return;
+                  }
+                }
               }
             }
+
+            // 빈 공간 클릭 시 선택 해제
+            setSelectedAttackId(null);
+            setSelectedBuildingAttacks([]);
+
+            // 모든 하이라이트 제거
+            clearAllHighlights();
+          } catch (error) {
+            console.error('클릭 이벤트 처리 오류:', error);
           }
-        }
-
-        // 빈 공간 클릭 시 선택 해제
-        setSelectedAttackId(null);
-        setSelectedBuildingAttacks([]);
-
-        // 모든 하이라이트 제거
-        clearAllHighlights();
-      } catch (error) {
-        console.error('클릭 이벤트 처리 오류:', error);
-      }
+        },
+        { hasPickedObject: !!viewer.current.scene.pick(click.position) }
+      );
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
     // 더블 클릭 이벤트 - 마커로 확대
     viewer.current.screenSpaceEventHandler.setInputAction((click) => {
-      try {
-        const pickedObject = viewer.current.scene.pick(click.position);
+      interactionTracker.measureResponseSync(
+        'TimeSeriesVisualization',
+        'Building Double Click (Zoom)',
+        () => {
+          try {
+            const pickedObject = viewer.current.scene.pick(click.position);
 
-        if (pickedObject && pickedObject.id) {
-          // ID 찾기
+            if (pickedObject && pickedObject.id) {
+              // ID 찾기
           let entityId = null;
           if (pickedObject.id.id) {
             entityId = pickedObject.id.id;
@@ -1118,6 +1145,9 @@ const EarthGlobe = () => {
       } catch (error) {
         console.error('더블클릭 이벤트 처리 오류:', error);
       }
+        },
+        { hasPickedObject: !!viewer.current.scene.pick(click.position) }
+      );
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
   }, [attacks, isLoaded]);
 
@@ -1353,18 +1383,25 @@ const EarthGlobe = () => {
                     position: 'relative'
                   }}
                   onClick={() => {
-                    const newSelectedId = selectedAttackId === attack.id ? null : attack.id;
-                    setSelectedAttackId(newSelectedId);
-                    setSelectedBuildingAttacks([]);
+                    interactionTracker.measureResponseSync(
+                      'TimeSeriesVisualization',
+                      'Attack Item Click',
+                      () => {
+                        const newSelectedId = selectedAttackId === attack.id ? null : attack.id;
+                        setSelectedAttackId(newSelectedId);
+                        setSelectedBuildingAttacks([]);
 
-                    // 로그 클릭 시 지도에서 해당 건물 하이라이트 및 이동
-                    if (newSelectedId) {
-                      clearAllHighlights();
-                      highlightBuildingOnMap(attack.id);
-                    } else {
-                      // 선택 해제 시 모든 하이라이트 제거
-                      clearAllHighlights();
-                    }
+                        // 로그 클릭 시 지도에서 해당 건물 하이라이트 및 이동
+                        if (newSelectedId) {
+                          clearAllHighlights();
+                          highlightBuildingOnMap(attack.id);
+                        } else {
+                          // 선택 해제 시 모든 하이라이트 제거
+                          clearAllHighlights();
+                        }
+                      },
+                      { attackId: attack.id, attackType: attack.type, isDeselect: selectedAttackId === attack.id }
+                    );
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#333' }}>
@@ -1404,7 +1441,12 @@ const EarthGlobe = () => {
                     title="내부망 토폴로지로 이동"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/ExtInt/internaltopology');
+                      interactionTracker.measureResponseSync(
+                        'TimeSeriesVisualization',
+                        'Navigate to Internal Topology',
+                        () => navigate('/ExtInt/internaltopology'),
+                        { destination: '/ExtInt/internaltopology' }
+                      );
                     }}
                     sx={{
                       position: 'absolute',
@@ -1462,7 +1504,14 @@ const EarthGlobe = () => {
               <Slider
                 aria-label="날짜 범위 선택"
                 value={timeRange}
-                onChange={(_, newValue) => setTimeRange(newValue)}
+                onChange={(_, newValue) => {
+                  interactionTracker.measureResponseSync(
+                    'TimeSeriesVisualization',
+                    'Time Range Slider Change',
+                    () => setTimeRange(newValue),
+                    { newRange: newValue, days: newValue[1] - newValue[0] }
+                  );
+                }}
                 min={0}
                 max={7}
                 step={1}

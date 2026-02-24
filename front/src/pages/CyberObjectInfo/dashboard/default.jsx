@@ -1,5 +1,6 @@
 // material-ui
 import { alpha, useTheme } from '@mui/material/styles';
+import interactionTracker from '../../../utils/interactionTracker';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '@mui/material/Button';
@@ -64,6 +65,7 @@ function CyberOperationChart({ view }) {
   const line = theme.palette.divider;
 
   const toggleVisibility = (label) => {
+    interactionTracker.log('CyberOperationChart', 'Toggle Visibility', { label, currentState: visibility[label] });
     setVisibility((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
@@ -141,23 +143,73 @@ export default function DashboardDefault() {
   const [dbNodes, setDbNodes] = useState([]);
   const navigate = useNavigate();
 
-  // Neo4j에서 차단된 공격 데이터 가져오기
+  // Track component mount
   useEffect(() => {
-    fetch('http://localhost:8000/neo4j/nodes?activeView=target')
-      .then((res) => res.json())
-      .then((data) => setDbNodes(data))
-      .catch(() => console.warn('Failed to fetch nodes'));
+    interactionTracker.log('DashboardDefault', 'Component Mounted', {});
+    return () => {
+      interactionTracker.log('DashboardDefault', 'Component Unmounted', {});
+    };
   }, []);
 
-  const handleCardClick = () => {
+  // Neo4j에서 차단된 공격 데이터 가져오기
+  useEffect(() => {
+    const fetchData = async () => {
+      const startTime = performance.now();
+      try {
+        const res = await fetch('http://localhost:8000/neo4j/nodes?activeView=target');
+        const data = await res.json();
+        const endTime = performance.now();
+        interactionTracker.log('DashboardDefault', 'Fetch Neo4j Nodes', { 
+          nodeCount: data.length, 
+          responseTime: `${(endTime - startTime).toFixed(2)}ms` 
+        });
+        setDbNodes(data);
+      } catch (error) {
+        interactionTracker.log('DashboardDefault', 'Fetch Neo4j Nodes Failed', { error: error.message });
+        console.warn('Failed to fetch nodes');
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleCardClick = (cardName) => {
+    interactionTracker.log('DashboardDefault', 'Card Click', { cardName });
     navigate('/ExtInt/TimeSeriesVisualization');
   };
 
   // 각 카드별 네비게이션 함수
-  const handleTimeSeries = () => navigate('/ExtInt/TimeSeriesVisualization');
-  const handleTargetDashboard = () => navigate('/target/targetDashboard');
-  const handleInternalTopology = () => navigate('/ExtInt/internaltopology');
-  const handleActiveResponse = () => navigate('/ActiveResponse/responseeffectvisualization');
+  const handleTimeSeries = () => {
+    interactionTracker.measureResponseSync(
+      'DashboardDefault',
+      'Navigate to Time Series',
+      () => navigate('/ExtInt/TimeSeriesVisualization'),
+      { destination: '/ExtInt/TimeSeriesVisualization' }
+    );
+  };
+  const handleTargetDashboard = () => {
+    interactionTracker.measureResponseSync(
+      'DashboardDefault',
+      'Navigate to Target Dashboard',
+      () => navigate('/target/targetDashboard'),
+      { destination: '/target/targetDashboard' }
+    );
+  };
+  const handleInternalTopology = () => {
+    interactionTracker.measureResponseSync(
+      'DashboardDefault',
+      'Navigate to Internal Topology',
+      () => navigate('/ExtInt/internaltopology'),
+      { destination: '/ExtInt/internaltopology' }
+    );
+  };
+  const handleActiveResponse = () => {
+    interactionTracker.measureResponseSync(
+      'DashboardDefault',
+      'Navigate to Active Response',
+      () => navigate('/ActiveResponse/responseeffectvisualization'),
+      { destination: '/ActiveResponse/responseeffectvisualization' }
+    );
+  };
 
   return (
     <Box sx={{ height: 'calc(100vh - 90px)', display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
@@ -180,6 +232,7 @@ export default function DashboardDefault() {
             {/* 1행 - BGP Archive (전체 폭) */}
             <Grid size={12}>
               <Card
+                onClick={() => interactionTracker.log('DashboardDefault', 'Card Interaction', { card: 'BGP Archive' })}
                 sx={{
                   bgcolor: 'background.default',
                   boxShadow: 1,
@@ -188,7 +241,8 @@ export default function DashboardDefault() {
                   borderColor: 'divider',
                   height: '28vh',
                   display: 'flex',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  cursor: 'pointer'
                 }}
               >
                 <Box sx={{ flex: 1, position: 'relative' }}>
@@ -209,32 +263,13 @@ export default function DashboardDefault() {
                     <BGPConsole />
                   </Box>
                 </Box>
-                <Box
-                  sx={{
-                    width: '50%',
-                    bgcolor: '#F0EDFD',
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    borderLeft: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Typography variant="h3" gutterBottom fontWeight="bold">
-                    📝 BGP 데이터 수집 정보
-                  </Typography>
-                  <Typography variant="h4" color="text.secondary">
-                    BGP Archive에서 라우팅 데이터를 수집하여 MongoDB에 저장한다. 
-                    IP, 위치, 국가, 서브넷 정보를 포함하며, 네트워크 경로 변화 및 BGP Hijacking 등의 위협을 실시간으로 탐지하기 위한 데이터를 수집하여 가공한다.
-                  </Typography>
-                </Box>
               </Card>
             </Grid>
             
             {/* 2행 좌측 - OSINT 시계열 */}
             <Grid size={6}>
               <Card
+                onClick={() => interactionTracker.log('DashboardDefault', 'Card Interaction', { card: 'OSINT 시계열' })}
                 sx={{
                   bgcolor: 'background.default',
                   boxShadow: 1,
@@ -243,7 +278,8 @@ export default function DashboardDefault() {
                   borderColor: 'divider',
                   height: '29vh',
                   display: 'flex',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  cursor: 'pointer'
                 }}
               >
                 <Box sx={{ flex: 1, position: 'relative' }}>
@@ -264,31 +300,13 @@ export default function DashboardDefault() {
                     <GlobeMini />
                   </Box>
                 </Box>
-                <Box
-                  sx={{
-                    width: '35%',
-                    bgcolor: '#F0EDFD',
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    borderLeft: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Typography variant="h3" gutterBottom fontWeight="bold">
-                    🔍 OSINT 분석
-                  </Typography>
-                  <Typography variant="h4" color="text.secondary">
-                    글로벌 네트워크 트래픽을 3D Globe로 시각화하여 국가별 공격 패턴을 분석한다. 특히 적국 표적 공격을 필터링하여 실시간 위협 동향을 모니터링하고 시계열 기반 이상 패턴을 탐지한다.
-                  </Typography>
-                </Box>
               </Card>
             </Grid>
 
             {/* 2행 우측 - 내부망 분석 */}
             <Grid size={6}>
               <Card
+                onClick={() => interactionTracker.log('DashboardDefault', 'Card Interaction', { card: '내부망 분석' })}
                 sx={{
                   bgcolor: 'background.default',
                   boxShadow: 1,
@@ -297,7 +315,8 @@ export default function DashboardDefault() {
                   borderColor: 'divider',
                   height: '29vh',
                   display: 'flex',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  cursor: 'pointer'
                 }}
               >
                 <Box sx={{ flex: 1, position: 'relative' }}>
@@ -318,31 +337,13 @@ export default function DashboardDefault() {
                     <Zone7Mini />
                   </Box>
                 </Box>
-                <Box
-                  sx={{
-                    width: '35%',
-                    bgcolor: '#F0EDFD',
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    borderLeft: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Typography variant="h3" gutterBottom fontWeight="bold">
-                    � 내부망 토폴로지
-                  </Typography>
-                  <Typography variant="h4" color="text.secondary">
-                    수집한 BGP Archive Data를 기반으로 내부 네트워크를 3계층(Physical-Logical-Persona) 모델로 3D 시각화한다. Zone 기반 세분화, 고립 노드 탐지, 관계 분석을 통해 내부망 보안 취약점을 식별한다.
-                  </Typography>
-                </Box>
               </Card>
             </Grid>
 
             {/* 3행 좌측 - 후보 표적 개발 */}
             <Grid size={6}>
               <Card
+                onClick={() => interactionTracker.log('DashboardDefault', 'Card Interaction', { card: '후보 표적 개발' })}
                 sx={{
                   bgcolor: 'background.default',
                   boxShadow: 1,
@@ -351,7 +352,8 @@ export default function DashboardDefault() {
                   borderColor: 'divider',
                   height: '30vh',
                   display: 'flex',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  cursor: 'pointer'
                 }}
               >
                 <Box sx={{ flex: 1, position: 'relative' }}>
@@ -372,31 +374,13 @@ export default function DashboardDefault() {
                     <TargetGraph2DMini dbNodes={dbNodes} />
                   </Box>
                 </Box>
-                <Box
-                  sx={{
-                    width: '35%',
-                    bgcolor: '#F0EDFD',
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    borderLeft: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Typography variant="h3" gutterBottom fontWeight="bold">
-                    � 표적 분석
-                  </Typography>
-                  <Typography variant="h4" color="text.secondary">
-                    수집한 노드를 기반으로 하여 표적 노드들의 연결 관계를 2D Force Graph로 시각화한다. 후보 표적 간의 네트워크 관계와 핵심 표적의 중심성을 분석하여 공격 경로를 모델링한다.
-                  </Typography>
-                </Box>
               </Card>
             </Grid>
 
             {/* 3행 우측 - 노드 분석 & 능동대응책 */}
             <Grid size={6}>
               <Card
+                onClick={() => interactionTracker.log('DashboardDefault', 'Card Interaction', { card: '능동대응책' })}
                 sx={{
                   bgcolor: 'background.default',
                   boxShadow: 1,
@@ -405,7 +389,8 @@ export default function DashboardDefault() {
                   borderColor: 'divider',
                   height: '30vh',
                   display: 'flex',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  cursor: 'pointer'
                 }}
               >
                 <Box sx={{ flex: 1, position: 'relative' }}>
@@ -425,25 +410,6 @@ export default function DashboardDefault() {
                   <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden' }}>
                     <OffensiveStrategyMini />
                   </Box>
-                </Box>
-                <Box
-                  sx={{
-                    width: '35%',
-                    bgcolor: '#F0EDFD',
-                    p: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    borderLeft: '1px solid',
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Typography variant="h3" gutterBottom fontWeight="bold">
-                    ⚔️ 능동 대응
-                  </Typography>
-                  <Typography variant="h4" color="text.secondary">
-                    수집한 노드를 기반으로 하여 공격 경로를 분석한다. 위협 심각도를 평가하고 대응 우선순위를 자동 설정하여 차단, 격리, 감시 전략을 수립하고 효과를 실시간 가시화한다.
-                  </Typography>
                 </Box>
               </Card>
             </Grid>

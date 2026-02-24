@@ -8,6 +8,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import WarningIcon from '@mui/icons-material/Warning';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import MapIcon from '@mui/icons-material/Map';
+import interactionTracker from '../../../utils/interactionTracker';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DomainIcon from '@mui/icons-material/Domain';
 import northInformation from './north_information.json';
@@ -22,6 +23,12 @@ const FACILITY_COLORS = {
   default: Cesium.Color.GRAY
 };
 
+const BLUEPRINT_IMAGES = [
+  '/image/BluePrint1.png',
+  '/image/BluePrint2.png',
+  '/image/BluePrint3 worst case.png'
+];
+
 const PDR = () => {
   const cesiumContainer = useRef(null);
   const viewerRef = useRef(null);
@@ -30,6 +37,15 @@ const PDR = () => {
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [currentFloor, setCurrentFloor] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [blueprintImage, setBlueprintImage] = useState(null);
+
+  // 컴포넌트 마운트/언마운트 추적
+  useEffect(() => {
+    interactionTracker.log('PDR', 'Component Mounted', {});
+    return () => {
+      interactionTracker.log('PDR', 'Component Unmounted', {});
+    };
+  }, []);
 
   useEffect(() => {
     if (!cesiumContainer.current) return;
@@ -73,19 +89,26 @@ const PDR = () => {
 
         const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((click) => {
-          const pickedObject = viewer.scene.pick(click.position);
-          
-          if (Cesium.defined(pickedObject) && pickedObject.id) {
-            const entity = pickedObject.id;
-            const type = entity.properties?.type?.getValue();
-            const data = entity.properties?.data?.getValue();
+          interactionTracker.measureResponseSync(
+            'PDR',
+            'Cesium Map Click',
+            () => {
+              const pickedObject = viewer.scene.pick(click.position);
+              
+              if (Cesium.defined(pickedObject) && pickedObject.id) {
+                const entity = pickedObject.id;
+                const type = entity.properties?.type?.getValue();
+                const data = entity.properties?.data?.getValue();
 
-            if (type === 'site') {
-                handleSelectSite(data, viewer);
-            } else if (type === 'building') {
-                handleSelectBuilding(data, viewer);
-            }
-          }
+                if (type === 'site') {
+                    handleSelectSite(data, viewer);
+                } else if (type === 'building') {
+                    handleSelectBuilding(data, viewer);
+                }
+              }
+            },
+            { hasPickedObject: !!viewer.scene.pick(click.position) }
+          );
         }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
         setIsLoaded(true);
@@ -167,66 +190,96 @@ const PDR = () => {
   }, [selectedSite, isLoaded]);
 
   const handleSelectSite = (site, viewer) => {
-    setSelectedSite(site);
-    setSelectedBuilding(null);
-    
-    if (!site.buildings || site.buildings.length === 0) {
-        viewer.flyTo(viewer.entities, {
-            destination: Cesium.Cartesian3.fromDegrees(site.geo_info.lng, site.geo_info.lat, 5000),
-            duration: 1.5
-        });
-        return;
-    }
+    interactionTracker.measureResponseSync(
+      'PDR',
+      'Select Site',
+      () => {
+        setSelectedSite(site);
+        setSelectedBuilding(null);
+        
+        if (!site.buildings || site.buildings.length === 0) {
+            viewer.flyTo(viewer.entities, {
+                destination: Cesium.Cartesian3.fromDegrees(site.geo_info.lng, site.geo_info.lat, 5000),
+                duration: 1.5
+            });
+            return;
+        }
 
-    const lats = site.buildings.map(b => b.lat);
-    const lngs = site.buildings.map(b => b.lng);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
+        const lats = site.buildings.map(b => b.lat);
+        const lngs = site.buildings.map(b => b.lng);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+        const minLng = Math.min(...lngs);
+        const maxLng = Math.max(...lngs);
 
-    if (minLat === maxLat && minLng === maxLng) {
+        if (minLat === maxLat && minLng === maxLng) {
+            viewer.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(minLng, minLat, 1000), // 핀포인트 줌 1000m
+                duration: 1.5
+            });
+            return;
+        }
+
+        // 최소 여백(Buffer)을 0.005도(약 500m)로 설정
+        const MIN_BUFFER = 0.005; 
+        let latBuffer = (maxLat - minLat) * 0.2; // 20% 여백
+        let lngBuffer = (maxLng - minLng) * 0.2;
+
+        if (latBuffer < MIN_BUFFER) latBuffer = MIN_BUFFER;
+        if (lngBuffer < MIN_BUFFER) lngBuffer = MIN_BUFFER;
+
+        const rectangle = Cesium.Rectangle.fromDegrees(
+            minLng - lngBuffer,
+            minLat - latBuffer,
+            maxLng + lngBuffer,
+            maxLat + latBuffer
+        );
+
         viewer.camera.flyTo({
-            destination: Cesium.Cartesian3.fromDegrees(minLng, minLat, 1000), // 핀포인트 줌 1000m
+            destination: rectangle,
             duration: 1.5
         });
-        return;
-    }
-
-    // 최소 여백(Buffer)을 0.005도(약 500m)로 설정
-    const MIN_BUFFER = 0.005; 
-    let latBuffer = (maxLat - minLat) * 0.2; // 20% 여백
-    let lngBuffer = (maxLng - minLng) * 0.2;
-
-    if (latBuffer < MIN_BUFFER) latBuffer = MIN_BUFFER;
-    if (lngBuffer < MIN_BUFFER) lngBuffer = MIN_BUFFER;
-
-    const rectangle = Cesium.Rectangle.fromDegrees(
-        minLng - lngBuffer,
-        minLat - latBuffer,
-        maxLng + lngBuffer,
-        maxLat + latBuffer
+      },
+      {
+        siteName: site.name,
+        buildingCount: site.buildings?.length || 0
+      }
     );
-
-    viewer.camera.flyTo({
-        destination: rectangle,
-        duration: 1.5
-    });
   };
 
   const handleSelectBuilding = (building, viewer) => {
-    setSelectedBuilding(building);
-    const firstFloor = building.structure_info ? Object.keys(building.structure_info)[0] : null;
-    setCurrentFloor(firstFloor);
+    interactionTracker.measureResponseSync(
+      'PDR',
+      'Select Building',
+      () => {
+        setSelectedBuilding(building);
+        const firstFloor = building.structure_info ? Object.keys(building.structure_info)[0] : null;
+        setCurrentFloor(firstFloor);
+        // 랜덤 blueprint 이미지 선택
+        const randomIndex = Math.floor(Math.random() * BLUEPRINT_IMAGES.length);
+        setBlueprintImage(BLUEPRINT_IMAGES[randomIndex]);
+      },
+      {
+        buildingName: building.name,
+        buildingId: building.id
+      }
+    );
   };
 
   const handleResetView = () => {
-    setSelectedSite(null);
-    setSelectedBuilding(null);
-    viewerRef.current?.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(127.5, 39.5, 1200000),
-        duration: 1.5
-    });
+    interactionTracker.measureResponseSync(
+      'PDR',
+      'Reset View',
+      () => {
+        setSelectedSite(null);
+        setSelectedBuilding(null);
+        viewerRef.current?.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(127.5, 39.5, 1200000),
+            duration: 1.5
+        });
+      },
+      { action: 'return to full map' }
+    );
   };
 
   const FloorPlanViewer = ({ rooms }) => {
@@ -234,26 +287,20 @@ const PDR = () => {
 
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', bgcolor: '#eceff1', borderRadius: 2, border: '1px solid #cfd8dc', overflow: 'hidden' }}>
-        <Box sx={{ position: 'absolute', inset: 0, opacity: 0.6, backgroundImage: 'linear-gradient(#e0e0e0 1px, transparent 1px), linear-gradient(90deg, #e0e0e0 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
-        <svg style={{ position: 'absolute', width: '100%', height: '100%' }} viewBox="0 0 100 100" preserveAspectRatio="none">
-           {rooms.map((room) => {
-             const isCritical = room.status === 'critical';
-             const isCorridor = room.type === 'corridor';
-             return (
-               <g key={room.id}>
-                 <rect x={`${room.x}%`} y={`${room.y}%`} width={`${room.w}%`} height={`${room.h}%`}
-                   fill={isCorridor ? '#fafafa' : (isCritical ? '#ffebee' : '#e8f5e9')}
-                   stroke={isCorridor ? '#b0bec5' : (isCritical ? '#e57373' : '#66bb6a')} strokeWidth="0.8" rx="1" ry="1" />
-                 {room.h > 8 && room.w > 10 && (
-                     <text x={`${room.x + room.w/2}%`} y={`${room.y + room.h/2}%`} dominantBaseline="middle" textAnchor="middle"
-                        fill="#455a64" fontSize="3.5" fontWeight="bold" style={{ pointerEvents: 'none' }}>
-                        {room.name.length > 8 ? room.name.substring(0,7)+'..' : room.name}
-                     </text>
-                 )}
-               </g>
-             );
-           })}
-        </svg>
+        {blueprintImage && (
+          <Box
+            component="img"
+            src={blueprintImage}
+            alt="Floor Plan Blueprint"
+            sx={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center'
+            }}
+          />
+        )}
       </Box>
     );
   };
@@ -308,10 +355,17 @@ const PDR = () => {
                     {selectedSite.buildings.map((bldg) => (
                         <Button key={bldg.id} variant="outlined" startIcon={<BusinessIcon />}
                             onClick={() => {
-                                handleSelectBuilding(bldg, viewerRef.current);
-                                viewerRef.current.flyTo(
-                                    viewerRef.current.entities.values.find(e => e.properties?.data?.getValue()?.id === bldg.id),
-                                    { duration: 1.0, offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), 1000) }
+                                interactionTracker.measureResponseSync(
+                                  'PDR',
+                                  'Building Card Click',
+                                  () => {
+                                    handleSelectBuilding(bldg, viewerRef.current);
+                                    viewerRef.current.flyTo(
+                                        viewerRef.current.entities.values.find(e => e.properties?.data?.getValue()?.id === bldg.id),
+                                        { duration: 1.0, offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), 1000) }
+                                    );
+                                  },
+                                  { buildingName: bldg.name, buildingId: bldg.id }
                                 );
                             }}
                             sx={{ justifyContent: 'flex-start', bgcolor: 'white', py: 1.5, borderColor: '#cfd8dc', color: '#455a64' }}>
@@ -327,7 +381,14 @@ const PDR = () => {
                         <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1a237e', fontSize: '1.1rem' }}>
                             {selectedBuilding.name}
                         </Typography>
-                        <Button size="small" onClick={() => setSelectedBuilding(null)} variant="outlined">목록</Button>
+                        <Button size="small" onClick={() => {
+                          interactionTracker.measureResponseSync(
+                            'PDR',
+                            'Back to Building List',
+                            () => setSelectedBuilding(null),
+                            {}
+                          );
+                        }} variant="outlined">목록</Button>
                     </Box>
 
                     <Box sx={{ mb: 2 }}>
@@ -335,7 +396,19 @@ const PDR = () => {
                         <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
                             {selectedBuilding.structure_info && Object.keys(selectedBuilding.structure_info).map(floor => (
                                 <Button key={floor} variant={currentFloor === floor ? "contained" : "outlined"} size="small"
-                                    onClick={() => setCurrentFloor(floor)}
+                                    onClick={() => {
+                                      interactionTracker.measureResponseSync(
+                                        'PDR',
+                                        'Floor Selection',
+                                        () => {
+                                          setCurrentFloor(floor);
+                                          // 랜덤 blueprint 이미지 선택
+                                          const randomIndex = Math.floor(Math.random() * BLUEPRINT_IMAGES.length);
+                                          setBlueprintImage(BLUEPRINT_IMAGES[randomIndex]);
+                                        },
+                                        { floor, buildingName: selectedBuilding.name }
+                                      );
+                                    }}
                                     sx={{ fontSize: '11px', px: 1, minWidth: 'auto', bgcolor: currentFloor === floor ? '#1a237e' : 'white', color: currentFloor === floor ? 'white' : '#546e7a' }}>
                                     {floor}
                                 </Button>

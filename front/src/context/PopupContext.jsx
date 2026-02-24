@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import PropTypes from 'prop-types';
 
 const PopupContext = createContext();
 
@@ -28,3 +29,7 @@ export function PopupProvider({ children }) {
     </PopupContext.Provider>
   );
 }
+
+PopupProvider.propTypes = { 
+  children: PropTypes.oneOfType([PropTypes.node, PropTypes.arrayOf(PropTypes.node)]) 
+};

@@ -59,4 +59,6 @@ export default function ThemeCustomization({ children }) {
   );
 }
 
-ThemeCustomization.propTypes = { children: PropTypes.node };
+ThemeCustomization.propTypes = { 
+  children: PropTypes.oneOfType([PropTypes.node, PropTypes.arrayOf(PropTypes.node)]) 
+};

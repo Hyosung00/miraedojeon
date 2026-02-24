@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState, memo } from 'react';
 import * as Cesium from 'cesium';
 import { Box } from '@mui/material';
+import interactionTracker from '../../../../utils/interactionTracker';
 
 // Cesium Ion Access Token 설정
 Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzODNiZmZiNC04YTUxLTQ1YzgtOWU1Mi1kNDUyY2I2ZDRkNTQiLCJpZCI6MzQyNDEzLCJpYXQiOjE3NTgxNzMyNDh9.zZRyMPovg5ALhNtG2_E-0ED0qHqd_uQQnAG84eQUyG4';
@@ -52,30 +53,37 @@ const GlobeMini = () => {
 
   // 공격 선택 핸들러
   const handleAttackClick = (attackId) => {
-    if (selectedAttackRef.current === attackId) {
-      // 같은 공격을 다시 클릭하면 선택 해제
-      resetAllArcs();
-      return;
-    }
+    interactionTracker.measureResponseSync(
+      'GlobeMini',
+      'Attack Arc Click',
+      () => {
+        if (selectedAttackRef.current === attackId) {
+          // 같은 공격을 다시 클릭하면 선택 해제
+          resetAllArcs();
+          return;
+        }
 
-    selectedAttackRef.current = attackId;
-    
-    // 모든 arc를 흐리게 하고 선택된 것만 강조
-    arcEntitiesRef.current.forEach((arcEntity, id) => {
-      const isSelected = id === attackId;
-      
-      arcEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-        glowPower: isSelected ? 0.5 : 0.05,
-        color: isSelected 
-          ? Cesium.Color.CYAN.withAlpha(1.0)
-          : Cesium.Color.RED.withAlpha(0.2)
-      });
-      arcEntity.polyline.width = isSelected ? 5 : 1.5;
-    });
+        selectedAttackRef.current = attackId;
+        
+        // 모든 arc를 흐리게 하고 선택된 것만 강조
+        arcEntitiesRef.current.forEach((arcEntity, id) => {
+          const isSelected = id === attackId;
+          
+          arcEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
+            glowPower: isSelected ? 0.5 : 0.05,
+            color: isSelected 
+              ? Cesium.Color.CYAN.withAlpha(1.0)
+              : Cesium.Color.RED.withAlpha(0.2)
+          });
+          arcEntity.polyline.width = isSelected ? 5 : 1.5;
+        });
 
-    if (viewer.current) {
-      viewer.current.scene.requestRender();
-    }
+        if (viewer.current) {
+          viewer.current.scene.requestRender();
+        }
+      },
+      { attackId, isDeselect: selectedAttackRef.current === attackId }
+    );
   };
 
   // 모든 arc 초기화

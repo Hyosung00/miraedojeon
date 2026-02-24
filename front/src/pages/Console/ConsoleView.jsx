@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@mui/material';
+import interactionTracker from '../../utils/interactionTracker';
 
 // 각 타입별 설정
 const CONFIG = {
@@ -59,21 +60,29 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false }) =
   const loadFileContent = async () => {
     setJsonTable(null);
     setDisplayedRows(0);
-    try {
-      const response = await fetch(`http://localhost:5000/api/read-info-file?file=${config.file}`);
-      const text = await response.text();
+    
+    await interactionTracker.measureResponse(
+      'ConsoleView',
+      'Load File Content',
+      async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/read-info-file?file=${config.file}`);
+          const text = await response.text();
       try {
         const json = JSON.parse(text);
         if (Array.isArray(json) && json.length > 0 && typeof json[0] === 'object') {
           setJsonTable(json);
           animateTable(json.length);
         }
-      } catch (e) {
-        // JSON 파싱 실패 시 무시
-      }
-    } catch (error) {
-      console.error('파일 로드 실패:', error);
-    }
+          } catch (e) {
+            // JSON 파싱 실패 시 무시
+          }
+        } catch (error) {
+          console.error('파일 로드 실패:', error);
+        }
+      },
+      { file: config.file, type: type }
+    );
   };
 
   const animateTable = (totalRows) => {

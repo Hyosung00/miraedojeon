@@ -5,6 +5,7 @@ import { FundOutlined, DatabaseOutlined, CloseOutlined } from '@ant-design/icons
 import { useNavigate } from 'react-router-dom';
 import FusionDBConsole from '../FusionDB/FusionDB';
 import { usePopup } from '../../../context/PopupContext';
+import interactionTracker from '../../../utils/interactionTracker';
 
 // ==================== 상수 정의 ====================
 const API_CONFIG = {
@@ -134,7 +135,11 @@ const scrollToLog = (attackId) => {
 
 // API에서 실제 MongoDB 데이터를 가져와서 포맷팅하는 함수
 const fetchAndFormatAttackData = async (startDate = null, endDate = null) => {
-  try {
+  return await interactionTracker.measureResponse(
+    'GeoIP',
+    'Fetch Attack Data',
+    async () => {
+      try {
     let url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.NORTH_KOREA_ATTACKS}?limit=${API_CONFIG.DEFAULT_LIMIT}`;
 
     if (startDate) {
@@ -244,11 +249,14 @@ const fetchAndFormatAttackData = async (startDate = null, endDate = null) => {
 
     console.log(`✅ ${attacks.length}개 작전 변환 완료`);
     return attacks;
-  } catch (error) {
-    console.error('❌ API 호출 중 오류:', error);
-    console.error('❌ 에러 상세:', error.message, error.stack);
-    return [];
-  }
+      } catch (error) {
+        console.error('❌ API 호출 중 오류:', error);
+        console.error('❌ 에러 상세:', error.message, error.stack);
+        return [];
+      }
+    },
+    { startDate, endDate }
+  ).then(result => result.result);
 };
 
 
@@ -278,6 +286,14 @@ const TwoDPage = () => {
   const [timeRange, setTimeRange] = useState([0, 7]); // 시간 범위 (일 단위, 0일~7일)
 
   // attackStats를 useMemo로 최적화 (attacks가 변경될 때만 재계산)
+  // 컴포넌트 마운트/언마운트 추적
+  useEffect(() => {
+    interactionTracker.log('GeoIP', 'Component Mounted', {});
+    return () => {
+      interactionTracker.log('GeoIP', 'Component Unmounted', {});
+    };
+  }, []);
+
   const attackStats = useMemo(() => {
     if (!attacks || attacks.length === 0) {
       return { total: 0, active: 0, blocked: 0, countries: 0 };
@@ -1051,105 +1067,119 @@ const TwoDPage = () => {
 
     // 싱글 클릭 이벤트
     viewer.current.screenSpaceEventHandler.setInputAction((click) => {
-      try {
-        const pickedObject = viewer.current.scene.pick(click.position);
+      interactionTracker.measureResponseSync(
+        'GeoIP',
+        'Building Click on Map',
+        () => {
+          try {
+            const pickedObject = viewer.current.scene.pick(click.position);
 
-        if (pickedObject && pickedObject.id) {
-          // ID 찾기
-          let entityId = null;
-          if (pickedObject.id.id) {
-            entityId = pickedObject.id.id;
-          } else if (pickedObject.id._id) {
-            entityId = pickedObject.id._id;
-          } else if (typeof pickedObject.id === 'string') {
-            entityId = pickedObject.id;
-          }
+            if (pickedObject && pickedObject.id) {
+              // ID 찾기
+              let entityId = null;
+              if (pickedObject.id.id) {
+                entityId = pickedObject.id.id;
+              } else if (pickedObject.id._id) {
+                entityId = pickedObject.id._id;
+              } else if (typeof pickedObject.id === 'string') {
+                entityId = pickedObject.id;
+              }
 
-          // 먼저 모든 하이라이트 제거
-          clearAllHighlights();
+              // 먼저 모든 하이라이트 제거
+              clearAllHighlights();
 
-          // 건물 클릭 처리
-          const isSourceBuilding = entityId && entityId.startsWith('source-2d-');
-          const isTargetBuilding = entityId && entityId.startsWith('target-2d-');
+              // 건물 클릭 처리
+              const isSourceBuilding = entityId && entityId.startsWith('source-2d-');
+              const isTargetBuilding = entityId && entityId.startsWith('target-2d-');
 
-          if (isSourceBuilding || isTargetBuilding) {
-            // ID에서 attack ID 추출
-            let attackId = null;
-            if (entityId.startsWith('source-2d-')) {
-              attackId = entityId.replace('source-2d-', '');
-            } else if (entityId.startsWith('target-2d-')) {
-              attackId = entityId.replace('target-2d-', '');
-            }
+              if (isSourceBuilding || isTargetBuilding) {
+                // ID에서 attack ID 추출
+                let attackId = null;
+                if (entityId.startsWith('source-2d-')) {
+                  attackId = entityId.replace('source-2d-', '');
+                } else if (entityId.startsWith('target-2d-')) {
+                  attackId = entityId.replace('target-2d-', '');
+                }
 
-            if (attackId) {
-              // 공격 찾기 (타입 안정성 개선된 유틸리티 함수 사용)
-              const clickedAttack = findAttackById(attacks, attackId);
+                if (attackId) {
+                  // 공격 찾기 (타입 안정성 개선된 유틸리티 함수 사용)
+                  const clickedAttack = findAttackById(attacks, attackId);
 
-              if (clickedAttack) {
-                // 새로운 마커 하이라이트
-                highlightBuildingAttacks(clickedAttack, entityId);
-                return;
+                  if (clickedAttack) {
+                    // 새로운 마커 하이라이트
+                    highlightBuildingAttacks(clickedAttack, entityId);
+                    return;
+                  }
+                }
               }
             }
+
+            // 빈 공간 클릭 시 선택 해제
+            setSelectedAttackId(null);
+            setSelectedBuildingAttacks([]);
+
+            // 모든 하이라이트 제거
+            clearAllHighlights();
+          } catch (error) {
+            console.error('클릭 이벤트 처리 오류:', error);
           }
-        }
-
-        // 빈 공간 클릭 시 선택 해제
-        setSelectedAttackId(null);
-        setSelectedBuildingAttacks([]);
-
-        // 모든 하이라이트 제거
-        clearAllHighlights();
-      } catch (error) {
-        console.error('클릭 이벤트 처리 오류:', error);
-      }
+        },
+        { hasPickedObject: !!viewer.current.scene.pick(click.position) }
+      );
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
     // 더블 클릭 이벤트 - 마커로 확대
     viewer.current.screenSpaceEventHandler.setInputAction((click) => {
-      try {
-        const pickedObject = viewer.current.scene.pick(click.position);
+      interactionTracker.measureResponseSync(
+        'GeoIP',
+        'Building Double Click (Zoom)',
+        () => {
+          try {
+            const pickedObject = viewer.current.scene.pick(click.position);
 
-        if (pickedObject && pickedObject.id) {
-          // ID 찾기
-          let entityId = null;
-          if (pickedObject.id.id) {
-            entityId = pickedObject.id.id;
-          } else if (pickedObject.id._id) {
-            entityId = pickedObject.id._id;
-          } else if (typeof pickedObject.id === 'string') {
-            entityId = pickedObject.id;
-          }
+            if (pickedObject && pickedObject.id) {
+              // ID 찾기
+              let entityId = null;
+              if (pickedObject.id.id) {
+                entityId = pickedObject.id.id;
+              } else if (pickedObject.id._id) {
+                entityId = pickedObject.id._id;
+              } else if (typeof pickedObject.id === 'string') {
+                entityId = pickedObject.id;
+              }
 
-          // 마커인지 확인
-          const isSourceMarker = entityId && entityId.startsWith('source-2d-');
-          const isTargetMarker = entityId && entityId.startsWith('target-2d-');
+              // 마커인지 확인
+              const isSourceMarker = entityId && entityId.startsWith('source-2d-');
+              const isTargetMarker = entityId && entityId.startsWith('target-2d-');
 
-          if (isSourceMarker || isTargetMarker) {
-            const entity = viewer.current.entities.getById(entityId);
-            if (entity && entity.position) {
-              const position = entity.position.getValue(viewer.current.clock.currentTime);
-              if (position) {
-                const cartographic = Cesium.Cartographic.fromCartesian(position);
-                const longitude = Cesium.Math.toDegrees(cartographic.longitude);
-                const latitude = Cesium.Math.toDegrees(cartographic.latitude);
+              if (isSourceMarker || isTargetMarker) {
+                const entity = viewer.current.entities.getById(entityId);
+                if (entity && entity.position) {
+                  const position = entity.position.getValue(viewer.current.clock.currentTime);
+                  if (position) {
+                    const cartographic = Cesium.Cartographic.fromCartesian(position);
+                    const longitude = Cesium.Math.toDegrees(cartographic.longitude);
+                    const latitude = Cesium.Math.toDegrees(cartographic.latitude);
 
-                // 2D 모드에서 적절한 줌 레벨로 이동
-                viewer.current.camera.flyTo({
-                  destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, 50000), // 50km 고도
-                  duration: 1.5,
-                  complete: () => {
-                    // 카메라 이동 완료 후 컨트롤 재활성화
-                    viewer.current.scene.screenSpaceCameraController.enableInputs = true;
+                    // 2D 모드에서 적절한 줌 레벨로 이동
+                    viewer.current.camera.flyTo({
+                      destination: Cesium.Cartesian3.fromDegrees(longitude, latitude, 50000), // 50km 고도
+                      duration: 1.5,
+                      complete: () => {
+                        // 카메라 이동 완료 후 컨트롤 재활성화
+                        viewer.current.scene.screenSpaceCameraController.enableInputs = true;
+                      }
+                    });
                   }
-                });
+                }
               }
             }
+          } catch (error) {
+            console.error('더블클릭 이벤트 처리 오류:', error);
           }
-        }
-      } catch (error) {
-        console.error('더블클릭 이벤트 처리 오류:', error);
-      }
+        },
+        { hasPickedObject: !!viewer.current.scene.pick(click.position) }
+      );
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
   }, [attacks, isLoaded]);
 
@@ -1223,7 +1253,14 @@ const TwoDPage = () => {
               size="small"
               aria-label="3D 멀티레이어로 이동"
               title="3D 멀티레이어로 이동"
-              onClick={() => navigate('/CyberObjectInfo/MultilayerVisualization')}
+              onClick={() => {
+                interactionTracker.measureResponseSync(
+                  'GeoIP',
+                  'Navigate to MultilayerVisualization',
+                  () => navigate('/CyberObjectInfo/MultilayerVisualization'),
+                  { destination: '/CyberObjectInfo/MultilayerVisualization' }
+                );
+              }}
               sx={{
                 position: 'absolute',
                 top: 6.5,
@@ -1298,7 +1335,14 @@ const TwoDPage = () => {
                 size="small"
                 aria-label="융합 데이터베이스 열기"
                 title="융합 데이터베이스 열기"
-                onClick={() => openPopup('fusionDB')}
+                onClick={() => {
+                  interactionTracker.measureResponseSync(
+                    'GeoIP',
+                    'Open FusionDB Popup',
+                    () => openPopup('fusionDB'),
+                    {}
+                  );
+                }}
                 sx={{
                   position: 'absolute',
                   bottom: '1%',
@@ -1441,18 +1485,25 @@ const TwoDPage = () => {
                     position: 'relative'
                   }}
                   onClick={() => {
-                    const newSelectedId = selectedAttackId === attack.id ? null : attack.id;
-                    setSelectedAttackId(newSelectedId);
-                    setSelectedBuildingAttacks([]);
+                    interactionTracker.measureResponseSync(
+                      'GeoIP',
+                      'Attack Item Click',
+                      () => {
+                        const newSelectedId = selectedAttackId === attack.id ? null : attack.id;
+                        setSelectedAttackId(newSelectedId);
+                        setSelectedBuildingAttacks([]);
 
-                    // 로그 클릭 시 지도에서 해당 건물 하이라이트 및 이동
-                    if (newSelectedId) {
-                      clearAllHighlights();
-                      highlightBuildingOnMap(attack.id);
-                    } else {
-                      // 선택 해제 시 모든 하이라이트 제거
-                      clearAllHighlights();
-                    }
+                        // 로그 클릭 시 지도에서 해당 건물 하이라이트 및 이동
+                        if (newSelectedId) {
+                          clearAllHighlights();
+                          highlightBuildingOnMap(attack.id);
+                        } else {
+                          // 선택 해제 시 모든 하이라이트 제거
+                          clearAllHighlights();
+                        }
+                      },
+                      { attackId: attack.id, attackType: attack.type, isDeselect: selectedAttackId === attack.id }
+                    );
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#333' }}>
@@ -1492,7 +1543,12 @@ const TwoDPage = () => {
                     title="내부망 토폴로지로 이동"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/ExtInt/internaltopology');
+                      interactionTracker.measureResponseSync(
+                        'GeoIP',
+                        'Navigate to Internal Topology',
+                        () => navigate('/ExtInt/internaltopology'),
+                        { destination: '/ExtInt/internaltopology' }
+                      );
                     }}
                     sx={{
                       position: 'absolute',
@@ -1550,7 +1606,14 @@ const TwoDPage = () => {
               <Slider
                 aria-label="날짜 범위 선택"
                 value={timeRange}
-                onChange={(_, newValue) => setTimeRange(newValue)}
+                onChange={(_, newValue) => {
+                  interactionTracker.measureResponseSync(
+                    'GeoIP',
+                    'Time Range Slider Change',
+                    () => setTimeRange(newValue),
+                    { newRange: newValue, days: newValue[1] - newValue[0] }
+                  );
+                }}
                 min={0}
                 max={7}
                 step={1}
@@ -1648,7 +1711,14 @@ const TwoDPage = () => {
       {/* FusionDB 팝업 다이얼로그 */}
       <Dialog
         open={fusionDBOpen}
-        onClose={() => closePopup('fusionDB')}
+        onClose={() => {
+          interactionTracker.measureResponseSync(
+            'GeoIP',
+            'Close FusionDB Popup (Dialog Close)',
+            () => closePopup('fusionDB'),
+            {}
+          );
+        }}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -1662,7 +1732,14 @@ const TwoDPage = () => {
         }}
       >
         <IconButton
-          onClick={() => closePopup('fusionDB')}
+          onClick={() => {
+            interactionTracker.measureResponseSync(
+              'GeoIP',
+              'Close FusionDB Popup (Button)',
+              () => closePopup('fusionDB'),
+              {}
+            );
+          }}
           sx={{
             position: 'absolute',
             right: 23,

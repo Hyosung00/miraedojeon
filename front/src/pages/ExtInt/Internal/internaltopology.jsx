@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, memo, lazy, Suspense } from "react";
 import { Card, CardContent, Typography } from '@mui/material';
 import * as THREE from "three";
+import interactionTracker from '../../../utils/interactionTracker';
 import './internaltopology.scss';
 
 // === 지연 로딩으로 초기 번들 크기 감소 ===
@@ -13,7 +14,11 @@ const VIEW_CACHE = new Map();
 
 // === 네트워크 데이터 fetch ===
 async function fetchNetworkData(activeView = "internaltopology", project = null) {
-  try {
+  return await interactionTracker.measureResponse(
+    'InternalTopology',
+    'Fetch Network Data',
+    async () => {
+      try {
     let url = `http://localhost:8000/neo4j/nodes?activeView=internaltopology`;
     if (project) url += `&project=${encodeURIComponent(project)}`;
 
@@ -80,10 +85,13 @@ async function fetchNetworkData(activeView = "internaltopology", project = null)
     });
 
     return { nodes, links };
-  } catch (error) {
-    console.error('fetchNetworkData error:', error);
-    return { nodes: [], links: [] };
-  }
+      } catch (error) {
+        console.error('fetchNetworkData error:', error);
+        return { nodes: [], links: [] };
+      }
+    },
+    { activeView, project }
+  ).then(result => result.result);
 }
 
 // === 유틸 ===
@@ -221,6 +229,14 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
 
   const [view, setView] = useState(activeView);
   useEffect(() => { setView(activeView); }, [activeView]);
+
+  // 컴포넌트 생애주기 추적
+  useEffect(() => {
+    interactionTracker.log('InternalTopology', 'Component Mounted', {});
+    return () => {
+      interactionTracker.log('InternalTopology', 'Component Unmounted', {});
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -631,28 +647,49 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
               <Typography variant="body2" sx={{ fontWeight: 600, color: '#000000ff' }}>Link Type</Typography>
             </div>
             <div className="link-type-buttons">
-              <button onClick={()=>{ setLinkTypeFilter('physical'); }} className={linkTypeFilter==='physical' ? 'active' : 'inactive'} title="물리 링크만 보기">Physical</button>
-              <button onClick={()=>{ setLinkTypeFilter('logical'); }} className={linkTypeFilter==='logical' ? 'active' : 'inactive'} title="논리 링크(점선)만 보기">Logical</button>
+              <button onClick={()=>{
+                interactionTracker.measureResponseSync(
+                  'InternalTopology',
+                  'Link Type Filter - Physical',
+                  () => setLinkTypeFilter('physical'),
+                  { filterType: 'physical' }
+                );
+              }} className={linkTypeFilter==='physical' ? 'active' : 'inactive'} title="물리 링크만 보기">Physical</button>
+              <button onClick={()=>{
+                interactionTracker.measureResponseSync(
+                  'InternalTopology',
+                  'Link Type Filter - Logical',
+                  () => setLinkTypeFilter('logical'),
+                  { filterType: 'logical' }
+                );
+              }} className={linkTypeFilter==='logical' ? 'active' : 'inactive'} title="논리 링크(점선)만 보기">Logical</button>
             </div>
             {/* 뷰 초기화 */}
             <div className="view-reset-container">
               <button onClick={() => {
-                setSelected(null);
-                setSelectedZones(allZones);
-                setLinkTypeFilter('all');
-                const core = graph.nodes.find((n) => n.kind === "core");
-                if (fgRef.current) {
-                  // zFixed 값을 더 크게해서 전체가 더 작게 보이도록 zoom out
-                  const zFixed = 2400;
-                  if (core) {
-                    const distance = 150;
-                    const distRatio = 1 + distance / Math.hypot(core.x || 1, core.y || 1, core.z || 1);
-                    fgRef.current.cameraPosition({ x: (core.x || 1) * distRatio, y: (core.y || 1) * distRatio, z: zFixed }, core, 800);
-                  } else {
-                    fgRef.current.cameraPosition({ x: 0, y: 0, z: zFixed }, null, 800);
-                  }
-                  fgRef.current.resumeAnimation?.();
-                }
+                interactionTracker.measureResponseSync(
+                  'InternalTopology',
+                  'View Reset',
+                  () => {
+                    setSelected(null);
+                    setSelectedZones(allZones);
+                    setLinkTypeFilter('all');
+                    const core = graph.nodes.find((n) => n.kind === "core");
+                    if (fgRef.current) {
+                      // zFixed 값을 더 크게해서 전체가 더 작게 보이도록 zoom out
+                      const zFixed = 2400;
+                      if (core) {
+                        const distance = 150;
+                        const distRatio = 1 + distance / Math.hypot(core.x || 1, core.y || 1, core.z || 1);
+                        fgRef.current.cameraPosition({ x: (core.x || 1) * distRatio, y: (core.y || 1) * distRatio, z: zFixed }, core, 800);
+                      } else {
+                        fgRef.current.cameraPosition({ x: 0, y: 0, z: zFixed }, null, 800);
+                      }
+                      fgRef.current.resumeAnimation?.();
+                    }
+                  },
+                  { zoneCount: allZones.length, hasCoreNode: !!graph.nodes.find((n) => n.kind === "core") }
+                );
               }}>뷰 초기화</button>
             </div>
             {/* Zones 목록 */}
@@ -667,14 +704,28 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                 if (!active) return null;
                 return (
                   <div key={z} className={`zone-item ${active ? 'active' : 'inactive'}`}>
-                    <button onClick={() => setActiveZone(z)} className={`zone-button ${active ? 'active' : 'inactive'}`}>
+                    <button onClick={() => {
+                      interactionTracker.measureResponseSync(
+                        'InternalTopology',
+                        'Zone Header Click',
+                        () => setActiveZone(z),
+                        { zone: z, zoneName: getZoneName(z), nodeCount: ct }
+                      );
+                    }} className={`zone-button ${active ? 'active' : 'inactive'}`}>
                       <div className="zone-header">
                         <span>{getZoneName(z)}</span>
                         <span className="zone-count">{ct}</span>
                       </div>
                     </button>
                     <div className="zone-actions">
-                      <button onClick={() => setActiveZone(z)} title="존 상세 보기">Details</button>
+                      <button onClick={() => {
+                        interactionTracker.measureResponseSync(
+                          'InternalTopology',
+                          'Zone Details Button Click',
+                          () => setActiveZone(z),
+                          { zone: z, zoneName: getZoneName(z), nodeCount: ct }
+                        );
+                      }} title="존 상세 보기">Details</button>
                     </div>
                   </div>
                 );
@@ -686,14 +737,35 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
               <form>
                 {allZones.map((z) => (
                   <label key={z}>
-                    <input type="checkbox" checked={selectedZones.includes(z)} onChange={() => toggleZone(z)} />
+                    <input type="checkbox" checked={selectedZones.includes(z)} onChange={() => {
+                      interactionTracker.measureResponseSync(
+                        'InternalTopology',
+                        'Zone Filter Checkbox Toggle',
+                        () => toggleZone(z),
+                        { zone: z, zoneName: getZoneName(z), isChecked: !selectedZones.includes(z) }
+                      );
+                    }} />
                     <span>{getZoneName(z)} <span className="zone-count-inline">({countByZone.get(z) || 0})</span></span>
                   </label>
                 ))}
               </form>
               <div className="filter-buttons">
-                <button onClick={selectAll}>All</button>
-                <button onClick={selectNone}>None</button>
+                <button onClick={() => {
+                  interactionTracker.measureResponseSync(
+                    'InternalTopology',
+                    'Select All Zones',
+                    () => selectAll(),
+                    { zoneCount: allZones.length }
+                  );
+                }}>All</button>
+                <button onClick={() => {
+                  interactionTracker.measureResponseSync(
+                    'InternalTopology',
+                    'Select None Zones',
+                    () => selectNone(),
+                    {}
+                  );
+                }}>None</button>
               </div>
               <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#000000ff' }}>
                 {filtered.nodes.length} nodes • {filtered.links.length} links
@@ -704,7 +776,8 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
 
         {/* 그래프 영역 */}
         <Card sx={{ flex: 1, height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '20px', boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)', background: '#856affff' }}>
-          <div ref={mainGraphContainerRef} className="graph-container" role="img" aria-label="Internal network topology (800 nodes)">
+          <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 } }}>
+            <div ref={mainGraphContainerRef} className="graph-container" role="img" aria-label="Internal network topology (800 nodes)">
             <Suspense fallback={
               <div className="loading-overlay">
                 <div className="loading-box">Loading Graph...</div>
@@ -749,30 +822,44 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                 }, [refreshAllDashed])}
                 onLinkUpdate={useCallback((l, obj) => { try { if (obj && obj.computeLineDistances) obj.computeLineDistances(); } catch {} if (String(l.type || '').toLowerCase() === 'logical') { const scene = fgRef.current?.scene?.(); if (!scene) return; scene.traverse((o) => { if (o.userData?.type === 'logical-dashed' && o.userData.link === l) { updateLogicalDashed(l, o); } }); } }, [updateLogicalDashed])}
                 onNodeClick={useCallback((n)=>{
-                  resume(); setSelected(n);
-                  if (n) {
-                    const connectedNodes = adjacency.get(n.id) || new Set();
-                    const connectedIps = Array.from(connectedNodes)
-                      .map(nid => { const node = filtered.nodes.find(node => node.id === nid); return node?.ip; })
-                      .filter(ip => ip);
-                    const dbInfo = filtered.links
-                      .filter(link => { const sid = typeof link.source === 'object' ? link.source.id : link.source; const tid = typeof link.target === 'object' ? link.target.id : link.target; return sid === n.id || tid === n.id; })
-                      .map(link => {
-                        const sid = typeof link.source === 'object' ? link.source.id : link.source;
-                        const tid = typeof link.target === 'object' ? link.target.id : link.target;
-                        const srcNode = filtered.nodes.find(node => node.id === sid) || graph.nodes.find(node => node.id === sid);
-                        const dstNode = filtered.nodes.find(node => node.id === tid) || graph.nodes.find(node => node.id === tid);
-                        return {
-                          src_IP: srcNode ? { id: srcNode.id, ip: srcNode.ip, subnet: srcNode.subnet, gateway: srcNode.gateway, __labels: [srcNode.kind], __id: srcNode.id, index: srcNode.zone } : null,
-                          dst_IP: dstNode ? { id: dstNode.id, ip: dstNode.ip, subnet: dstNode.subnet, gateway: dstNode.gateway, __labels: [dstNode.kind], __id: dstNode.id, index: dstNode.zone } : null,
-                          edge: { sourceIP: sid, targetIP: tid, type: link.type, count: link.count }
-                        };
-                      });
-                    const newLog = { message: `노드 선택: ${n.label || n.id}`, nodeInfo: { kind: n.kind, zone: n.zone, ip: n.ip }, connectedCount: connectedNodes.size, connectedIps, dbInfo };
-                    setEventLogs([newLog]);
-                  }
+                  interactionTracker.measureResponseSync(
+                    'InternalTopology',
+                    'Node Click on Graph',
+                    () => {
+                      resume(); setSelected(n);
+                      if (n) {
+                        const connectedNodes = adjacency.get(n.id) || new Set();
+                        const connectedIps = Array.from(connectedNodes)
+                          .map(nid => { const node = filtered.nodes.find(node => node.id === nid); return node?.ip; })
+                          .filter(ip => ip);
+                        const dbInfo = filtered.links
+                          .filter(link => { const sid = typeof link.source === 'object' ? link.source.id : link.source; const tid = typeof link.target === 'object' ? link.target.id : link.target; return sid === n.id || tid === n.id; })
+                          .map(link => {
+                            const sid = typeof link.source === 'object' ? link.source.id : link.source;
+                            const tid = typeof link.target === 'object' ? link.target.id : link.target;
+                            const srcNode = filtered.nodes.find(node => node.id === sid) || graph.nodes.find(node => node.id === sid);
+                            const dstNode = filtered.nodes.find(node => node.id === tid) || graph.nodes.find(node => node.id === tid);
+                            return {
+                              src_IP: srcNode ? { id: srcNode.id, ip: srcNode.ip, subnet: srcNode.subnet, gateway: srcNode.gateway, __labels: [srcNode.kind], __id: srcNode.id, index: srcNode.zone } : null,
+                              dst_IP: dstNode ? { id: dstNode.id, ip: dstNode.ip, subnet: dstNode.subnet, gateway: dstNode.gateway, __labels: [dstNode.kind], __id: dstNode.id, index: dstNode.zone } : null,
+                              edge: { sourceIP: sid, targetIP: tid, type: link.type, count: link.count }
+                            };
+                          });
+                        const newLog = { message: `노드 선택: ${n.label || n.id}`, nodeInfo: { kind: n.kind, zone: n.zone, ip: n.ip }, connectedCount: connectedNodes.size, connectedIps, dbInfo };
+                        setEventLogs([newLog]);
+                      }
+                    },
+                    { nodeId: n?.id, nodeLabel: n?.label, nodeKind: n?.kind, nodeZone: n?.zone }
+                  );
                 }, [adjacency, filtered.nodes, filtered.links, graph.nodes, resume])}
-                onBackgroundClick={useCallback(()=>{ setSelected(null); setEventLogs([]); resume(); }, [resume])}
+                onBackgroundClick={useCallback(()=>{
+                  interactionTracker.measureResponseSync(
+                    'InternalTopology',
+                    'Background Click (Deselect)',
+                    () => { setSelected(null); setEventLogs([]); resume(); },
+                    {}
+                  );
+                }, [resume])}
                 enableNodeDrag={false}
                 // 🔒 성능: 초기에는 OFF, 레이아웃 끝나면 onEngineStop에서 ON
                 enablePointerInteraction={pointerEnabled}
@@ -792,12 +879,26 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             {/* Zone 상세 오버레이 (UI 변경 없음) */}
             {activeZone !== null && (
               <div className="zone-detail-overlay">
-                <div onClick={() => setActiveZone(null)} className="overlay-backdrop" />
+                <div onClick={() => {
+                  interactionTracker.measureResponseSync(
+                    'InternalTopology',
+                    'Zone Overlay Backdrop Click (Close)',
+                    () => setActiveZone(null),
+                    { zone: activeZone }
+                  );
+                }} className="overlay-backdrop" />
                 <div onClick={(e)=>e.stopPropagation()} className="overlay-content">
                   <Suspense fallback={<div className="overlay-loading">Loading...</div>}>
                     <ZonePage
                       zone={activeZone}
-                      onBack={() => setActiveZone(null)}
+                      onBack={() => {
+                        interactionTracker.measureResponseSync(
+                          'InternalTopology',
+                          'Zone Detail Back Button',
+                          () => setActiveZone(null),
+                          { zone: activeZone }
+                        );
+                      }}
                       onInspectorChange={onInspectorChange}
                       setEventLogs={setEventLogs}
                     />
@@ -806,6 +907,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
               </div>
             )}
           </div>
+          </CardContent>
         </Card>
 
         {/* 우측 이벤트 로그 패널 (UI 변경 없음) */}

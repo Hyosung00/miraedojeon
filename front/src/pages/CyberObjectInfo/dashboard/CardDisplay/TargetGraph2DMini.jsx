@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useMemo, memo } from "react";
 import { Network } from "vis-network/standalone";
 import { Box } from "@mui/material";
 import "vis-network/styles/vis-network.css";
+import interactionTracker from "../../../../utils/interactionTracker";
 
 // 노드 타입에 따른 이미지 반환
 const getNodeImage = (node) => {
@@ -146,6 +147,22 @@ const TargetGraph2DMini = memo(({ dbNodes = [] }) => {
     };
 
     networkRef.current = new Network(containerRef.current, data, options);
+
+    // 노드 클릭 이벤트
+    networkRef.current.on('selectNode', (params) => {
+      const nodeId = params.nodes && params.nodes[0];
+      if (!nodeId) return;
+      
+      const selectedNode = nodes.find(n => n.id === nodeId);
+      interactionTracker.measureResponseSync(
+        'TargetGraph2DMini',
+        'Node Click',
+        () => {
+          console.log('Target node clicked:', selectedNode);
+        },
+        { nodeId, label: selectedNode?.label }
+      );
+    });
 
     return () => {
       if (networkRef.current) {

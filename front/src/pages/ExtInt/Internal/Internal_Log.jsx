@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, Typography, IconButton } from '@mui/material';
-import { ClusterOutlined } from '@ant-design/icons';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import { useNavigate } from 'react-router-dom';
 
 function InternalLog({ eventLogs = [] }) {
@@ -90,7 +90,7 @@ function InternalLog({ eventLogs = [] }) {
                       height: 24
                     }}
                   >
-                    <ClusterOutlined style={{ fontSize: 12 }} />
+                    <AccountTreeIcon sx={{ fontSize: 12 }} />
                   </IconButton>
                   
                   {/* Source IP */}

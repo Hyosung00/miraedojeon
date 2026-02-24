@@ -8,7 +8,6 @@ import { Box, Typography, Card, CardContent, IconButton, Button, Dialog, DialogC
 import { MinusOutlined, PlusOutlined, FundOutlined, InfoOutlined } from '@ant-design/icons';
 import TreatAnalysis from '../ThreatAnalysis/TreatAnalysis';
 import { usePopup } from '../../../context/PopupContext';
-import interactionTracker from '../../../utils/interactionTracker';
 import './OS.css';
 
 // 노드 타입 이미지
@@ -44,32 +43,6 @@ async function fetchData(queryString = "MATCH (n) RETURN n LIMIT 25", params = {
 function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   const { popups, openPopup, closePopup } = usePopup();
   const treatAnalysisOpen = popups.treatAnalysis;
-
-  // 컴포넌트 마운트/언마운트 추적
-  useEffect(() => {
-    const mountTime = performance.now();
-    console.log(`
-╔════════════════════════════════════════════════════════════════
-║ 🚀 컴포넌트 마운트
-╠════════════════════════════════════════════════════════════════
-║ 📦 컴포넌트: OffensiveStrategy
-║ ⏰ 마운트 시각: ${new Date().toISOString()}
-║ 📊 Props:`, { deviceElementId, onSelectDevice: !!onSelectDevice }, `
-╚════════════════════════════════════════════════════════════════`);
-
-    return () => {
-      const unmountTime = performance.now();
-      const lifeTime = unmountTime - mountTime;
-      console.log(`
-╔════════════════════════════════════════════════════════════════
-║ 🛑 컴포넌트 언마운트
-╠════════════════════════════════════════════════════════════════
-║ 📦 컴포넌트: OffensiveStrategy
-║ ⏰ 언마운트 시각: ${new Date().toISOString()}
-║ ⏱️  생존 시간: ${lifeTime.toFixed(2)}ms (${(lifeTime / 1000).toFixed(3)}초)
-╚════════════════════════════════════════════════════════════════`);
-    };
-  }, []);
 
   useEffect(() => { /* 팝업 상태만 동기화 */ }, [popups.treatAnalysis]);
 
@@ -320,20 +293,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
     console.log('  목표 노드:', targetPhysicalName);
     console.log('  조건: 최소 1개 이상의 우회 엔드포인트 경유 필수');
 
-    // 경로 생성 시간 측정
-    interactionTracker.measureResponse(
-      'OffensiveStrategy',
-      'Generate Attack Path',
-      async () => {
-        const recs = await fetchData(query, { targetPhysicalName, startId });
-        return { recs, targetPhysicalName, startId };
-      },
-      {
-        startNodeId: startId,
-        targetNodeName: targetPhysicalName
-      }
-    ).then(async (result) => {
-      const { recs } = result.result;
+    fetchData(query, { targetPhysicalName, startId }).then(async (recs) => {
       if (canceled) return;
 
       console.log(`✅ 쿼리 완료: ${recs?.length || 0}개의 경로 발견`);
@@ -954,35 +914,17 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
     // 노드 선택 이벤트
     topologyNetRef.current.on('selectNode', async (params) => {
-      const clickStartTime = performance.now();
-      
       const nid = params.nodes && params.nodes[0];
       if (!nid || !nodesDataSetRef.current) return;
       const node = nodesDataSetRef.current.get(nid);
       const deviceName = node?.name;
 
-      // 상호작용 로그
-      interactionTracker.log('OffensiveStrategy - NetworkTopology', 'Node Click', {
-        nodeId: nid,
-        nodeName: deviceName,
-        nodeData: node,
-        clickEvent: params
-      });
-
       // 부모로부터 목적지를 전달받은 경우 (기존 로직)
       if (deviceElementId) {
-        await interactionTracker.measureResponse(
-          'OffensiveStrategy - NetworkTopology',
-          'Start Node Selection',
-          async () => {
-            const physId = await resolvePhysicalIdByName(deviceName);
-            if (physId != null) {
-              setSelectedStartNode(physId);
-            }
-            return { physicalId: physId, deviceName };
-          },
-          { deviceName, nodeId: nid }
-        );
+        const physId = await resolvePhysicalIdByName(deviceName);
+        if (physId != null) {
+          setSelectedStartNode(physId);
+        }
       } else {
         // 수동 선택 모드: 첫 번째 클릭 = 목적지, 두 번째 클릭 = 출발지
         const currentStep = selectionStepRef.current;
@@ -990,72 +932,35 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         
         if (currentStep === 0) {
           // 목적지 선택
-          await interactionTracker.measureResponse(
-            'OffensiveStrategy - NetworkTopology',
-            'Target Node Selection (Step 1)',
-            async () => {
-              setInternalSelected(deviceName);
-              setManualTargetNode({ id: nid, name: deviceName, ...node });
-              setSelectionStep(1);
-              console.log('🎯 목적지 노드 선택:', deviceName);
-              return { deviceName, nodeId: nid, step: 'target' };
-            },
-            { deviceName, nodeId: nid, currentStep }
-          );
+          setInternalSelected(deviceName);
+          setManualTargetNode({ id: nid, name: deviceName, ...node });
+          setSelectionStep(1);
+          console.log('🎯 목적지 노드 선택:', deviceName);
         } else if (currentStep === 1) {
           // 출발지 선택 (목적지와 다른 노드여야 함)
           if (deviceName === currentTarget) {
             console.warn('⚠️ 출발지와 목적지가 같습니다. 다른 노드를 선택하세요.');
-            interactionTracker.log('OffensiveStrategy - NetworkTopology', 'Invalid Start Node Selection', {
-              reason: '출발지와 목적지가 동일함',
-              deviceName,
-              currentTarget
-            });
             return;
           }
-          await interactionTracker.measureResponse(
-            'OffensiveStrategy - NetworkTopology',
-            'Start Node Selection (Step 2)',
-            async () => {
-              const physId = await resolvePhysicalIdByName(deviceName);
-              if (physId != null) {
-                setSelectedStartNode(physId);
-                setSelectionStep(2);
-                console.log('🚀 출발지 노드 선택:', deviceName);
-              }
-              return { physicalId: physId, deviceName, nodeId: nid, step: 'start' };
-            },
-            { deviceName, nodeId: nid, currentStep }
-          );
+          const physId = await resolvePhysicalIdByName(deviceName);
+          if (physId != null) {
+            setSelectedStartNode(physId);
+            setSelectionStep(2);
+            console.log('🚀 출발지 노드 선택:', deviceName);
+          }
         } else {
           // 이미 선택 완료된 상태에서 다시 클릭하면 출발지만 변경
           if (deviceName === currentTarget) {
             console.warn('⚠️ 출발지와 목적지가 같습니다. 다른 노드를 선택하세요.');
-            interactionTracker.log('OffensiveStrategy - NetworkTopology', 'Invalid Start Node Change', {
-              reason: '출발지와 목적지가 동일함',
-              deviceName,
-              currentTarget
-            });
             return;
           }
-          await interactionTracker.measureResponse(
-            'OffensiveStrategy - NetworkTopology',
-            'Start Node Change',
-            async () => {
-              const physId = await resolvePhysicalIdByName(deviceName);
-              if (physId != null) {
-                setSelectedStartNode(physId);
-                console.log('🔄 출발지 노드 변경:', deviceName);
-              }
-              return { physicalId: physId, deviceName, nodeId: nid, step: 'change' };
-            },
-            { deviceName, nodeId: nid, currentStep }
-          );
+          const physId = await resolvePhysicalIdByName(deviceName);
+          if (physId != null) {
+            setSelectedStartNode(physId);
+            console.log('🔄 출발지 노드 변경:', deviceName);
+          }
         }
       }
-
-      const clickEndTime = performance.now();
-      console.log(`⏱️  전체 클릭 처리 시간: ${(clickEndTime - clickStartTime).toFixed(2)}ms`);
     });
 
     return () => {
@@ -1529,21 +1434,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   }, [isAnimating, particlePosition, selectedPath, pathList, topologyData, attackGraphData]);
 
   // 보조 유틸: 노드 상세정보
-  const showNodeDetails = (node) => {
-    const startTime = performance.now();
-    const props = node?.properties || node?.props || {};
-    
-    interactionTracker.log('OffensiveStrategy - Node Details', 'Show Node Details', {
-      nodeId: node?.id,
-      nodeName: node?.name || node?.label,
-      properties: props
-    });
-    
-    alert(JSON.stringify(props, null, 2));
-    
-    const endTime = performance.now();
-    console.log(`⏱️  노드 상세정보 표시 반응 시간: ${(endTime - startTime).toFixed(2)}ms`);
-  };
+  const showNodeDetails = (node) => { const props = node?.properties || node?.props || {}; alert(JSON.stringify(props, null, 2)); };
   const startNodeObj = attackGraphData.nodes?.find(n => n.id === selectedStartNode) || null;
   const targetNodeObj = attackGraphData.nodes?.find(n => n.id === attackGraphData.targetNodeId) || null;
 
@@ -1717,35 +1608,23 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   };
 
   const onSelectPathWithLogs = (idx) => {
-    interactionTracker.measureResponseSync(
-      'OffensiveStrategy - Path List',
-      'Path Selection',
-      () => {
-        // 이전 애니메이션 중지
-        animationActiveRef.current = false;
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-        }
-        setIsAnimating(false);
-        setParticlePosition(0);
+    // 이전 애니메이션 중지
+    animationActiveRef.current = false;
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    setIsAnimating(false);
+    setParticlePosition(0);
 
-        setSelectedPath(idx);
-        const text = buildCalculationText(idx);
-        startTypingLogs(text);
+    setSelectedPath(idx);
+    const text = buildCalculationText(idx);
+    startTypingLogs(text);
 
-        // 약간의 지연 후 새 애니메이션 시작
-        setTimeout(() => {
-          startPathAnimation(idx);
-        }, 100);
-      },
-      {
-        pathIndex: idx,
-        pathLength: pathList[idx]?.length,
-        pathNodes: pathList[idx]?.map(n => ({ id: n.id, label: n.label })),
-        totalPaths: pathList.length
-      }
-    );
+    // 약간의 지연 후 새 애니메이션 시작
+    setTimeout(() => {
+      startPathAnimation(idx);
+    }, 100);
   };
 
   // 컴포넌트 언마운트 시 애니메이션 정리
@@ -1781,66 +1660,48 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                 }
               </Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <IconButton size="small" onClick={() => {
-                  interactionTracker.measureResponseSync(
-                    'OffensiveStrategy - Header',
-                    'Treat Analysis Button Click',
-                    () => openPopup('treatAnalysis'),
-                    { action: 'Open Treat Analysis Popup' }
-                  );
-                }} sx={{ bgcolor: '#7c3aed', color: 'white', '&:hover': { bgcolor: '#6d28d9' }, width: 32, height: 32 }} title="위험 분석 보기">
+                <IconButton size="small" onClick={() => openPopup('treatAnalysis')} sx={{ bgcolor: '#7c3aed', color: 'white', '&:hover': { bgcolor: '#6d28d9' }, width: 32, height: 32 }} title="위험 분석 보기">
                   <FundOutlined style={{ fontSize: 16 }} />
                 </IconButton>
                 {/* 수동 선택 모드에서 전체 초기화 버튼 */}
                 {!deviceElementId && selectionStep > 0 && (
                   <Button size="small" variant="contained" onClick={() => {
-                    interactionTracker.measureResponseSync(
-                      'OffensiveStrategy - Header',
-                      'Reset All Button Click',
-                      () => {
-                        // 애니메이션 즉시 중지
-                        animationActiveRef.current = false;
-                        if (animationFrameRef.current) {
-                          cancelAnimationFrame(animationFrameRef.current);
-                          animationFrameRef.current = null;
-                        }
-                        setIsAnimating(false);
-                        
-                        // 모든 상태 초기화
-                        setSelectedStartNode(null);
-                        setSelectedPath(null);
-                        setInternalSelected(null);
-                        setManualTargetNode(null);
-                        setSelectionStep(0);
-                        setTypedLogText("");
-                        setPathList([]);
-                        
-                        // 엣지/노드 스타일 즉시 초기화
-                        const baseTopology = initialTopologyRef.current ?? topologyData;
-                        if (nodesDataSetRef.current && edgesDataSetRef.current) {
-                          const nodeResets = (baseTopology.nodes || []).map(n => ({
-                            id: n.id,
-                            size: 12,
-                            borderWidth: 2,
-                            color: { border: '#205AAA' },
-                            shadow: { enabled: false }
-                          }));
-                          const edgeResets = (baseTopology.edges || []).map(e => ({
-                            id: e.id,
-                            color: { color: '#848484' },
-                            width: 1,
-                            shadow: { enabled: false }
-                          }));
-                          nodesDataSetRef.current.update(nodeResets);
-                          edgesDataSetRef.current.update(edgeResets);
-                        }
-                      },
-                      {
-                        currentStep: selectionStep,
-                        targetDevice: effectiveDeviceName,
-                        startNode: selectedStartNode
-                      }
-                    );
+                    // 애니메이션 즉시 중지
+                    animationActiveRef.current = false;
+                    if (animationFrameRef.current) {
+                      cancelAnimationFrame(animationFrameRef.current);
+                      animationFrameRef.current = null;
+                    }
+                    setIsAnimating(false);
+                    
+                    // 모든 상태 초기화
+                    setSelectedStartNode(null);
+                    setSelectedPath(null);
+                    setInternalSelected(null);
+                    setManualTargetNode(null);
+                    setSelectionStep(0);
+                    setTypedLogText("");
+                    setPathList([]);
+                    
+                    // 엣지/노드 스타일 즉시 초기화
+                    const baseTopology = initialTopologyRef.current ?? topologyData;
+                    if (nodesDataSetRef.current && edgesDataSetRef.current) {
+                      const nodeResets = (baseTopology.nodes || []).map(n => ({
+                        id: n.id,
+                        size: 12,
+                        borderWidth: 2,
+                        color: { border: '#205AAA' },
+                        shadow: { enabled: false }
+                      }));
+                      const edgeResets = (baseTopology.edges || []).map(e => ({
+                        id: e.id,
+                        color: { color: '#848484' },
+                        width: 1,
+                        shadow: { enabled: false }
+                      }));
+                      nodesDataSetRef.current.update(nodeResets);
+                      edgesDataSetRef.current.update(edgeResets);
+                    }
                   }} sx={{ bgcolor: '#f44336', color: 'white', '&:hover': { bgcolor: '#d32f2f' }, fontSize: 11, py: 0.5, px: 1.5 }}>
                     전체 초기화
                   </Button>
@@ -1848,47 +1709,37 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                 {/* 기존 시작 노드 초기화 버튼 (부모로부터 목적지 전달받은 경우) */}
                 {deviceElementId && selectedStartNode && (
                   <Button size="small" variant="contained" onClick={() => {
-                    interactionTracker.measureResponseSync(
-                      'OffensiveStrategy - Header',
-                      'Reset Start Node Button Click',
-                      () => {
-                        // 애니메이션 즉시 중지
-                        animationActiveRef.current = false;
-                        if (animationFrameRef.current) {
-                          cancelAnimationFrame(animationFrameRef.current);
-                          animationFrameRef.current = null;
-                        }
-                        setIsAnimating(false);
-                        
-                        // 상태 초기화
-                        setSelectedStartNode(null);
-                        setSelectedPath(null);
-                        
-                        // 엣지/노드 스타일 즉시 초기화
-                        const baseTopology = initialTopologyRef.current ?? topologyData;
-                        if (nodesDataSetRef.current && edgesDataSetRef.current) {
-                          const nodeResets = (baseTopology.nodes || []).map(n => ({
-                            id: n.id,
-                            size: 12,
-                            borderWidth: 2,
-                            color: { border: '#205AAA' },
-                            shadow: { enabled: false }
-                          }));
-                          const edgeResets = (baseTopology.edges || []).map(e => ({
-                            id: e.id,
-                            color: { color: '#848484' },
-                            width: 1,
-                            shadow: { enabled: false }
-                          }));
-                          nodesDataSetRef.current.update(nodeResets);
-                          edgesDataSetRef.current.update(edgeResets);
-                        }
-                      },
-                      {
-                        startNode: selectedStartNode,
-                        targetDevice: deviceElementId
-                      }
-                    );
+                    // 애니메이션 즉시 중지
+                    animationActiveRef.current = false;
+                    if (animationFrameRef.current) {
+                      cancelAnimationFrame(animationFrameRef.current);
+                      animationFrameRef.current = null;
+                    }
+                    setIsAnimating(false);
+                    
+                    // 상태 초기화
+                    setSelectedStartNode(null);
+                    setSelectedPath(null);
+                    
+                    // 엣지/노드 스타일 즉시 초기화
+                    const baseTopology = initialTopologyRef.current ?? topologyData;
+                    if (nodesDataSetRef.current && edgesDataSetRef.current) {
+                      const nodeResets = (baseTopology.nodes || []).map(n => ({
+                        id: n.id,
+                        size: 12,
+                        borderWidth: 2,
+                        color: { border: '#205AAA' },
+                        shadow: { enabled: false }
+                      }));
+                      const edgeResets = (baseTopology.edges || []).map(e => ({
+                        id: e.id,
+                        color: { color: '#848484' },
+                        width: 1,
+                        shadow: { enabled: false }
+                      }));
+                      nodesDataSetRef.current.update(nodeResets);
+                      edgesDataSetRef.current.update(edgeResets);
+                    }
                   }} sx={{ bgcolor: '#4CAF50', color: 'white', '&:hover': { bgcolor: '#45a049' }, fontSize: 11, py: 0.5, px: 1.5 }}>
                     시작 노드 초기화
                   </Button>
@@ -1950,13 +1801,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                   {startNodeObj ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span><strong>시작:</strong> {startNodeObj.label || startNodeObj.id}</span>
-                      <Button size="small" variant="outlined" onClick={() => {
-                        interactionTracker.log('OffensiveStrategy - Node Info', 'Start Node Details Button Click', {
-                          nodeId: startNodeObj.id,
-                          nodeLabel: startNodeObj.label
-                        });
-                        showNodeDetails(startNodeObj);
-                      }} sx={{ ml: 1 }}>상세정보</Button>
+                      <Button size="small" variant="outlined" onClick={() => showNodeDetails(startNodeObj)} sx={{ ml: 1 }}>상세정보</Button>
                     </Box>
                   ) : (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>
@@ -1967,24 +1812,12 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                   {!deviceElementId && manualTargetNode ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span><strong>목표:</strong> {manualTargetNode.name || manualTargetNode.label}</span>
-                      <Button size="small" variant="outlined" onClick={() => {
-                        interactionTracker.log('OffensiveStrategy - Node Info', 'Manual Target Node Details Button Click', {
-                          nodeId: manualTargetNode.id,
-                          nodeName: manualTargetNode.name
-                        });
-                        showNodeDetails(manualTargetNode);
-                      }} sx={{ ml: 1 }}>상세정보</Button>
+                      <Button size="small" variant="outlined" onClick={() => showNodeDetails(manualTargetNode)} sx={{ ml: 1 }}>상세정보</Button>
                     </Box>
                   ) : targetNodeObj ? (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span><strong>목표:</strong> {targetNodeObj.label || targetNodeObj.id}</span>
-                      <Button size="small" variant="outlined" onClick={() => {
-                        interactionTracker.log('OffensiveStrategy - Node Info', 'Target Node Details Button Click', {
-                          nodeId: targetNodeObj.id,
-                          nodeLabel: targetNodeObj.label
-                        });
-                        showNodeDetails(targetNodeObj);
-                      }} sx={{ ml: 1 }}>상세정보</Button>
+                      <Button size="small" variant="outlined" onClick={() => showNodeDetails(targetNodeObj)} sx={{ ml: 1 }}>상세정보</Button>
                     </Box>
                   ) : (<Typography variant="caption" className="empty-message">목표 노드 정보가 없습니다</Typography>)}
                 </Box>
@@ -1997,17 +1830,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                   <Typography variant="body2" component="h3" className="card-title">🛤️ 방책 리스트</Typography>
                   {selectedPath !== null && (
-                    <Button size="small" variant="outlined" onClick={() => {
-                      interactionTracker.measureResponseSync(
-                        'OffensiveStrategy - Path List',
-                        'Reset Path Selection',
-                        () => setSelectedPath(null),
-                        {
-                          previousPath: selectedPath,
-                          totalPaths: pathList.length
-                        }
-                      );
-                    }} sx={{ fontSize: 11, py: 0.5, px: 1 }}>초기화</Button>
+                    <Button size="small" variant="outlined" onClick={() => setSelectedPath(null)} sx={{ fontSize: 11, py: 0.5, px: 1 }}>초기화</Button>
                   )}
                 </Box>
                 <Box className="card-content-scroll" sx={{ overflowX: 'auto' }}>
@@ -2129,19 +1952,8 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                                 textDecoration: 'underline'
                               }}
                               onClick={() => {
-                                interactionTracker.measureResponseSync(
-                                  'OffensiveStrategy - Node Table',
-                                  'Open Node Detail Popup (Selected Path)',
-                                  () => {
-                                    setSelectedNodeDetail(full);
-                                    setNodeDetailPopupOpen(true);
-                                  },
-                                  {
-                                    nodeId: full?.id,
-                                    nodeLabel: full?.label || full?.name,
-                                    pathIndex: selectedPath
-                                  }
-                                );
+                                setSelectedNodeDetail(full);
+                                setNodeDetailPopupOpen(true);
                               }}
                               >
                                 {nodeLabel}
@@ -2192,19 +2004,8 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                                   textDecoration: 'underline'
                                 }}
                                 onClick={() => {
-                                  interactionTracker.measureResponseSync(
-                                    'OffensiveStrategy - Node Table',
-                                    'Open Node Detail Popup (All Paths)',
-                                    () => {
-                                      setSelectedNodeDetail(full);
-                                      setNodeDetailPopupOpen(true);
-                                    },
-                                    {
-                                      nodeId: full?.id,
-                                      nodeLabel: full?.label || full?.name,
-                                      pathIndex: pidx
-                                    }
-                                  );
+                                  setSelectedNodeDetail(full);
+                                  setNodeDetailPopupOpen(true);
                                 }}
                                 >
                                   {nodeLabel}
@@ -2232,14 +2033,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                   <Typography variant="body2" component="h3" className="card-title">📋 계산 로그</Typography>
                   <IconButton
                     size="small"
-                    onClick={() => {
-                      interactionTracker.measureResponseSync(
-                        'OffensiveStrategy - Calculation Log',
-                        'Open Info Popup',
-                        () => setInfoPopupOpen(true),
-                        {}
-                      );
-                    }}
+                    onClick={() => setInfoPopupOpen(true)}
                     sx={{
                       width: 32,
                       height: 32,
@@ -2266,22 +2060,8 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         )}
 
         {/* TreatAnalysis 팝업 */}
-        <Dialog open={treatAnalysisOpen} onClose={() => {
-          interactionTracker.measureResponseSync(
-            'OffensiveStrategy',
-            'Close Treat Analysis Popup (Outside Click)',
-            () => closePopup('treatAnalysis'),
-            {}
-          );
-        }} maxWidth="md" fullWidth PaperProps={{ sx: { height: '70vh', maxHeight: '70vh', m: 0, position: 'relative', overflow: 'hidden' } }}>
-          <IconButton onClick={() => {
-            interactionTracker.measureResponseSync(
-              'OffensiveStrategy',
-              'Close Treat Analysis Popup (X Button)',
-              () => closePopup('treatAnalysis'),
-              {}
-            );
-          }} sx={{ position: 'absolute', right: 23, top: 8.5, color: '#000000ff', zIndex: 1, bgcolor: '#cac7d4ff', '&:hover': { bgcolor: '#39306b', color: '#ffffffff' } }}>x</IconButton>
+        <Dialog open={treatAnalysisOpen} onClose={() => closePopup('treatAnalysis')} maxWidth="md" fullWidth PaperProps={{ sx: { height: '70vh', maxHeight: '70vh', m: 0, position: 'relative', overflow: 'hidden' } }}>
+          <IconButton onClick={() => closePopup('treatAnalysis')} sx={{ position: 'absolute', right: 23, top: 8.5, color: '#000000ff', zIndex: 1, bgcolor: '#cac7d4ff', '&:hover': { bgcolor: '#39306b', color: '#ffffffff' } }}>x</IconButton>
           <DialogContent sx={{ p: 0, height: '100%', overflow: 'hidden' }}>
             <TreatAnalysis open={treatAnalysisOpen} isPopup={true} />
           </DialogContent>
@@ -2290,14 +2070,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         {/* 정보 팝업 - 공격 가능도 및 성공 가능성 설명 */}
         <Dialog
           open={infoPopupOpen}
-          onClose={() => {
-            interactionTracker.measureResponseSync(
-              'OffensiveStrategy',
-              'Close Info Popup (Outside Click)',
-              () => setInfoPopupOpen(false),
-              {}
-            );
-          }}
+          onClose={() => setInfoPopupOpen(false)}
           maxWidth="sm"
           fullWidth
           PaperProps={{ sx: { borderRadius: 2, bgcolor: '#f0edfd' } }}
@@ -2306,14 +2079,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0 }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold' }}>📊 공격 가능도 & 성공 가능성 분석</Typography>
               <IconButton
-                onClick={() => {
-                  interactionTracker.measureResponseSync(
-                    'OffensiveStrategy',
-                    'Close Info Popup (X Button)',
-                    () => setInfoPopupOpen(false),
-                    {}
-                  );
-                }}
+                onClick={() => setInfoPopupOpen(false)}
                 sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}
               >
                 ✕
@@ -2440,14 +2206,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         {/* 노드 상세 정보 팝업 */}
         <Dialog
           open={nodeDetailPopupOpen}
-          onClose={() => {
-            interactionTracker.measureResponseSync(
-              'OffensiveStrategy',
-              'Close Node Detail Popup (Outside Click)',
-              () => setNodeDetailPopupOpen(false),
-              { nodeId: selectedNodeDetail?.id }
-            );
-          }}
+          onClose={() => setNodeDetailPopupOpen(false)}
           maxWidth="md"
           fullWidth
           PaperProps={{ sx: { borderRadius: 2 } }}
@@ -2458,14 +2217,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                 🔍 노드 상세 정보
               </Typography>
               <IconButton
-                onClick={() => {
-                  interactionTracker.measureResponseSync(
-                    'OffensiveStrategy',
-                    'Close Node Detail Popup (X Button)',
-                    () => setNodeDetailPopupOpen(false),
-                    { nodeId: selectedNodeDetail?.id }
-                  );
-                }}
+                onClick={() => setNodeDetailPopupOpen(false)}
                 sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}
               >
                 ✕

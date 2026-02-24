@@ -5,6 +5,7 @@ import { DataSet } from "vis-data";
 import { Network } from "vis-network/standalone";
 import { Box, Typography, Chip, Stack } from '@mui/material';
 import "vis-network/styles/vis-network.css";
+import interactionTracker from "../../../../utils/interactionTracker";
 
 // 노드 타입 이미지
 const getNodeImage = (node) => {
@@ -271,11 +272,18 @@ const OffensiveStrategyMini = () => {
 
   // 선택 초기화
   const handleReset = () => {
-    setSelectionStep(0);
-    setTargetNode(null);
-    setStartNode(null);
-    setPathList([]);
-    resetStyles();
+    interactionTracker.measureResponseSync(
+      'OffensiveStrategyMini',
+      'Reset Selection',
+      () => {
+        setSelectionStep(0);
+        setTargetNode(null);
+        setStartNode(null);
+        setPathList([]);
+        resetStyles();
+      },
+      {}
+    );
   };
 
   // 경로 하이라이트 (2~3개 경로를 순위별 색상으로 표시)
@@ -469,54 +477,61 @@ const OffensiveStrategyMini = () => {
       if (!nid || !nodesDataSetRef.current) return;
       const node = nodesDataSetRef.current.get(nid);
       
-      setSelectionStep(prev => {
-        if (prev === 0) {
-          // 목적지 선택
-          setTargetNode(node);
-          nodesDataSetRef.current.update({
-            id: nid,
-            color: { border: '#FF0000' },
-            borderWidth: 3,
-            size: 16
-          });
-          return 1;
-        } else if (prev === 1) {
-          // 출발지 선택
-          const currentTarget = targetNodeRef.current;
-          if (!currentTarget || nid === currentTarget.id) return prev;
-          
-          setStartNode(node);
-          nodesDataSetRef.current.update({
-            id: nid,
-            color: { border: '#00CC00' },
-            borderWidth: 3,
-            size: 16
-          });
-          
-          // 공격 경로 로드
-          (async () => {
-            const startPhysId = await resolvePhysicalIdByName(node.name);
-            if (startPhysId != null) {
-              loadAttackPaths(startPhysId, currentTarget.name);
+      interactionTracker.measureResponseSync(
+        'OffensiveStrategyMini',
+        'Node Selection',
+        () => {
+          setSelectionStep(prev => {
+            if (prev === 0) {
+              // 목적지 선택
+              setTargetNode(node);
+              nodesDataSetRef.current.update({
+                id: nid,
+                color: { border: '#FF0000' },
+                borderWidth: 3,
+                size: 16
+              });
+              return 1;
+            } else if (prev === 1) {
+              // 출발지 선택
+              const currentTarget = targetNodeRef.current;
+              if (!currentTarget || nid === currentTarget.id) return prev;
+              
+              setStartNode(node);
+              nodesDataSetRef.current.update({
+                id: nid,
+                color: { border: '#00CC00' },
+                borderWidth: 3,
+                size: 16
+              });
+              
+              // 공격 경로 로드
+              (async () => {
+                const startPhysId = await resolvePhysicalIdByName(node.name);
+                if (startPhysId != null) {
+                  loadAttackPaths(startPhysId, currentTarget.name);
+                }
+              })();
+              
+              return 2;
+            } else {
+              // 이미 선택 완료 - 초기화 후 새 목적지 선택
+              resetStyles();
+              setTargetNode(node);
+              setStartNode(null);
+              setPathList([]);
+              nodesDataSetRef.current.update({
+                id: nid,
+                color: { border: '#FF0000' },
+                borderWidth: 3,
+                size: 16
+              });
+              return 1;
             }
-          })();
-          
-          return 2;
-        } else {
-          // 이미 선택 완료 - 초기화 후 새 목적지 선택
-          resetStyles();
-          setTargetNode(node);
-          setStartNode(null);
-          setPathList([]);
-          nodesDataSetRef.current.update({
-            id: nid,
-            color: { border: '#FF0000' },
-            borderWidth: 3,
-            size: 16
           });
-          return 1;
-        }
-      });
+        },
+        { nodeId: nid, nodeName: node.name, selectionStep: selectionStep }
+      );
     });
 
     return () => {

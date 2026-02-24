@@ -1,0 +1,1189 @@
+Warning: Failed prop type: Invalid prop `children` supplied to `ThemeCustomization`, expected a ReactNode.
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+App @ App.jsx:15
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performConcurrentWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18728
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `StyledEngineProvider`, expected a ReactNode.
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+ThemeCustomization @ index.jsx:53
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performConcurrentWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18728
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ThemeProvider2`, expected a ReactNode.
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-IULEFUF5.js?v=6a72d24f:64
+error @ chunk-IULEFUF5.js?v=6a72d24f:48
+checkPropTypes @ chunk-IULEFUF5.js?v=6a72d24f:451
+validatePropTypes @ chunk-IULEFUF5.js?v=6a72d24f:778
+jsxWithValidation @ chunk-IULEFUF5.js?v=6a72d24f:876
+jsxWithValidationDynamic @ chunk-IULEFUF5.js?v=6a72d24f:888
+ThemeProviderNoVars @ chunk-WNX3JFJK.js?v=6a72d24f:287
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performConcurrentWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18728
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `DefaultPropsProvider`, expected a ReactNode.
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-IULEFUF5.js?v=6a72d24f:64
+error @ chunk-IULEFUF5.js?v=6a72d24f:48
+checkPropTypes @ chunk-IULEFUF5.js?v=6a72d24f:451
+validatePropTypes @ chunk-IULEFUF5.js?v=6a72d24f:778
+jsxWithValidation @ chunk-IULEFUF5.js?v=6a72d24f:876
+jsxWithValidationDynamic @ chunk-IULEFUF5.js?v=6a72d24f:888
+ThemeProvider2 @ chunk-C7KPCXOO.js?v=6a72d24f:1080
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performConcurrentWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18728
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `RtlProvider`, expected a ReactNode.
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-IULEFUF5.js?v=6a72d24f:64
+error @ chunk-IULEFUF5.js?v=6a72d24f:48
+checkPropTypes @ chunk-IULEFUF5.js?v=6a72d24f:451
+validatePropTypes @ chunk-IULEFUF5.js?v=6a72d24f:778
+jsxWithValidation @ chunk-IULEFUF5.js?v=6a72d24f:876
+jsxWithValidationDynamic @ chunk-IULEFUF5.js?v=6a72d24f:888
+ThemeProvider2 @ chunk-C7KPCXOO.js?v=6a72d24f:1078
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performConcurrentWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18728
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ThemeProvider`, expected a ReactNode.
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-IULEFUF5.js?v=6a72d24f:64
+error @ chunk-IULEFUF5.js?v=6a72d24f:48
+checkPropTypes @ chunk-IULEFUF5.js?v=6a72d24f:451
+validatePropTypes @ chunk-IULEFUF5.js?v=6a72d24f:778
+jsxWithValidation @ chunk-IULEFUF5.js?v=6a72d24f:876
+jsxWithValidationDynamic @ chunk-IULEFUF5.js?v=6a72d24f:888
+ThemeProvider2 @ chunk-C7KPCXOO.js?v=6a72d24f:1074
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performConcurrentWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18728
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(Box3)`, expected a ReactNode.
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at _c
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+_c @ Loader.jsx:10
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+updateFunctionComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14630
+updateSimpleMemoComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14511
+updateMemoComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14414
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:16025
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performConcurrentWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18728
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(Toolbar2)`, expected a ReactNode.
+    at Toolbar2 (http://localhost:3000/node_modules/.vite/deps/chunk-BOTEJNYR.js?v=6a72d24f:97:17)
+    at Header (http://localhost:3000/src/layout/Dashboard/Header/index.jsx:34:18)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+Header @ index.jsx:44
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(AppBar2)`, expected a ReactNode.
+    at AppBar2 (http://localhost:3000/node_modules/.vite/deps/chunk-B45WESDW.js?v=6a72d24f:193:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Header (http://localhost:3000/src/layout/Dashboard/Header/index.jsx:34:18)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-I773Y2XN.js?v=6a72d24f:136
+error @ chunk-I773Y2XN.js?v=6a72d24f:120
+checkPropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1407
+validatePropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1531
+createElementWithValidation @ chunk-I773Y2XN.js?v=6a72d24f:1601
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:2243
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:1354
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+updateForwardRef @ chunk-ZRFWVVIE.js?v=6a72d24f:14373
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15994
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(Paper2)`, expected a ReactNode.
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at AppBar2 (http://localhost:3000/node_modules/.vite/deps/chunk-B45WESDW.js?v=6a72d24f:193:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Header (http://localhost:3000/src/layout/Dashboard/Header/index.jsx:34:18)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-I773Y2XN.js?v=6a72d24f:136
+error @ chunk-I773Y2XN.js?v=6a72d24f:120
+checkPropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1407
+validatePropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1531
+createElementWithValidation @ chunk-I773Y2XN.js?v=6a72d24f:1601
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:2243
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:1354
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+updateForwardRef @ chunk-ZRFWVVIE.js?v=6a72d24f:14373
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15994
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(IconButton2)`, expected a ReactNode.
+    at IconButton2 (http://localhost:3000/node_modules/.vite/deps/chunk-2FGJS67F.js?v=6a72d24f:216:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at IconButton (http://localhost:3000/src/components/@extended/IconButton.jsx:163:23)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Toolbar2 (http://localhost:3000/node_modules/.vite/deps/chunk-BOTEJNYR.js?v=6a72d24f:97:17)
+    at header
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at AppBar2 (http://localhost:3000/node_modules/.vite/deps/chunk-B45WESDW.js?v=6a72d24f:193:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Header (http://localhost:3000/src/layout/Dashboard/Header/index.jsx:34:18)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-I773Y2XN.js?v=6a72d24f:136
+error @ chunk-I773Y2XN.js?v=6a72d24f:120
+checkPropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1407
+validatePropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1531
+createElementWithValidation @ chunk-I773Y2XN.js?v=6a72d24f:1601
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:2243
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:1354
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+updateForwardRef @ chunk-ZRFWVVIE.js?v=6a72d24f:14373
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15994
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(ButtonBase2)`, expected a ReactNode.
+    at ButtonBase2 (http://localhost:3000/node_modules/.vite/deps/chunk-B56MSXJW.js?v=6a72d24f:577:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at IconButton2 (http://localhost:3000/node_modules/.vite/deps/chunk-2FGJS67F.js?v=6a72d24f:216:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at IconButton (http://localhost:3000/src/components/@extended/IconButton.jsx:163:23)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Toolbar2 (http://localhost:3000/node_modules/.vite/deps/chunk-BOTEJNYR.js?v=6a72d24f:97:17)
+    at header
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at AppBar2 (http://localhost:3000/node_modules/.vite/deps/chunk-B45WESDW.js?v=6a72d24f:193:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Header (http://localhost:3000/src/layout/Dashboard/Header/index.jsx:34:18)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-I773Y2XN.js?v=6a72d24f:136
+error @ chunk-I773Y2XN.js?v=6a72d24f:120
+checkPropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1407
+validatePropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1531
+createElementWithValidation @ chunk-I773Y2XN.js?v=6a72d24f:1601
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:2243
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:1354
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+updateForwardRef @ chunk-ZRFWVVIE.js?v=6a72d24f:14373
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15994
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(Drawer2)`, expected a ReactNode.
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-I773Y2XN.js?v=6a72d24f:136
+error @ chunk-I773Y2XN.js?v=6a72d24f:120
+checkPropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1407
+validatePropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1531
+createElementWithValidation @ chunk-I773Y2XN.js?v=6a72d24f:1601
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:2243
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:1354
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+updateForwardRef @ chunk-ZRFWVVIE.js?v=6a72d24f:14373
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15994
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(Box3)`, expected a ReactNode.
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at DrawerHeader (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerHeader/index.jsx:20:40)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ chunk-I773Y2XN.js?v=6a72d24f:136
+error @ chunk-I773Y2XN.js?v=6a72d24f:120
+checkPropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1407
+validatePropTypes @ chunk-I773Y2XN.js?v=6a72d24f:1531
+createElementWithValidation @ chunk-I773Y2XN.js?v=6a72d24f:1601
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:2243
+(익명) @ chunk-WXGMWJ52.js?v=6a72d24f:1354
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+updateForwardRef @ chunk-ZRFWVVIE.js?v=6a72d24f:14373
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15994
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(ButtonBase2)`, expected a ReactNode.
+    at ButtonBase2 (http://localhost:3000/node_modules/.vite/deps/chunk-B56MSXJW.js?v=6a72d24f:577:17)
+    at LogoSection (http://localhost:3000/src/components/logo/index.jsx:23:39)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at DrawerHeader (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerHeader/index.jsx:20:40)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+LogoSection @ index.jsx:16
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(Grid2)`, expected a ReactNode.
+    at Grid2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:2808:24)
+    at LogoMain (http://localhost:3000/src/components/logo/LogoMain.jsx:23:17)
+    at a
+    at LinkWithRef (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:9629:5)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at ButtonBase2 (http://localhost:3000/node_modules/.vite/deps/chunk-B56MSXJW.js?v=6a72d24f:577:17)
+    at LogoSection (http://localhost:3000/src/components/logo/index.jsx:23:39)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at DrawerHeader (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerHeader/index.jsx:20:40)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+LogoMain @ LogoMain.jsx:9
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(List2)`, expected a ReactNode.
+    at List2 (http://localhost:3000/node_modules/.vite/deps/chunk-XG6LNXUN.js?v=6a72d24f:88:17)
+    at NavGroup (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavGroup.jsx:25:36)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at Navigation
+    at div
+    at div
+    at div
+    at div
+    at div
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/simplebar-react.js?v=6a72d24f:804:21
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at BrowserView2 (http://localhost:3000/node_modules/.vite/deps/react-device-detect.js?v=6a72d24f:914:38)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at SimpleBarScroll (http://localhost:3000/src/components/third-party/SimpleBar.jsx:54:43)
+    at DrawerContent (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/index.jsx:23:26)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+NavGroup @ NavGroup.jsx:34
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `subheader` supplied to `ForwardRef(List2)`, expected a ReactNode.
+    at List2 (http://localhost:3000/node_modules/.vite/deps/chunk-XG6LNXUN.js?v=6a72d24f:88:17)
+    at NavGroup (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavGroup.jsx:25:36)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at Navigation
+    at div
+    at div
+    at div
+    at div
+    at div
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/simplebar-react.js?v=6a72d24f:804:21
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at BrowserView2 (http://localhost:3000/node_modules/.vite/deps/react-device-detect.js?v=6a72d24f:914:38)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at SimpleBarScroll (http://localhost:3000/src/components/third-party/SimpleBar.jsx:54:43)
+    at DrawerContent (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/index.jsx:23:26)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+NavGroup @ NavGroup.jsx:34
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(ListItemIcon2)`, expected a ReactNode.
+    at ListItemIcon2 (http://localhost:3000/node_modules/.vite/deps/chunk-WUPBMRGE.js?v=6a72d24f:83:17)
+    at NavItem (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavItem.jsx:31:35)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at List2 (http://localhost:3000/node_modules/.vite/deps/chunk-XG6LNXUN.js?v=6a72d24f:88:17)
+    at NavCollapse (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavCollapse.jsx:24:39)
+    at ul
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at List2 (http://localhost:3000/node_modules/.vite/deps/chunk-XG6LNXUN.js?v=6a72d24f:88:17)
+    at NavGroup (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavGroup.jsx:25:36)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at Navigation
+    at div
+    at div
+    at div
+    at div
+    at div
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/simplebar-react.js?v=6a72d24f:804:21
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at BrowserView2 (http://localhost:3000/node_modules/.vite/deps/react-device-detect.js?v=6a72d24f:914:38)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at SimpleBarScroll (http://localhost:3000/src/components/third-party/SimpleBar.jsx:54:43)
+    at DrawerContent (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/index.jsx:23:26)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+NavItem @ NavItem.jsx:120
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `primary` supplied to `ForwardRef(ListItemText2)`, expected a ReactNode.
+    at ListItemText2 (http://localhost:3000/node_modules/.vite/deps/chunk-CY4JKRMZ.js?v=6a72d24f:108:17)
+    at NavItem (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavItem.jsx:31:35)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at List2 (http://localhost:3000/node_modules/.vite/deps/chunk-XG6LNXUN.js?v=6a72d24f:88:17)
+    at NavCollapse (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavCollapse.jsx:24:39)
+    at ul
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at List2 (http://localhost:3000/node_modules/.vite/deps/chunk-XG6LNXUN.js?v=6a72d24f:88:17)
+    at NavGroup (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavGroup.jsx:25:36)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at Navigation
+    at div
+    at div
+    at div
+    at div
+    at div
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/simplebar-react.js?v=6a72d24f:804:21
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at BrowserView2 (http://localhost:3000/node_modules/.vite/deps/react-device-detect.js?v=6a72d24f:914:38)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at SimpleBarScroll (http://localhost:3000/src/components/third-party/SimpleBar.jsx:54:43)
+    at DrawerContent (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/index.jsx:23:26)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+NavItem @ NavItem.jsx:144
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(ListItemButton2)`, expected a ReactNode.
+    at ListItemButton2 (http://localhost:3000/node_modules/.vite/deps/chunk-GNTHNUVA.js?v=6a72d24f:168:17)
+    at NavItem (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavItem.jsx:31:35)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at List2 (http://localhost:3000/node_modules/.vite/deps/chunk-XG6LNXUN.js?v=6a72d24f:88:17)
+    at NavCollapse (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavCollapse.jsx:24:39)
+    at ul
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at List2 (http://localhost:3000/node_modules/.vite/deps/chunk-XG6LNXUN.js?v=6a72d24f:88:17)
+    at NavGroup (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/Navigation/NavGroup.jsx:25:36)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at Navigation
+    at div
+    at div
+    at div
+    at div
+    at div
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/simplebar-react.js?v=6a72d24f:804:21
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at BrowserView2 (http://localhost:3000/node_modules/.vite/deps/react-device-detect.js?v=6a72d24f:914:38)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at SimpleBarScroll (http://localhost:3000/src/components/third-party/SimpleBar.jsx:54:43)
+    at DrawerContent (http://localhost:3000/src/layout/Dashboard/Drawer/DrawerContent/index.jsx:23:26)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/chunk-VGQVQ4SU.js?v=6a72d24f:106:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Drawer2 (http://localhost:3000/node_modules/.vite/deps/chunk-DB57V42N.js?v=6a72d24f:1450:17)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at nav
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at MainDrawer (http://localhost:3000/src/layout/Dashboard/Drawer/index.jsx:28:46)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+NavItem @ NavItem.jsx:90
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+mountIndeterminateComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14974
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15962
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19190
+renderRootSync @ chunk-ZRFWVVIE.js?v=6a72d24f:19169
+performSyncWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18927
+flushSyncCallbacks @ chunk-ZRFWVVIE.js?v=6a72d24f:9166
+flushPassiveEffectsImpl @ chunk-ZRFWVVIE.js?v=6a72d24f:19559
+flushPassiveEffects @ chunk-ZRFWVVIE.js?v=6a72d24f:19500
+(익명) @ chunk-ZRFWVVIE.js?v=6a72d24f:19381
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+contentScript.js:1 Handling document: #document (http://localhost:3000/#/ExtInt/internaltopology)#top-layer isPDF: false
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(CardContent2)`, expected a ReactNode.
+    at CardContent2 (http://localhost:3000/node_modules/.vite/deps/chunk-T3SHDWFG.js?v=6a72d24f:61:17)
+    at NetworkTopology3D_LeftSidebar (http://localhost:3000/src/pages/ExtInt/Internal/internaltopology.jsx?t=1771910737036:285:42)
+    at Suspense
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6410:26)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at main
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App
+overrideMethod @ installHook.js:1
+printWarning @ react_jsx-dev-runtime.js?v=6a72d24f:64
+error @ react_jsx-dev-runtime.js?v=6a72d24f:48
+checkPropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:451
+validatePropTypes @ react_jsx-dev-runtime.js?v=6a72d24f:778
+jsxWithValidation @ react_jsx-dev-runtime.js?v=6a72d24f:876
+NetworkTopology3D_LeftSidebar @ internaltopology.jsx:634
+renderWithHooks @ chunk-ZRFWVVIE.js?v=6a72d24f:11596
+updateFunctionComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14630
+updateSimpleMemoComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14511
+updateMemoComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14414
+mountLazyComponent @ chunk-ZRFWVVIE.js?v=6a72d24f:14913
+beginWork @ chunk-ZRFWVVIE.js?v=6a72d24f:15966
+beginWork$1 @ chunk-ZRFWVVIE.js?v=6a72d24f:19806
+performUnitOfWork @ chunk-ZRFWVVIE.js?v=6a72d24f:19251
+workLoopConcurrent @ chunk-ZRFWVVIE.js?v=6a72d24f:19242
+renderRootConcurrent @ chunk-ZRFWVVIE.js?v=6a72d24f:19217
+performConcurrentWorkOnRoot @ chunk-ZRFWVVIE.js?v=6a72d24f:18728
+workLoop @ chunk-ZRFWVVIE.js?v=6a72d24f:197
+flushWork @ chunk-ZRFWVVIE.js?v=6a72d24f:176
+performWorkUntilDeadline @ chunk-ZRFWVVIE.js?v=6a72d24f:384이 오류 이해하기
+installHook.js:1 Warning: Failed prop type: Invalid prop `children` supplied to `ForwardRef(Card2)`, expected a ReactNode.
+    at Card2 (http://localhost:3000/node_modules/.vite/deps/chunk-LF7EVWP3.js?v=6a72d24f:62:17)
+    at NetworkTopology3D_LeftSidebar (http://localhost:3000/src/pages/ExtInt/Internal/internaltopology.jsx?t=1771910737036:285:42)
+    at Suspense
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6410:26)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at main
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at div
+    at http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:1353:45
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:561:19)
+    at DashboardLayout (http://localhost:3000/src/layout/Dashboard/index.jsx:31:24)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5682:26)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:5638:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6333:3)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6419:13)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=6a72d24f:6135:11)
+    at RouterProvider2
+    at ScrollTop (http://localhost:3000/src/components/ScrollTop.jsx:19:37)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:977:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:953:3)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:909:5)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-C7KPCXOO.js?v=6a72d24f:1060:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:283:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WNX3JFJK.js?v=6a72d24f:365:3)
+    at StyledEngineProvider (http://localhost:3000/node_modules/.vite/deps/chunk-WXGMWJ52.js?v=6a72d24f:2080:5)
+    at ThemeCustomization (http://localhost:3000/src/themes/index.jsx:27:46)
+    at PopupProvider (http://localhost:3000/src/context/PopupContext.jsx:25:33)
+    at App

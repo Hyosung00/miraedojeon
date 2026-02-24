@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, Typography, IconButton } from '@mui/material';
+import interactionTracker from '../../../utils/interactionTracker';
 import { ClusterOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
@@ -177,9 +178,17 @@ function mergeRecordsToGraph(allRecords) {
 // ===================== 데이터 페치 =====================
 async function fetchThreeLayer(project) {
   const url = `${API_BASE}/neo4j/nodes?activeView=multilayer${project ? `&project=${encodeURIComponent(project)}` : ''}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`API multilayer 실패: ${res.status}`);
-  return res.json(); // [{src_IP, dst_IP, edge}, ...]
+  
+  return await interactionTracker.measureResponse(
+    'MultilayerVisualization',
+    'Fetch Three Layer Data',
+    async () => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`failed fetch: ${res.status}`);
+      return res.json();
+    },
+    { project, url }
+  ).then(result => result.result);
 }
 
 // ===================== 인접 계산 =====================
@@ -306,6 +315,14 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   const [eventLogs, setEventLogs] = useState([]);
 
   const { byId, adj } = useMemo(() => buildAdjacency(graphData.nodes, graphData.links), [graphData]);
+
+  // 컴포넌트 마운트/언마운트 추적
+  useEffect(() => {
+    interactionTracker.log('MultilayerVisualization', 'Component Mounted', {});
+    return () => {
+      interactionTracker.log('MultilayerVisualization', 'Component Unmounted', {});
+    };
+  }, []);
 
   // 레이어 플레인
   const addLayerPlanes = () => {
@@ -504,84 +521,128 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   const linkParticles = (l) => { if (!pulse || !selectedId) return 0; const s = l.source; const t = l.target; if (!s || !t || typeof s.id === 'undefined' || typeof t.id === 'undefined') return 0; const touchesSel = s.id === selectedId || t.id === selectedId; return touchesSel && isCrossLayer(s, t) ? 2 : 0; };
   const linkMaterial = (l) => { const color = new THREE.Color(linkColor(l)); if (l.assumed) { try { return new THREE.LineDashedMaterial({ color, dashSize: 2, gapSize: 1, transparent: true, opacity: isLinkDimmed(l) ? 0.25 : 0.65 }); } catch { return new THREE.LineBasicMaterial({ color, transparent: true, opacity: isLinkDimmed(l) ? 0.25 : 0.65 }); } } return new THREE.LineBasicMaterial({ color, transparent: true, opacity: isLinkDimmed(l) ? 0.25 : 0.95 }); };
 
-  const onBackgroundClick = () => { setSelectedId(null); onNodeSelect(null); onInspectorChange(null); setEventLogs([]); };
-  const resetView = () => { setSelectedId(null); onNodeSelect(null); const fg = fgRef.current; if (!fg) return; try { const rot = fg.scene().rotation; rot.order='YXZ'; rot.x = 0; rot.y = 0; rot.z = 0; } catch {} fg.cameraPosition({ x: 0, y: 1800, z: 0 }, { x: 0, y: 0, z: 0 }, 600); };
+  const onBackgroundClick = () => {
+    interactionTracker.measureResponseSync(
+      'MultilayerVisualization',
+      'Background Click (Deselect)',
+      () => {
+        setSelectedId(null);
+        onNodeSelect(null);
+        onInspectorChange(null);
+        setEventLogs([]);
+      },
+      {}
+    );
+  };
+  const resetView = () => {
+    interactionTracker.measureResponseSync(
+      'MultilayerVisualization',
+      'Reset View',
+      () => {
+        setSelectedId(null);
+        onNodeSelect(null);
+        const fg = fgRef.current;
+        if (!fg) return;
+        try {
+          const rot = fg.scene().rotation;
+          rot.order='YXZ';
+          rot.x = 0;
+          rot.y = 0;
+          rot.z = 0;
+        } catch {}
+        fg.cameraPosition({ x: 0, y: 1800, z: 0 }, { x: 0, y: 0, z: 0 }, 600);
+      },
+      {}
+    );
+  };
   const onNodeClick = (node) => {
-    setSelectedId(node?.id || null);
-    if (node) {
-      const panel = <NodeDetailPanel selected={node} adj={adj} visible={visible} byId={byId} onClearSelection={onBackgroundClick} onResetView={resetView} />;
-      onNodeSelect(panel);
-      try { onInspectorChange(panel); } catch(e) {}
-      
-      // 연결된 노드 정보 수집
-      const connectedNodes = adj.get(node.id) || new Set();
-      const connectedIps = Array.from(connectedNodes)
-        .map(nid => byId[nid])
-        .filter(n => n && n.ip)
-        .map(n => n.ip);
-      
-      // 클릭한 노드와 연결된 모든 링크의 상세 정보 수집 (dbInfo)
-      const dbInfo = visible.links
-        .filter(link => {
-          const sid = link.__sid || (typeof link.source === 'object' ? link.source.id : link.source);
-          const tid = link.__tid || (typeof link.target === 'object' ? link.target.id : link.target);
-          return sid === node.id || tid === node.id;
-        })
-        .map(link => {
-          const sid = link.__sid || (typeof link.source === 'object' ? link.source.id : link.source);
-          const tid = link.__tid || (typeof link.target === 'object' ? link.target.id : link.target);
-          const srcNode = byId[sid];
-          const dstNode = byId[tid];
+    interactionTracker.measureResponseSync(
+      'MultilayerVisualization',
+      'Node Click',
+      () => {
+        setSelectedId(node?.id || null);
+        if (node) {
+          const panel = <NodeDetailPanel selected={node} adj={adj} visible={visible} byId={byId} onClearSelection={onBackgroundClick} onResetView={resetView} />;
+          onNodeSelect(panel);
+          try { onInspectorChange(panel); } catch(e) {}
           
-          return {
-            src_IP: srcNode ? {
-              id: srcNode.id,
-              ip: srcNode.ip,
-              name: srcNode.label || srcNode.hostname || srcNode.name || srcNode.user_name || srcNode.service_name || srcNode.id,
-              type: srcNode.type,
-              subnet: srcNode.subnet,
-              dns: srcNode.dns,
-              gateway: srcNode.gateway,
-              description: srcNode.description || srcNode.service_name,
-              cve: extractCVE(srcNode),
-              value: srcNode.value,
-              key: srcNode.key,
-              __labels: [srcNode.layer, srcNode.type],
-              __id: srcNode.id,
-              index: srcNode.index
-            } : null,
-            dst_IP: dstNode ? {
-              id: dstNode.id,
-              ip: dstNode.ip,
-              name: dstNode.label || dstNode.hostname || dstNode.name || dstNode.user_name || dstNode.service_name || dstNode.id,
-              description: dstNode.description || dstNode.service_name,
-              cve: extractCVE(dstNode),
-              value: dstNode.value,
-              key: dstNode.key,
-              __labels: [dstNode.layer, dstNode.type],
-              __id: dstNode.id,
-              index: dstNode.index
-            } : null,
-            edge: {
-              sourceIP: sid,
-              targetIP: tid,
-              kind: link.kind,
-              rel: link.kind,
-              assumed: link.assumed,
-              confidence: link.confidence
-            }
+          // 연결된 노드 정보 수집
+          const connectedNodes = adj.get(node.id) || new Set();
+          const connectedIps = Array.from(connectedNodes)
+            .map(nid => byId[nid])
+            .filter(n => n && n.ip)
+            .map(n => n.ip);
+          
+          // 클릭한 노드와 연결된 모든 링크의 상세 정보 수집 (dbInfo)
+          const dbInfo = visible.links
+            .filter(link => {
+              const sid = link.__sid || (typeof link.source === 'object' ? link.source.id : link.source);
+              const tid = link.__tid || (typeof link.target === 'object' ? link.target.id : link.target);
+              return sid === node.id || tid === node.id;
+            })
+            .map(link => {
+              const sid = link.__sid || (typeof link.source === 'object' ? link.source.id : link.source);
+              const tid = link.__tid || (typeof link.target === 'object' ? link.target.id : link.target);
+              const srcNode = byId[sid];
+              const dstNode = byId[tid];
+              
+              return {
+                src_IP: srcNode ? {
+                  id: srcNode.id,
+                  ip: srcNode.ip,
+                  name: srcNode.label || srcNode.hostname || srcNode.name || srcNode.user_name || srcNode.service_name || srcNode.id,
+                  type: srcNode.type,
+                  subnet: srcNode.subnet,
+                  dns: srcNode.dns,
+                  gateway: srcNode.gateway,
+                  description: srcNode.description || srcNode.service_name,
+                  cve: extractCVE(srcNode),
+                  value: srcNode.value,
+                  key: srcNode.key,
+                  __labels: [srcNode.layer, srcNode.type],
+                  __id: srcNode.id,
+                  index: srcNode.index
+                } : null,
+                dst_IP: dstNode ? {
+                  id: dstNode.id,
+                  ip: dstNode.ip,
+                  name: dstNode.label || dstNode.hostname || dstNode.name || dstNode.user_name || dstNode.service_name || dstNode.id,
+                  description: dstNode.description || dstNode.service_name,
+                  cve: extractCVE(dstNode),
+                  value: dstNode.value,
+                  key: dstNode.key,
+                  __labels: [dstNode.layer, dstNode.type],
+                  __id: dstNode.id,
+                  index: dstNode.index
+                } : null,
+                edge: {
+                  sourceIP: sid,
+                  targetIP: tid,
+                  kind: link.kind,
+                  rel: link.kind,
+                  assumed: link.assumed,
+                  confidence: link.confidence
+                }
+              };
+            });
+          
+          const newLog = {
+            message: `노드 선택: ${node.label || node.id}`,
+            nodeInfo: { layer: node.layer, type: node.type, ip: node.ip },
+            connectedCount: connectedNodes.size,
+            connectedIps: connectedIps,
+            dbInfo: dbInfo
           };
-        });
-      
-      const newLog = {
-        message: `노드 선택: ${node.label || node.id}`,
-        nodeInfo: { layer: node.layer, type: node.type, ip: node.ip },
-        connectedCount: connectedNodes.size,
-        connectedIps: connectedIps,
-        dbInfo: dbInfo
-      };
-      setEventLogs([newLog]);
-    } else { onNodeSelect(null); onInspectorChange(null); setEventLogs([]); }
+          setEventLogs([newLog]);
+        } else { onNodeSelect(null); onInspectorChange(null); setEventLogs([]); }
+      },
+      { 
+        nodeId: node?.id, 
+        nodeLabel: node?.label, 
+        nodeLayer: node?.layer, 
+        nodeType: node?.type 
+      }
+    );
   };
   const onLinkClick = (l) => { const sid = l.__sid || (typeof l.source==='object'?l.source.id:l.source); const node = byId[sid]; if (node) onNodeClick(node); };
   const onLinkUpdate = (link, threeObj) => { try { const line = link.__lineObj || threeObj; if (line && line.computeLineDistances) line.computeLineDistances(); } catch {} };
@@ -650,11 +711,23 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
             {/* 툴바 */}
             <div style={{ position: 'absolute', top: 12, left: 12, zIndex: 10, background: 'rgba(57,48,107,0.7)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 12 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontSize: 12 }}>
-            <input placeholder="검색: label, ip, user, role, dept..." value={search} onChange={(e)=>setSearch(e.target.value)} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(128,128,128,0.5)', background: 'rgba(20,20,20,0.7)', color: '#fff' }} />
+            <input placeholder="검색: label, ip, user, role, dept..." value={search} onChange={(e)=>{
+              const newValue = e.target.value;
+              interactionTracker.log('MultilayerVisualization', 'Search Filter Change', { searchTerm: newValue });
+              setSearch(newValue);
+            }} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid rgba(128,128,128,0.5)', background: 'rgba(20,20,20,0.7)', color: '#fff' }} />
             <span style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
             {['physical','logical','persona'].map(id => (
               <label key={id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={layerFilter[id]} onChange={(e)=>setLayerFilter(v=>({...v,[id]:e.target.checked}))} />
+                <input type="checkbox" checked={layerFilter[id]} onChange={(e)=>{
+                  const isChecked = e.target.checked;
+                  interactionTracker.measureResponseSync(
+                    'MultilayerVisualization',
+                    'Layer Filter Toggle',
+                    () => setLayerFilter(v=>({...v,[id]:isChecked})),
+                    { layer: id, enabled: isChecked }
+                  );
+                }} />
                   <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                     <span style={{ width: 10, height: 10, borderRadius: 2, background: LAYER_COLORS[id] }} />
                     <span style={{ color: LAYER_COLORS[id], fontWeight: 700 }}>{id}</span>
@@ -664,7 +737,15 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
             <span style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
               <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ color: '#fbbf24', fontWeight: 700 }}>assumed</span>
-                <select value={assumedFilter} onChange={(e)=>setAssumedFilter(e.target.value)} style={{ background: 'rgba(20,20,20,0.7)', color:'#fbbf24', border:'1px solid rgba(128,128,128,0.5)', borderRadius: 6, padding: '2px 4px', fontWeight: 700 }}>
+                <select value={assumedFilter} onChange={(e)=>{
+                  const newValue = e.target.value;
+                  interactionTracker.measureResponseSync(
+                    'MultilayerVisualization',
+                    'Assumed Filter Change',
+                    () => setAssumedFilter(newValue),
+                    { filter: newValue }
+                  );
+                }} style={{ background: 'rgba(20,20,20,0.7)', color:'#fbbf24', border:'1px solid rgba(128,128,128,0.5)', borderRadius: 6, padding: '2px 4px', fontWeight: 700 }}>
                   <option value="all" style={{ color: '#fbbf24' }}>all</option>
                   <option value="true" style={{ color: '#fbbf24' }}>true</option>
                   <option value="false" style={{ color: '#fbbf24' }}>false</option>
@@ -680,15 +761,46 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
                   else if (s === 'UNKNOWN') color = '#fbbf24';
                   return (
                     <label key={s} style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <input type="checkbox" checked={statusFilter.has(s)} onChange={(e)=>{const nxt=new Set(statusFilter); e.target.checked?nxt.add(s):nxt.delete(s); setStatusFilter(nxt);}} />
+                      <input type="checkbox" checked={statusFilter.has(s)} onChange={(e)=>{
+                        const isChecked = e.target.checked;
+                        interactionTracker.measureResponseSync(
+                          'MultilayerVisualization',
+                          'Status Filter Toggle',
+                          () => {
+                            const nxt=new Set(statusFilter);
+                            isChecked?nxt.add(s):nxt.delete(s);
+                            setStatusFilter(nxt);
+                          },
+                          { status: s, enabled: isChecked }
+                        );
+                      }} />
                       <span style={{ textTransform: 'uppercase', color, fontWeight: 700 }}>{s}</span>
                     </label>
                   );
                 })}
               </div>
             <span style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.1)' }} />
-            <button onClick={()=>setPulse(p=>!p)} style={{ padding:'4px 8px', borderRadius:6, background: pulse ? '#3b82f6' : '#F0EDFD', color:'#000', border:'1px solid rgba(128,128,128,0.5)' }}>{pulse ? '펄스 ON' : '펄스 OFF'}</button>
-            <button onClick={() => { setSearch(''); setLayerFilter({ physical: true, logical: true, persona: true }); setAssumedFilter('all'); setStatusFilter(new Set(STATUS)); }} style={{ padding:'4px 8px', borderRadius:6, background:'#F0EDFD', color:'#000', border:'1px solid rgba(128,128,128,0.5)' }}>필터 초기화</button>
+            <button onClick={()=>{
+              interactionTracker.measureResponseSync(
+                'MultilayerVisualization',
+                'Toggle Pulse',
+                () => setPulse(p=>!p),
+                { currentState: pulse }
+              );
+            }} style={{ padding:'4px 8px', borderRadius:6, background: pulse ? '#3b82f6' : '#F0EDFD', color:'#000', border:'1px solid rgba(128,128,128,0.5)' }}>{pulse ? '펄스 ON' : '펄스 OFF'}</button>
+            <button onClick={() => {
+              interactionTracker.measureResponseSync(
+                'MultilayerVisualization',
+                'Reset Filters',
+                () => {
+                  setSearch('');
+                  setLayerFilter({ physical: true, logical: true, persona: true });
+                  setAssumedFilter('all');
+                  setStatusFilter(new Set(STATUS));
+                },
+                {}
+              );
+            }} style={{ padding:'4px 8px', borderRadius:6, background:'#F0EDFD', color:'#000', border:'1px solid rgba(128,128,128,0.5)' }}>필터 초기화</button>
             <button onClick={resetView} style={{ padding:'4px 8px', borderRadius:6, background:'#F0EDFD', color:'#000', border:'1px solid rgba(128,128,128,0.5)' }}>뷰 초기화</button>
           </div>
         </div>

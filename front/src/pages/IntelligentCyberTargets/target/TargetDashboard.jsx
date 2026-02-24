@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo, lazy, Suspense, useEffect } from
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, Box, Typography, IconButton, Dialog, DialogContent } from "@mui/material";
 import { PushpinOutlined, AreaChartOutlined } from '@ant-design/icons';
+import interactionTracker from '../../../utils/interactionTracker';
 
 // Lazy load components for better code splitting
 const TargetGraphComp = lazy(() => import("./TargetGraphComp"));
@@ -142,39 +143,81 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
     setFilteredNodes(originalNodes);
   }, [nodes, originalNodes]);
 
+  // 컴포넌트 생애주기 추적
+  useEffect(() => {
+    interactionTracker.log('TargetDashboard', 'Component Mounted', { activeView });
+    return () => {
+      interactionTracker.log('TargetDashboard', 'Component Unmounted', { activeView });
+    };
+  }, [activeView]);
+
   // Memoize condition change handler
   const handleConditionChange = useCallback((newConditions, filteredData) => {
-    setFilterConditions(newConditions);
-    setFilteredNodes(filteredData);
-  }, []);
+    interactionTracker.measureResponseSync(
+      'TargetDashboard',
+      'Filter Condition Change',
+      () => {
+        setFilterConditions(newConditions);
+        setFilteredNodes(filteredData);
+      },
+      { 
+        conditionCount: Object.keys(newConditions).length,
+        filteredNodeCount: filteredData.length,
+        originalNodeCount: originalNodes.length
+      }
+    );
+  }, [originalNodes.length]);
 
   // Memoize node click handler
   const handleNodeClick = useCallback((node) => {
-    // 선택된 노드 저장
-    setSelectedNode(node);
-    // 새로운 로그 항목 생성
-    const newLogEntry = {
-      type: 'node-click',
-      message: `노드 클릭: ${node.label || node.id}`,
-      connectedCount: node.connectedCount,
-      connectedIps: node.connectedIps,
-      dbInfo: node.dbInfo,
-      timestamp: new Date().toLocaleTimeString()
-    };
-    // 로그를 누적하지 않고 새 로그로 덮어쓰기
-    setCurrentLogs([newLogEntry]);
-    // 부모 컴포넌트에도 전달
-    if (onNodeClick) onNodeClick(node);
+    interactionTracker.measureResponseSync(
+      'TargetDashboard',
+      'Node Click on Graph',
+      () => {
+        // 선택된 노드 저장
+        setSelectedNode(node);
+        // 새로운 로그 항목 생성
+        const newLogEntry = {
+          type: 'node-click',
+          message: `노드 클릭: ${node.label || node.id}`,
+          connectedCount: node.connectedCount,
+          connectedIps: node.connectedIps,
+          dbInfo: node.dbInfo,
+          timestamp: new Date().toLocaleTimeString()
+        };
+        // 로그를 누적하지 않고 새 로그로 덮어쓰기
+        setCurrentLogs([newLogEntry]);
+        // 부모 컴포넌트에도 전달
+        if (onNodeClick) onNodeClick(node);
+      },
+      {
+        nodeId: node.id,
+        label: node.label,
+        connectedCount: node.connectedCount
+      }
+    );
   }, [onNodeClick]);
 
   // Memoize navigate handler
   const handleNavigateToResponse = useCallback(() => {
-    if (!selectedNode) {
-      alert('먼저 노드를 선택해주세요.');
-      return;
-    }
-    // 선택된 노드 정보를 state로 전달하면서 페이지 이동
-    navigate('/ActiveResponse/responseeffectvisualization', { state: { selectedNode } });
+    interactionTracker.measureResponseSync(
+      'TargetDashboard',
+      'Navigate to Response Page',
+      () => {
+        if (!selectedNode) {
+          alert('먼저 노드를 선택해주세요.');
+          return;
+        }
+        
+        // 선택된 노드 정보를 state로 전달하면서 페이지 이동
+        navigate('/ActiveResponse/responseeffectvisualization', { state: { selectedNode } });
+      },
+      {
+        destination: '/ActiveResponse/responseeffectvisualization',
+        selectedNodeId: selectedNode?.id,
+        hasSelectedNode: !!selectedNode
+      }
+    );
   }, [navigate, selectedNode]);
 
   return (
@@ -323,7 +366,14 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         size="small"
         aria-label="네트워크 구조 분석 및 표적 식별"
         title="네트워크 구조 분석 및 표적 식별"
-        onClick={() => openPopup('targetPriority')}
+        onClick={() => {
+          interactionTracker.measureResponseSync(
+            'TargetDashboard',
+            'Open Target Priority Popup',
+            () => openPopup('targetPriority'),
+            { popupName: 'targetPriority' }
+          );
+        }}
         sx={{
           position: 'absolute',
           bottom: 40,
@@ -350,7 +400,14 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         size="small"
         aria-label="핵심 표적 점수 분석"
         title="핵심 표적 점수 분석"
-        onClick={() => openPopup('targetPriority')}
+        onClick={() => {
+          interactionTracker.measureResponseSync(
+            'TargetDashboard',
+            'Open Target Priority Popup (Score Analysis)',
+            () => openPopup('targetPriority'),
+            { popupName: 'targetPriority' }
+          );
+        }}
         sx={{
           position: 'absolute',
           bottom: 40,
@@ -376,7 +433,14 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
       {/* 네트워크 구조 분석 팝업 */}
       <Dialog
         open={targetIdentificationOpen}
-        onClose={() => closePopup('targetIdentification')}
+        onClose={() => {
+          interactionTracker.measureResponseSync(
+            'TargetDashboard',
+            'Close Target Identification Popup (Outside Click)',
+            () => closePopup('targetIdentification'),
+            { popupName: 'targetIdentification' }
+          );
+        }}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -390,7 +454,14 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         }}
       >
         <IconButton
-          onClick={() => closePopup('targetIdentification')}
+          onClick={() => {
+            interactionTracker.measureResponseSync(
+              'TargetDashboard',
+              'Close Target Identification Popup (X Button)',
+              () => closePopup('targetIdentification'),
+              { popupName: 'targetIdentification' }
+            );
+          }}
           sx={{
             position: 'absolute',
             right: 23,
@@ -414,7 +485,14 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
       {/* 핵심 표적 점수 분석 팝업 */}
       <Dialog
         open={targetPriorityOpen}
-        onClose={() => closePopup('targetPriority')}
+        onClose={() => {
+          interactionTracker.measureResponseSync(
+            'TargetDashboard',
+            'Close Target Priority Popup (Outside Click)',
+            () => closePopup('targetPriority'),
+            { popupName: 'targetPriority' }
+          );
+        }}
         maxWidth="md"
         fullWidth
         PaperProps={{
@@ -428,7 +506,14 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
         }}
       >
         <IconButton
-          onClick={() => closePopup('targetPriority')}
+          onClick={() => {
+            interactionTracker.measureResponseSync(
+              'TargetDashboard',
+              'Close Target Priority Popup (X Button)',
+              () => closePopup('targetPriority'),
+              { popupName: 'targetPriority' }
+            );
+          }}
           sx={{
             position: 'absolute',
             right: 23,
