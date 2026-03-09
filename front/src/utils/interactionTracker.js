@@ -25,16 +25,7 @@ const formatTimestamp = () => {
  * @param {object} data - 추가 데이터
  */
 const log = (componentName, actionType, data = {}) => {
-  const timestamp = formatTimestamp();
-  console.log(`
-╔════════════════════════════════════════════════════════════════
-║ 🔍 상호작용 추적 로그
-╠════════════════════════════════════════════════════════════════
-║ ⏰ 시각: ${timestamp}
-║ 📦 컴포넌트: ${componentName}
-║ 🎯 액션: ${actionType}
-║ 📊 데이터:`, data, `
-╚════════════════════════════════════════════════════════════════`);
+  // 상호작용 추적 로그 비활성화
 };
 
 /**
@@ -47,18 +38,7 @@ const log = (componentName, actionType, data = {}) => {
  */
 const measureResponse = async (componentName, actionType, asyncFn, data = {}) => {
   const startTime = performance.now();
-  const startTimestamp = formatTimestamp();
   
-  console.log(`
-╔════════════════════════════════════════════════════════════════
-║ ⚡ 반응 시간 측정 시작
-╠════════════════════════════════════════════════════════════════
-║ ⏰ 시각: ${startTimestamp}
-║ 📦 컴포넌트: ${componentName}
-║ 🎯 액션: ${actionType}
-║ 📊 입력 데이터:`, data, `
-╚════════════════════════════════════════════════════════════════`);
-
   try {
     const result = await asyncFn();
     const endTime = performance.now();
@@ -105,18 +85,7 @@ const measureResponse = async (componentName, actionType, asyncFn, data = {}) =>
  */
 const measureResponseSync = (componentName, actionType, syncFn, data = {}) => {
   const startTime = performance.now();
-  const startTimestamp = formatTimestamp();
   
-  console.log(`
-╔════════════════════════════════════════════════════════════════
-║ ⚡ 반응 시간 측정 시작 (동기)
-╠════════════════════════════════════════════════════════════════
-║ ⏰ 시각: ${startTimestamp}
-║ 📦 컴포넌트: ${componentName}
-║ 🎯 액션: ${actionType}
-║ 📊 입력 데이터:`, data, `
-╚════════════════════════════════════════════════════════════════`);
-
   try {
     const result = syncFn();
     const endTime = performance.now();

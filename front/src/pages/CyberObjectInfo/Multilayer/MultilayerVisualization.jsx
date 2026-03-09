@@ -331,7 +331,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
     const group = new THREE.Group(); group.name = 'layer-planes';
     const makePlane = (z, color, label) => {
       const planeGeo = new THREE.PlaneGeometry(LAYOUT.plane.width, LAYOUT.plane.height, 1, 1);
-      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.06, depthWrite: false });
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.06, depthWrite: false, side: THREE.DoubleSide });
       const mesh = new THREE.Mesh(planeGeo, mat); mesh.position.set(0, 0, z);
       const edges = new THREE.EdgesGeometry(planeGeo);
       const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.25 }));
@@ -674,8 +674,9 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
               position: 'relative',
               overflow: 'hidden',
               borderRadius: '20px',
-              boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)',
-              background: '#0b1220',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18), 0 1.5px 6px rgba(0,0,0,0.10)',
+              border: '1px solid rgba(0,0,0,0.07)',
+              background: '#ffffff',
               mr: 1
             }}>
               <div ref={graphContainerRef} style={{
@@ -808,7 +809,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
         <ForceGraph3D
           ref={fgRef}
           graphData={graphToRender}
-          backgroundColor="#0b1220" // 3계층 시각화 배경색 부분 
+          backgroundColor="#ffffff" // 3계층 시각화 배경색 부분 
           width={containerSize.width}
           height={containerSize.height}
           nodeAutoColorBy={null}

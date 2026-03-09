@@ -16,22 +16,15 @@ const icons = {
 
 const externalNetwork = {
   id: 'Osint&Data Fusion',
-  title: 'OSINT 및 수집 데이터 융합 ',
+  title: 'OSINT 및 수집 데이터 융합기',
   type: 'group',
   children: [
     {
       id: 'GeoIP',
-      title: 'OSINT 정보 수집',
+      title: 'BGP 데이터 수집 및 분석',
       type: 'item',
       url: '/Osint&DataFusion/GeoIP',
       icon: icons.QuestionOutlined
-    },
-    {
-      id: 'PDR',
-      title: 'PDR',
-      type: 'item',
-      url: '/Osint&DataFusion/PDR',
-      icon: icons.AimOutlined
     },
     {
       id: 'FusionDB',

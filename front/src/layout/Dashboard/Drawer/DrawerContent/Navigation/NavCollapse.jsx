@@ -8,12 +8,14 @@ import Typography from '@mui/material/Typography';
 // project import
 import NavItem from './NavItem';
 import { useGetMenuMaster } from 'api/menu';
+import { useNavigate } from 'react-router-dom';
 
 // ==============================|| NAVIGATION - COLLAPSE ||============================== //
 
 export default function NavCollapse({ item, level }) {
   const { menuMaster } = useGetMenuMaster();
   const drawerOpen = menuMaster.isDashboardDrawerOpened;
+  const navigate = useNavigate();
 
   const textColor = 'text.primary';
 
@@ -46,7 +48,17 @@ export default function NavCollapse({ item, level }) {
   return (
     <>
       <Box sx={{ pl: `${level * 28}px`, py: 1.25 }}>
-        <Typography variant="h5" sx={{ color: textColor, fontWeight: 600, fontSize: 'var(--nav-collapse-font-size, 1.1rem)' }}>
+        <Typography
+          variant="h5"
+          sx={{
+            color: textColor,
+            fontWeight: 600,
+            fontSize: 'var(--nav-collapse-font-size, 1.1rem)',
+            cursor: item.url ? 'pointer' : 'default',
+            '&:hover': item.url ? { color: 'primary.main', textDecoration: 'underline' } : {}
+          }}
+          onClick={() => item.url && navigate(item.url)}
+        >
           {item.title}
         </Typography>
       </Box>

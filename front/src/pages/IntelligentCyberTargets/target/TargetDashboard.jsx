@@ -130,10 +130,16 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
 
   React.useEffect(() => {
     if (!data) {
-      fetch("http://localhost:8000/neo4j/nodes?activeView=target")
-        .then(res => res.json())
-        .then(setNodes)
-        .catch(() => setNodes([]));
+      interactionTracker.measureResponse(
+        'TargetDashboard',
+        'Fetch Network Data',
+        async () => {
+          const res = await fetch("http://localhost:8000/neo4j/nodes?activeView=target");
+          const json = await res.json();
+          return json;
+        },
+        { activeView: 'target' }
+      ).then(({ result }) => setNodes(result)).catch(() => setNodes([]));
     } else {
       setNodes(data);
     }

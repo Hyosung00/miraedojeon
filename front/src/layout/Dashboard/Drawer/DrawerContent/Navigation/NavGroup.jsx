@@ -8,10 +8,12 @@ import Box from '@mui/material/Box';
 import NavItem from './NavItem';
 import NavCollapse from './NavCollapse';
 import { useGetMenuMaster } from 'api/menu';
+import { useNavigate } from 'react-router-dom';
 
 export default function NavGroup({ item }) {
   const { menuMaster } = useGetMenuMaster();
   const drawerOpen = menuMaster.isDashboardDrawerOpened;
+  const navigate = useNavigate();
 
   const navCollapse = item.children?.map((menuItem) => {
     switch (menuItem.type) {
@@ -36,13 +38,23 @@ export default function NavGroup({ item }) {
         item.title &&
         drawerOpen && (
           <Box sx={{ pl: 3, mb: 1.5 }}>
-            <Typography variant="h5" color="black" sx={{ fontWeight: 'bold', fontSize: 'var(--nav-group-font-size, 1.3rem)' }}>
+            <Typography
+              variant="h5"
+              color="black"
+              sx={{
+                fontWeight: 'bold',
+                fontSize: 'var(--nav-group-font-size, 1.15rem)',
+                cursor: item.url ? 'pointer' : 'default',
+                '&:hover': item.url ? { color: 'primary.main', textDecoration: 'underline' } : {}
+              }}
+              onClick={() => item.url && navigate(item.url)}
+            >
               {item.title}
             </Typography>
           </Box>
         )
       }
-      sx={{ mb: drawerOpen ? 5 : 0, py: 0, zIndex: 0 }} // 메뉴가 닫혀있을 때는 margin-bottom 제거, 각 메뉴 사이 간격 늘리기
+      sx={{ mb: drawerOpen ? 2 : 0, py: 0, zIndex: 0 }} // 메뉴가 닫혀있을 때는 margin-bottom 제거, 각 메뉴 사이 간격 늘리기
     >
       {navCollapse}
     </List>

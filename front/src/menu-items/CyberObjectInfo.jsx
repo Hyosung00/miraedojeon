@@ -1,10 +1,11 @@
 // assets
-import { DashboardOutlined, FundOutlined } from '@ant-design/icons';
+import { DashboardOutlined, FundOutlined, AimOutlined } from '@ant-design/icons';
 
 // icons
 const icons = {
   DashboardOutlined,
-  FundOutlined
+  FundOutlined,
+  AimOutlined
 };
 
 // ==============================|| MENU ITEMS - DASHBOARD ||============================== //
@@ -15,12 +16,11 @@ const dashboard = {
   type: 'group',
   children: [
     {
-      id: 'dashboard',
-      title: '내외부망 가시화 및 표적분석',
+      id: 'PDR',
+      title: '사이버 물리 환경 구조 가시화',
       type: 'item',
-      url: '/dashboard/default',
-      icon: icons.DashboardOutlined,
-      breadcrumbs: false
+      url: '/CyberObjectInfo/PDR',
+      icon: icons.AimOutlined
     },
     { // 사이버 3계층 멀티레이어 가시화
       id: 'MultilayerVisualization',

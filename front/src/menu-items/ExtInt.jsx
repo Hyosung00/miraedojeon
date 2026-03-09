@@ -2,14 +2,16 @@
 import {
   AlertOutlined,
   ContactsOutlined,
-  DeploymentUnitOutlined
+  DeploymentUnitOutlined,
+  QuestionOutlined
 } from '@ant-design/icons';
 
 // icons
 const icons = {
   AlertOutlined,
   ContactsOutlined,
-  DeploymentUnitOutlined
+  DeploymentUnitOutlined,
+  QuestionOutlined
 };
 
 // ==============================|| MENU ITEMS - INTERNAL NETWORK ||============================== //
@@ -21,14 +23,21 @@ const internalNetwork = {
   children: [
     {
       id: 'TimeSeriesAnomalyDetection',
-      title: '시계열 기반 이상탐지',
+      title: '네트워크 데이터 융합',
       type: 'item',
       url: '/ExtInt/TimeSeriesVisualization',
       icon: icons.AlertOutlined
     },
     {
+      id: 'GeoIP',
+      title: '외부망 기본맵 가시화',
+      type: 'item',
+      url: '/Osint&DataFusion/GeoIP',
+      icon: icons.QuestionOutlined
+    },
+    {
       id: 'internal-topology',
-      title: '내부망 기본맵 가시화',
+      title: '내부망 네트워크 토폴로지 가시화',
       type: 'item',
       url: '/ExtInt/internaltopology',
       icon: icons.ContactsOutlined

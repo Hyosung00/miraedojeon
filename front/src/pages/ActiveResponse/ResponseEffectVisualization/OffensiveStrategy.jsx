@@ -48,26 +48,26 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
   // 컴포넌트 마운트/언마운트 추적
   useEffect(() => {
     const mountTime = performance.now();
-    console.log(`
-╔════════════════════════════════════════════════════════════════
-║ 🚀 컴포넌트 마운트
-╠════════════════════════════════════════════════════════════════
-║ 📦 컴포넌트: OffensiveStrategy
-║ ⏰ 마운트 시각: ${new Date().toISOString()}
-║ 📊 Props:`, { deviceElementId, onSelectDevice: !!onSelectDevice }, `
-╚════════════════════════════════════════════════════════════════`);
+    // console.log(`
+    // ╔════════════════════════════════════════════════════════════════
+    // ║ 🚀 컴포넌트 마운트
+    // ╠════════════════════════════════════════════════════════════════
+    // ║ 📦 컴포넌트: OffensiveStrategy
+    // ║ ⏰ 마운트 시각: ${new Date().toISOString()}
+    // ║ 📊 Props:`, { deviceElementId, onSelectDevice: !!onSelectDevice }, `
+    // ╚════════════════════════════════════════════════════════════════`);
 
     return () => {
       const unmountTime = performance.now();
       const lifeTime = unmountTime - mountTime;
-      console.log(`
-╔════════════════════════════════════════════════════════════════
-║ 🛑 컴포넌트 언마운트
-╠════════════════════════════════════════════════════════════════
-║ 📦 컴포넌트: OffensiveStrategy
-║ ⏰ 언마운트 시각: ${new Date().toISOString()}
-║ ⏱️  생존 시간: ${lifeTime.toFixed(2)}ms (${(lifeTime / 1000).toFixed(3)}초)
-╚════════════════════════════════════════════════════════════════`);
+      // console.log(`
+      // ╔════════════════════════════════════════════════════════════════
+      // ║ 🛑 컴포넌트 언마운트
+      // ╠════════════════════════════════════════════════════════════════
+      // ║ 📦 컴포넌트: OffensiveStrategy
+      // ║ ⏰ 언마운트 시각: ${new Date().toISOString()}
+      // ║ ⏱️  생존 시간: ${lifeTime.toFixed(2)}ms (${(lifeTime / 1000).toFixed(3)}초)
+      // ╚════════════════════════════════════════════════════════════════`);
     };
   }, []);
 
@@ -144,7 +144,12 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       OPTIONAL MATCH (d)-[r:CONNECTED{project:"facility"}]-(d2:Device{project:"facility"})
       RETURN d, r, d2
     `;
-    fetchData(query).then((recs) => {
+    interactionTracker.measureResponse(
+      'OffensiveStrategy',
+      'Fetch Network Data',
+      () => fetchData(query),
+      {}
+    ).then(({ result: recs }) => {
       const nodesMap = new Map();
       const edgesMap = new Map();
       const idOf = (entity) => {
@@ -185,7 +190,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       if (!initialTopologyRef.current) {
         initialTopologyRef.current = { nodes: nodesArr.map(n => ({ ...n })), edges: edgesArr.map(e => ({ ...e })) };
       }
-    }).catch(console.error);
+    }).catch(() => {});
   }, []);
 
   // 2) 공격 그래프 로드(시작노드 선택 시)
@@ -315,10 +320,10 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       RETURN start, target, pathRels, orderedNodeInfos, viaCount, viaId
     `;
 
-    console.log('🔍 공격 경로 쿼리 실행 중...');
-    console.log('  시작 노드 ID:', startId);
-    console.log('  목표 노드:', targetPhysicalName);
-    console.log('  조건: 최소 1개 이상의 우회 엔드포인트 경유 필수');
+    // console.log('🔍 공격 경로 쿼리 실행 중...');
+    // console.log('  시작 노드 ID:', startId);
+    // console.log('  목표 노드:', targetPhysicalName);
+    // console.log('  조건: 최소 1개 이상의 우회 엔드포인트 경유 필수');
 
     // 경로 생성 시간 측정
     interactionTracker.measureResponse(
@@ -336,12 +341,12 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       const { recs } = result.result;
       if (canceled) return;
 
-      console.log(`✅ 쿼리 완료: ${recs?.length || 0}개의 경로 발견`);
+      // console.log(`✅ 쿼리 완료: ${recs?.length || 0}개의 경로 발견`);
 
       if (!recs || recs.length === 0) {
-        console.warn('⚠️ 최소 1개 이상의 우회 엔드포인트를 경유하는 경로를 찾을 수 없습니다.');
-        console.log('시작 노드 ID:', startId, '목표 노드:', targetPhysicalName);
-        console.log('ℹ️ 다른 시작 노드를 선택하거나 네트워크 연결을 확인하세요.');
+        // console.warn('⚠️ 최소 1개 이상의 우회 엔드포인트를 경유하는 경로를 찾을 수 없습니다.');
+        // console.log('시작 노드 ID:', startId, '목표 노드:', targetPhysicalName);
+        // console.log('ℹ️ 다른 시작 노드를 선택하거나 네트워크 연결을 확인하세요.');
 
         const fallbackNodes = [];
         if (startId != null) {
@@ -370,7 +375,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               }
             });
           } catch (error) {
-            console.error('Failed to fetch start node info:', error);
+            // console.error('Failed to fetch start node info:', error);
             // 실패 시 기본 노드 추가
             fallbackNodes.push({
               id: startId,
@@ -422,7 +427,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           };
         }
 
-        console.log(`\n[경로 ${pathIdx + 1}] 우회 엔드포인트 노드 수: ${viaCount}개 ✅ (경유 노드 ID: ${viaId})`);
+        // console.log(`\n[경로 ${pathIdx + 1}] 우회 엔드포인트 노드 수: ${viaCount}개 ✅ (경유 노드 ID: ${viaId})`);
 
         // 우회 노드 상세 정보 로그 (엔드포인트 타입만)
         const viaNodes = orderedNodeInfos.filter(n => {
@@ -437,9 +442,9 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         });
 
         if (viaNodes.length > 0) {
-          console.log(`  우회 엔드포인트 노드들:`, viaNodes.map(n => `${n.name || n.nodeId}(${n.nodeType}, ID:${toNum(n.id)})`).join(' → '));
+          // console.log(`  우회 엔드포인트 노드들:`, viaNodes.map(n => `${n.name || n.nodeId}(${n.nodeType}, ID:${toNum(n.id)})`).join(' → '));
         } else {
-          console.warn(`  ⚠️ 경로 ${pathIdx + 1}에 우회 엔드포인트 노드가 없습니다!`);
+          // console.warn(`  ⚠️ 경로 ${pathIdx + 1}에 우회 엔드포인트 노드가 없습니다!`);
         }
 
         // 엔드포인트/연속 중복 제거
@@ -492,11 +497,11 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               // 엔드포인트 중복 발견
               const count = endpointOccurrences.get(nodeId) || 0;
               endpointOccurrences.set(nodeId, count + 1);
-              console.warn(`⚠️ [경로 ${pathIdx + 1}] 엔드포인트 중복 발견: 노드 ${nodeId} (${nodeInfo.name || 'Unknown'}) - ${count + 1}번째`);
+              // console.warn(`⚠️ [경로 ${pathIdx + 1}] 엔드포인트 중복 발견: 노드 ${nodeId} (${nodeInfo.name || 'Unknown'}) - ${count + 1}번째`);
             }
           } else {
             // 타입을 알 수 없는 노드는 일단 추가하되 경고
-            console.warn(`⚠️ [경로 ${pathIdx + 1}] 알 수 없는 노드 타입: ${typeStr} (${nodeId})`);
+            // console.warn(`⚠️ [경로 ${pathIdx + 1}] 알 수 없는 노드 타입: ${typeStr} (${nodeId})`);
             filteredNodeInfos.push(nodeInfo);
           }
         }
@@ -518,18 +523,18 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
         if (targetNodeIndex >= 0 && targetNodeIndex < filteredNodeInfos.length - 1) {
           const removedCount = filteredNodeInfos.length - trimmedNodeInfos.length;
-          console.log(`[경로 ${pathIdx + 1}] 목표 노드 이후 ${removedCount}개 노드 제거:`, {
-            원본길이: filteredNodeInfos.length,
-            트리밍후: trimmedNodeInfos.length,
-            목표노드위치: targetNodeIndex,
-            제거된노드: filteredNodeInfos.slice(targetNodeIndex + 1).map(n => {
-              const id = toNum(n.id);
-              const label = n.name || n.props?.name || n.props?.label || String(id);
-              return `${label}(${id})`;
-            })
-          });
+          // console.log(`[경로 ${pathIdx + 1}] 목표 노드 이후 ${removedCount}개 노드 제거:`, {
+          //   원본길이: filteredNodeInfos.length,
+          //   트리밍후: trimmedNodeInfos.length,
+          //   목표노드위치: targetNodeIndex,
+          //   제거된노드: filteredNodeInfos.slice(targetNodeIndex + 1).map(n => {
+          //     const id = toNum(n.id);
+          //     const label = n.name || n.props?.name || n.props?.label || String(id);
+          //     return `${label}(${id})`;
+          //   })
+          // });
         } else if (targetNodeIndex < 0) {
-          console.warn(`⚠️ [경로 ${pathIdx + 1}] 경로에서 목표 노드(${targetId})를 찾을 수 없습니다!`);
+          // console.warn(`⚠️ [경로 ${pathIdx + 1}] 경로에서 목표 노드(${targetId})를 찾을 수 없습니다!`);
         }
 
         // path list용 축약 저장
@@ -601,47 +606,47 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           pathEdges.push(`${pathNodesForList[i].label}(${pathNodesForList[i].id}) → ${pathNodesForList[i + 1].label}(${pathNodesForList[i + 1].id})`);
         }
 
-        console.log(`[경로 ${pathIdx + 1}] 노드 검증:`, {
-          totalNodes: pathNodesForList.length,
-          우회노드수: `${actualViaCount}개 (Neo4j: ${viaCount}) ${viaCountValid ? '✅' : '⚠️ 1~4개 범위 벗어남'}`,
-          우회노드목록: endpointsInPath.map(ep => `${ep.label}(${ep.id})`).join(', '),
-          firstNode: `${firstNode?.label}(${firstNode?.id}) ${isFirstNodeStart ? '✅ 시작노드' : '⚠️ 시작노드 아님!'}`,
-          lastNode: `${lastNode?.label}(${lastNode?.id}) ${isLastNodeTarget ? '✅ 목표노드' : '⚠️ 목표노드 아님!'}`,
-          startNodeId: startId,
-          targetNodeId: targetId,
-          startNodeCount: `${startNodeCount}번 ${startNodeCount === 1 ? '✅' : '⚠️'}`,
-          targetNodeCount: `${targetNodeCount}번 ${targetNodeCount === 1 ? '✅' : '⚠️'}`,
-          엔드포인트중복: duplicateEndpoints.length > 0 ? `⚠️ ${duplicateEndpoints.join(', ')}` : '✅ 중복 없음',
-          nodeIds: pathNodesForList.map(n => n.id),
-          경로: pathNodesForList.map(n => `${n.label}(${n.id})`).join(' → '),
-          엣지수: pathEdges.length,
-          엣지목록: pathEdges,
-          status: hasIssue ? '⚠️⚠️⚠️ 문제 발견! ⚠️⚠️⚠️' : '✅ 정상'
-        });
+        // console.log(`[경로 ${pathIdx + 1}] 노드 검증:`, {
+        //   totalNodes: pathNodesForList.length,
+        //   우회노드수: `${actualViaCount}개 (Neo4j: ${viaCount}) ${viaCountValid ? '✅' : '⚠️ 1~4개 범위 벗어남'}`,
+        //   우회노드목록: endpointsInPath.map(ep => `${ep.label}(${ep.id})`).join(', '),
+        //   firstNode: `${firstNode?.label}(${firstNode?.id}) ${isFirstNodeStart ? '✅ 시작노드' : '⚠️ 시작노드 아님!'}`,
+        //   lastNode: `${lastNode?.label}(${lastNode?.id}) ${isLastNodeTarget ? '✅ 목표노드' : '⚠️ 목표노드 아님!'}`,
+        //   startNodeId: startId,
+        //   targetNodeId: targetId,
+        //   startNodeCount: `${startNodeCount}번 ${startNodeCount === 1 ? '✅' : '⚠️'}`,
+        //   targetNodeCount: `${targetNodeCount}번 ${targetNodeCount === 1 ? '✅' : '⚠️'}`,
+        //   엔드포인트중복: duplicateEndpoints.length > 0 ? `⚠️ ${duplicateEndpoints.join(', ')}` : '✅ 중복 없음',
+        //   nodeIds: pathNodesForList.map(n => n.id),
+        //   경로: pathNodesForList.map(n => `${n.label}(${n.id})`).join(' → '),
+        //   엣지수: pathEdges.length,
+        //   엣지목록: pathEdges,
+        //   status: hasIssue ? '⚠️⚠️⚠️ 문제 발견! ⚠️⚠️⚠️' : '✅ 정상'
+        // });
 
         if (!isFirstNodeStart) {
-          console.error(`❌ [경로 ${pathIdx + 1}] 첫 번째 노드가 시작 노드가 아닙니다!`, {
-            expected: `시작 노드 ID ${startId}`,
-            actual: `${firstNode?.label}(${firstNode?.id})`
-          });
+          // console.error(`❌ [경로 ${pathIdx + 1}] 첫 번째 노드가 시작 노드가 아닙니다!`, {
+          //   expected: `시작 노드 ID ${startId}`,
+          //   actual: `${firstNode?.label}(${firstNode?.id})`
+          // });
         }
         if (!isLastNodeTarget) {
-          console.error(`❌ [경로 ${pathIdx + 1}] 마지막 노드가 목표 노드가 아닙니다!`, {
-            expected: `목표 노드 ID ${targetId}`,
-            actual: `${lastNode?.label}(${lastNode?.id})`
-          });
+          // console.error(`❌ [경로 ${pathIdx + 1}] 마지막 노드가 목표 노드가 아닙니다!`, {
+          //   expected: `목표 노드 ID ${targetId}`,
+          //   actual: `${lastNode?.label}(${lastNode?.id})`
+          // });
         }
         if (startNodeCount > 1) {
-          console.warn(`⚠️ [경로 ${pathIdx + 1}] 시작 노드(${startId})가 ${startNodeCount}번 나타남!`);
+          // console.warn(`⚠️ [경로 ${pathIdx + 1}] 시작 노드(${startId})가 ${startNodeCount}번 나타남!`);
         }
         if (targetNodeCount > 1) {
-          console.warn(`⚠️ [경로 ${pathIdx + 1}] 목표 노드(${targetId})가 ${targetNodeCount}번 나타남!`);
+          // console.warn(`⚠️ [경로 ${pathIdx + 1}] 목표 노드(${targetId})가 ${targetNodeCount}번 나타남!`);
         }
         if (duplicateEndpoints.length > 0) {
-          console.error(`❌ [경로 ${pathIdx + 1}] 엔드포인트 중복 발견!`, duplicateEndpoints);
+          // console.error(`❌ [경로 ${pathIdx + 1}] 엔드포인트 중복 발견!`, duplicateEndpoints);
         }
         if (!viaCountValid) {
-          console.error(`❌ [경로 ${pathIdx + 1}] 우회 노드 개수가 범위를 벗어남! (${actualViaCount}개, 허용: 1~4개)`);
+          // console.error(`❌ [경로 ${pathIdx + 1}] 우회 노드 개수가 범위를 벗어남! (${actualViaCount}개, 허용: 1~4개)`);
         }
         pathsArr.push(pathNodesForList);
 
@@ -720,11 +725,11 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         // pathRels는 경로 상의 실제 관계를 순서대로 포함
         // trimmedNodeInfos와 pathRels는 동기화되어 있음: pathRels[i]는 trimmedNodeInfos[i]와 trimmedNodeInfos[i+1] 사이의 관계
         if (pathRels && pathRels.length > 0) {
-          console.log(`[경로 ${pathIdx + 1}] pathRels로부터 엣지 생성:`, pathRels.length, '개 관계, 노드', trimmedNodeInfos.length, '개');
+          // console.log(`[경로 ${pathIdx + 1}] pathRels로부터 엣지 생성:`, pathRels.length, '개 관계, 노드', trimmedNodeInfos.length, '개');
 
           // pathRels 배열의 길이는 trimmedNodeInfos.length - 1 이어야 함
           if (pathRels.length !== trimmedNodeInfos.length - 1) {
-            console.warn(`⚠️ [경로 ${pathIdx + 1}] pathRels 길이(${pathRels.length})와 노드 수(${trimmedNodeInfos.length}) 불일치!`);
+            // console.warn(`⚠️ [경로 ${pathIdx + 1}] pathRels 길이(${pathRels.length})와 노드 수(${trimmedNodeInfos.length}) 불일치!`);
           }
 
           // pathRels의 각 관계를 순회하며 엣지 생성
@@ -752,15 +757,15 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                   width: 3,
                   title: `Attack Path - Hop ${relIdx + 1}`
                 });
-                console.log(`  엣지 생성 [${relIdx + 1}]: ${fromNodeId} -> ${toNodeId}`);
+                // console.log(`  엣지 생성 [${relIdx + 1}]: ${fromNodeId} -> ${toNodeId}`);
               } else {
-                console.log(`  엣지 중복 스킵 [${relIdx + 1}]: ${fromNodeId} -> ${toNodeId}`);
+                // console.log(`  엣지 중복 스킵 [${relIdx + 1}]: ${fromNodeId} -> ${toNodeId}`);
               }
             }
           }
         } else {
           // pathRels가 없는 경우 기존 방식으로 엣지 생성
-          console.warn(`[경로 ${pathIdx + 1}] pathRels가 없어서 노드 순서로 엣지 생성`);
+          // console.warn(`[경로 ${pathIdx + 1}] pathRels가 없어서 노드 순서로 엣지 생성`);
           for (let i = 1; i < trimmedNodeInfos.length; i++) {
             const prevNodeInfo = trimmedNodeInfos[i - 1];
             const nodeInfo = trimmedNodeInfos[i];
@@ -804,11 +809,11 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       if (targetId) { const t = nodesMap.get(targetId); if (t) { t.level = maxLevel + 1; delete t.tempLevel; } }
 
       // 전체 경로 목록 요약 로그
-      console.log('========== 경로 분석 요약 ==========');
-      console.log(`총 경로 개수: ${pathsArr.length}`);
-      console.log(`시작 노드 ID: ${startId}`);
-      console.log(`목표 노드 ID: ${targetId}`);
-      console.log('');
+      // console.log('========== 경로 분석 요약 ==========');
+      // console.log(`총 경로 개수: ${pathsArr.length}`);
+      // console.log(`시작 노드 ID: ${startId}`);
+      // console.log(`목표 노드 ID: ${targetId}`);
+      // console.log('');
 
       let totalIssues = 0;
       pathsArr.forEach((path, idx) => {
@@ -822,25 +827,25 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
 
         if (hasIssue) totalIssues++;
 
-        console.log(`경로 ${idx + 1}:`, {
-          노드수: path.length,
-          첫번째노드: `${firstNode?.label}(${firstNode?.id}) ${isFirstNodeStart ? '✅' : '❌ 시작노드 아님!'}`,
-          마지막노드: `${lastNode?.label}(${lastNode?.id}) ${isLastNodeTarget ? '✅' : '❌ 목표노드 아님!'}`,
-          시작노드출현: `${startCount}번 ${startCount === 1 ? '✅' : '⚠️'}`,
-          목표노드출현: `${targetCount}번 ${targetCount === 1 ? '✅' : '⚠️'}`,
-          상태: hasIssue ? '⚠️⚠️ 문제 있음 ⚠️⚠️' : '✅ 정상',
-          경로: path.map(n => `${n.label}(${n.id})`).join(' → ')
-        });
+        // console.log(`경로 ${idx + 1}:`, {
+        //   노드수: path.length,
+        //   첫번째노드: `${firstNode?.label}(${firstNode?.id}) ${isFirstNodeStart ? '✅' : '❌ 시작노드 아님!'}`,
+        //   마지막노드: `${lastNode?.label}(${lastNode?.id}) ${isLastNodeTarget ? '✅' : '❌ 목표노드 아님!'}`,
+        //   시작노드출현: `${startCount}번 ${startCount === 1 ? '✅' : '⚠️'}`,
+        //   목표노드출현: `${targetCount}번 ${targetCount === 1 ? '✅' : '⚠️'}`,
+        //   상태: hasIssue ? '⚠️⚠️ 문제 있음 ⚠️⚠️' : '✅ 정상',
+        //   경로: path.map(n => `${n.label}(${n.id})`).join(' → ')
+        // });
       });
 
-      console.log('');
-      console.log(`총 ${pathsArr.length}개 경로 중 ${totalIssues}개 경로에서 문제 발견`);
+      // console.log('');
+      // console.log(`총 ${pathsArr.length}개 경로 중 ${totalIssues}개 경로에서 문제 발견`);
       if (totalIssues > 0) {
-        console.error(`⚠️⚠️⚠️ ${totalIssues}개 경로에 문제가 있습니다! ⚠️⚠️⚠️`);
+        // console.error(`⚠️⚠️⚠️ ${totalIssues}개 경로에 문제가 있습니다! ⚠️⚠️⚠️`);
       } else {
-        console.log('✅✅✅ 모든 경로가 정상입니다! ✅✅✅');
+        // console.log('✅✅✅ 모든 경로가 정상입니다! ✅✅✅');
       }
-      console.log('===================================');
+      // console.log('===================================');
 
       setPathList(pathsArr);
       setAttackGraphData({
@@ -854,7 +859,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         paths: pathsArr
       });
       if (loadingAttackRef.current) setLoadingAttack(false);
-    }).catch((e) => { console.error(e); setLoadingAttack(false); });
+    }).catch((e) => { /* console.error(e); */ setLoadingAttack(false); });
 
     return () => { canceled = true; };
   }, [effectiveDeviceName, selectedStartNode]);
@@ -997,7 +1002,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               setInternalSelected(deviceName);
               setManualTargetNode({ id: nid, name: deviceName, ...node });
               setSelectionStep(1);
-              console.log('🎯 목적지 노드 선택:', deviceName);
+              // console.log('🎯 목적지 노드 선택:', deviceName);
               return { deviceName, nodeId: nid, step: 'target' };
             },
             { deviceName, nodeId: nid, currentStep }
@@ -1005,7 +1010,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         } else if (currentStep === 1) {
           // 출발지 선택 (목적지와 다른 노드여야 함)
           if (deviceName === currentTarget) {
-            console.warn('⚠️ 출발지와 목적지가 같습니다. 다른 노드를 선택하세요.');
+            // console.warn('⚠️ 출발지와 목적지가 같습니다. 다른 노드를 선택하세요.');
             interactionTracker.log('OffensiveStrategy - NetworkTopology', 'Invalid Start Node Selection', {
               reason: '출발지와 목적지가 동일함',
               deviceName,
@@ -1021,7 +1026,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               if (physId != null) {
                 setSelectedStartNode(physId);
                 setSelectionStep(2);
-                console.log('🚀 출발지 노드 선택:', deviceName);
+                // console.log('🚀 출발지 노드 선택:', deviceName);
               }
               return { physicalId: physId, deviceName, nodeId: nid, step: 'start' };
             },
@@ -1030,7 +1035,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         } else {
           // 이미 선택 완료된 상태에서 다시 클릭하면 출발지만 변경
           if (deviceName === currentTarget) {
-            console.warn('⚠️ 출발지와 목적지가 같습니다. 다른 노드를 선택하세요.');
+            // console.warn('⚠️ 출발지와 목적지가 같습니다. 다른 노드를 선택하세요.');
             interactionTracker.log('OffensiveStrategy - NetworkTopology', 'Invalid Start Node Change', {
               reason: '출발지와 목적지가 동일함',
               deviceName,
@@ -1045,7 +1050,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
               const physId = await resolvePhysicalIdByName(deviceName);
               if (physId != null) {
                 setSelectedStartNode(physId);
-                console.log('🔄 출발지 노드 변경:', deviceName);
+                // console.log('🔄 출발지 노드 변경:', deviceName);
               }
               return { physicalId: physId, deviceName, nodeId: nid, step: 'change' };
             },
@@ -1453,7 +1458,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
       }
 
       if (!deviceNode) {
-        console.warn('Device node not found for path node:', pathNode.id, deviceElementId, deviceName);
+        // console.warn('Device node not found for path node:', pathNode.id, deviceElementId, deviceName);
         continue;
       }
 
@@ -1462,7 +1467,7 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
         const canvasPos = network.canvasToDOM(pos);
         positions.push({ x: canvasPos.x, y: canvasPos.y });
       } catch (e) {
-        console.warn('Failed to get node position:', e);
+        // console.warn('Failed to get node position:', e);
       }
     }
 

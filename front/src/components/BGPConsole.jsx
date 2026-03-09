@@ -1,8 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Box, Button, Typography } from '@mui/material';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import { Box, Typography } from '@mui/material';
 
 // 타임스탬프 포맷 함수
 const formatTimestamp = (date) => {
@@ -96,60 +93,21 @@ const generateLogMessages = () => {
 
 export default function BGPConsole({ onNavigate }) {
   const [logs, setLogs] = useState([]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const logEndRef = useRef(null);
-  const timeoutRefs = useRef([]);
 
   // 자동 스크롤
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [logs]);
 
-  // 애니메이션 시작
-  const startAnimation = () => {
-    setLogs([]);
-    setIsRunning(true);
-    setIsPaused(false);
-
-    const LOG_MESSAGES = generateLogMessages();
-
-    LOG_MESSAGES.forEach((log, index) => {
-      const timeoutId = setTimeout(() => {
-        if (!isPaused) {
-          setLogs((prev) => [...prev, log]);
-        }
-      }, log.delay / 3);
-      timeoutRefs.current.push(timeoutId);
-    });
-
-    // 마지막 메시지 후 완료 처리
-    const finalTimeout = setTimeout(() => {
-      setIsRunning(false);
-    }, (LOG_MESSAGES[LOG_MESSAGES.length - 1].delay + 500) / 3);
-    timeoutRefs.current.push(finalTimeout);
-  };
-
-  // 애니메이션 정지
-  const stopAnimation = () => {
-    timeoutRefs.current.forEach(clearTimeout);
-    timeoutRefs.current = [];
-    setIsRunning(false);
-    setIsPaused(true);
-  };
-
-  // 리셋
-  const resetAnimation = () => {
-    stopAnimation();
-    setLogs([]);
-    setIsPaused(false);
-  };
-
-  // 컴포넌트 언마운트 시 타이머 정리
+  // 컴포넌트 마운트 시 로그 자동 표시
   useEffect(() => {
-    return () => {
-      timeoutRefs.current.forEach(clearTimeout);
-    };
+    const LOG_MESSAGES = generateLogMessages();
+    LOG_MESSAGES.forEach((log) => {
+      setTimeout(() => {
+        setLogs((prev) => [...prev, log]);
+      }, log.delay / 3);
+    });
   }, []);
 
   return (
@@ -163,51 +121,6 @@ export default function BGPConsole({ onNavigate }) {
         overflow: 'hidden'
       }}
     >
-      {/* 컨트롤 버튼 */}
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 1,
-          p: 1,
-          pt: 5,
-          bgcolor: '#F0EDFD',
-          borderBottom: '1px solid #D0C9F5'
-        }}
-      >
-        <Button
-          size="small"
-          variant="contained"
-          color="success"
-          startIcon={<PlayArrowIcon />}
-          onClick={startAnimation}
-          disabled={isRunning}
-          sx={{ minWidth: '80px', fontSize: '0.7rem' }}
-        >
-          Start
-        </Button>
-        <Button
-          size="small"
-          variant="contained"
-          color="error"
-          startIcon={<StopIcon />}
-          onClick={stopAnimation}
-          disabled={!isRunning}
-          sx={{ minWidth: '80px', fontSize: '0.7rem' }}
-        >
-          Stop
-        </Button>
-        <Button
-          size="small"
-          variant="contained"
-          color="info"
-          startIcon={<RefreshIcon />}
-          onClick={resetAnimation}
-          sx={{ minWidth: '80px', fontSize: '0.7rem' }}
-        >
-          Reset
-        </Button>
-      </Box>
-
       {/* 콘솔 출력 영역 */}
       <Box
         sx={{
@@ -234,19 +147,6 @@ export default function BGPConsole({ onNavigate }) {
           }
         }}
       >
-        {logs.length === 0 && !isRunning && (
-          <Typography
-            sx={{
-              fontFamily: '"Courier New", Courier, monospace',
-              fontSize: '0.75rem',
-              color: '#999',
-              fontStyle: 'italic'
-            }}
-          >
-            Press 'Start' to begin BGP data collection...
-          </Typography>
-        )}
-        
         {logs.map((log, index) => (
           <Box
             key={index}
@@ -263,23 +163,6 @@ export default function BGPConsole({ onNavigate }) {
             {log.text}
           </Box>
         ))}
-        
-        {isRunning && (
-          <Box
-            sx={{
-              display: 'inline-block',
-              width: '8px',
-              height: '14px',
-              bgcolor: '#008000',
-              ml: 0.5,
-              animation: 'blink 1s infinite',
-              '@keyframes blink': {
-                '0%, 49%': { opacity: 1 },
-                '50%, 100%': { opacity: 0 }
-              }
-            }}
-          />
-        )}
         
         <div ref={logEndRef} />
       </Box>
