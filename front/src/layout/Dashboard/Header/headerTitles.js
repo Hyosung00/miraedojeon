@@ -4,8 +4,8 @@
 const headerTitles = {
   "/dashboard/default": "네트워크 토폴로지 가시화 및 표적 분석기",
   "/CyberObjectInfo/MultilayerVisualization": "사이버 3계층 멀티레이어 가시화기",
-  "/Osint&DataFusion/GeoIP": "외부망 기본맵 가시화기",
-  "/Osint&DataFusion/FusionDB": "융합 데이터베이스 구축기",
+  "/OsintDataFusion/GeoIP": "외부망 기본맵 가시화기",
+  "/OsintDataFusion/FusionDB": "융합 데이터베이스 구축기",
   "/CyberObjectInfo/PDR": "사이버 물리 환경 구조 가시화",
   "/ExtInt/TimeSeriesVisualization": "네트워크 데이터 융합",
   "/ExtInt/internaltopology": "내부망 네트워크 토폴로지 가시화기",

@@ -8,7 +8,8 @@ import DashboardLayout from 'layout/Dashboard';
 const DashboardDefault = Loadable(lazy(() => import('pages/CyberObjectInfo/dashboard')));
 
 // Osint & Data Fusion
-const GeoIP = Loadable(lazy(() => import('pages/Osint&DataFusion/OsintInfocollect')));
+const GeoIP = Loadable(lazy(() => import('../pages/OsintDataFusion/OsintInfocollect')));
+const FusionDB = Loadable(lazy(() => import('../pages/OsintDataFusion/FusionDB')));
 const PDR = Loadable(lazy(() => import('pages/CyberObjectInfo/PDR/PDR')));
 
 // CyberObjectInfo
@@ -17,7 +18,8 @@ const CyberMultilayer = Loadable(lazy(() => import('pages/CyberObjectInfo/Multil
 
 // External & Internal
 const TimeSeriesVisualization = Loadable(lazy(() => import('pages/ExtInt/TimeSeriesVisualization')));
-const InternalNetwork = Loadable(lazy(() => import('pages/ExtInt/Internal')));
+const InternalNetwork = Loadable(lazy(() => import('pages/ExtInt/Internal/internaltopology')));
+const ExternalTopology = Loadable(lazy(() => import('pages/ExtInt/Internal/externaltopology')));
 
 // IntelligentCyberTargets
 const TargetDashboard = Loadable(lazy(() => import('pages/IntelligentCyberTargets/target')));
@@ -55,7 +57,8 @@ const MainRoutes = {
       path: 'ExtInt',
       children: [
         { path: 'TimeSeriesVisualization', element: <TimeSeriesVisualization /> },
-        { path: 'internaltopology', element: <InternalNetwork /> }
+        { path: 'internaltopology', element: <InternalNetwork /> },
+        { path: 'externaltopology', element: <ExternalTopology /> }
       ]
     },
     {
@@ -65,9 +68,10 @@ const MainRoutes = {
       ]
     },
     {
-      path: 'Osint&DataFusion',
+      path: 'OsintDataFusion',
       children: [
-        { path: 'GeoIP', element: <GeoIP /> }
+        { path: 'GeoIP', element: <GeoIP /> },
+        { path: 'FusionDB', element: <FusionDB /> }
       ]
     }
   ]

@@ -23,14 +23,14 @@ const externalNetwork = {
       id: 'GeoIP',
       title: 'BGP 데이터 수집 및 분석',
       type: 'item',
-      url: '/Osint&DataFusion/GeoIP',
+      url: '/OsintDataFusion/GeoIP',
       icon: icons.QuestionOutlined
     },
     {
       id: 'FusionDB',
       title: '융합 데이터베이스 구축',
       type: 'item',
-      url: '/Osint&DataFusion/GeoIP',
+      url: '/OsintDataFusion/GeoIP',
       icon: icons.DatabaseOutlined,
       onClick: 'openFusionDBPopup'
     }

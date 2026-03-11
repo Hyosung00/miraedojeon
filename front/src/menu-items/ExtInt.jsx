@@ -29,11 +29,11 @@ const internalNetwork = {
       icon: icons.AlertOutlined
     },
     {
-      id: 'GeoIP',
+      id: 'external-topology',
       title: '외부망 기본맵 가시화',
       type: 'item',
-      url: '/Osint&DataFusion/GeoIP',
-      icon: icons.QuestionOutlined
+      url: '/ExtInt/externaltopology',
+      icon: icons.ContactsOutlined
     },
     {
       id: 'internal-topology',

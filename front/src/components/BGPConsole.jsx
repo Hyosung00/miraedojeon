@@ -91,24 +91,38 @@ const generateLogMessages = () => {
   ];
 };
 
-export default function BGPConsole({ onNavigate }) {
+export default function BGPConsole({ onNavigate, isRunning = true }) {
   const [logs, setLogs] = useState([]);
   const logEndRef = useRef(null);
+  const timeoutsRef = useRef([]);
 
   // 자동 스크롤
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [logs]);
 
-  // 컴포넌트 마운트 시 로그 자동 표시
+  // isRunning 변경 시 로그 제어
   useEffect(() => {
+    // 기존 타임아웃 모두 제거
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+
+    if (!isRunning) return;
+
+    setLogs([]);
     const LOG_MESSAGES = generateLogMessages();
     LOG_MESSAGES.forEach((log) => {
-      setTimeout(() => {
+      const id = setTimeout(() => {
         setLogs((prev) => [...prev, log]);
       }, log.delay / 3);
+      timeoutsRef.current.push(id);
     });
-  }, []);
+
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, [isRunning]);
 
   return (
     <Box

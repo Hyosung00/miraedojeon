@@ -1,7 +1,7 @@
 // project import
 import CyberObjectInfo from './CyberObjectInfo';
 import ExtInt from './ExtInt';
-import OsintFusion from './Osint&DataFusion';
+import OsintFusion from './OsintDataFusion';
 import target from './IntelligentCyberTargets';
 import ActiveResponse from './ActiveResponse';
 import { DashboardOutlined } from '@ant-design/icons';
