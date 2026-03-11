@@ -121,20 +121,39 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
   };
 
   const formatRowAsText = (row) => {
-    if (row['노드번호'] === '요약') {
-      return `분석 결과 요약 — ${row['공격가능도']}`;
+    if (row['노드번호'] === '헤더') {
+      return `\n▶ ${row['노드명']}`;
     }
-    return `노드 ${row['노드번호']}번 [${row['노드명']}] — HRN: ${row['HRN']}, NLS: ${row['NLS']}, CPS: ${row['CPS']}, 공격가능도: ${row['공격가능도']}`;
+    if (row['노드번호'] === '경로') {
+      return `  ${row['노드명']}\n  경로: ${row['공격가능도']}`;
+    }
+    if (row['노드번호'] === '요약') {
+      return `결론: ${row['공격가능도']}`;
+    }
+    return `  노드 ${row['노드번호']}번 [${row['노드명']}] — HRN: ${row['HRN']}, NLS: ${row['NLS']}, CPS: ${row['CPS']}, 공격가능도: ${row['공격가능도']}`;
   };
 
   const tableBody = config.renderMode === 'text' ? (
     <div style={{ fontFamily: "'Courier New', monospace", fontSize: '13px', lineHeight: '2' }}>
-      {jsonTable && jsonTable.slice(0, displayedRows).map((row, i) => (
-        <div key={i} style={{ display: 'flex', gap: '12px', padding: '2px 0', borderBottom: '1px solid rgba(57,48,107,0.1)' }}>
-          <span style={{ color: '#6858a3', flexShrink: 0, fontSize: '11px' }}>{rowTimestamps[i] || ''}</span>
-          <span>{formatRowAsText(row)}</span>
-        </div>
-      ))}
+      {jsonTable && jsonTable.slice(0, displayedRows).map((row, i) => {
+        const isHeader = row['노드번호'] === '헤더';
+        const isPath   = row['노드번호'] === '경로';
+        const isSummary = row['노드번호'] === '요약';
+        return (
+          <div key={i} style={{
+            display: 'flex', gap: '12px', padding: '2px 0',
+            borderBottom: isHeader ? '1px solid rgba(57,48,107,0.3)' : '1px solid rgba(57,48,107,0.1)',
+            marginTop: isHeader ? '10px' : '0',
+            fontWeight: isHeader ? 'bold' : 'normal',
+            color: isHeader ? '#39306b' : isSummary ? '#2e7d32' : 'inherit'
+          }}>
+            {!isHeader && <span style={{ color: '#6858a3', flexShrink: 0, fontSize: '11px' }}>{rowTimestamps[i] || ''}</span>}
+            <span style={{ whiteSpace: 'pre-line', color: isPath ? '#555' : 'inherit', fontSize: isPath ? '12px' : 'inherit' }}>
+              {formatRowAsText(row)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   ) : (
     <div style={{ overflowX: 'auto' }}>
