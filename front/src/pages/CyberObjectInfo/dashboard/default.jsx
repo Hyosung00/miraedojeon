@@ -11,6 +11,7 @@ import { Card, CardContent } from '@mui/material';
 // project imports
 import { GlobeMini, Zone7Mini, OffensiveStrategyMini, TargetGraph2DMini } from './CardDisplay';
 import bottomCardsByView from './inputData';
+import { dashboardSettings } from './dashboardSettings';
 
 // ==============================|| DASHBOARD - DEFAULT ||============================== //
 
@@ -206,7 +207,7 @@ export default function DashboardDefault() {
         interactionTracker.log('DashboardDefault', 'Auto Next View', { currentView: nextView });
         return nextView;
       });
-    }, 7000);
+    }, dashboardSettings.autoPlayIntervalMs);
 
     return () => clearInterval(autoTransition);
   }, [isAutoPaused, visualizations.length]);
