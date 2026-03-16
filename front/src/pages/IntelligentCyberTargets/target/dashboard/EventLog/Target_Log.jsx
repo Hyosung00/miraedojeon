@@ -4,6 +4,66 @@ import { IconButton } from '@mui/material';
 import { ClusterOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
+const SECTION_LABELS = {
+  src_IP: '출발지 IP',
+  dst_IP: '목적지 IP',
+  edge: '연결 정보'
+};
+
+const FIELD_LABELS = {
+  ip: 'IP 주소',
+  __labels: '장비 유형',
+  __id: '내부 식별자',
+  id: '식별자',
+  index: '영역',
+  __indexColor: '영역 색상',
+  color: '색상',
+  sourceIP: '출발지 ID',
+  targetIP: '목적지 ID',
+  type: '링크 유형'
+};
+
+const TYPE_LABELS = {
+  switch: '스위치',
+  router: '라우터',
+  firewall: '방화벽',
+  server: '서버',
+  workstation: '워크스테이션',
+  printer: '프린터',
+  laptop: '노트북',
+  plc: 'PLC',
+  sensor: '센서'
+};
+
+const formatFieldValue = (key, value) => {
+  if (Array.isArray(value)) {
+    if (key === '__labels') {
+      return value.map((item) => TYPE_LABELS[item] || item).join(', ');
+    }
+    return value.join(', ');
+  }
+
+  if (key === 'type') {
+    const linkTypeLabels = {
+      solid: '실선',
+      dashed: '점선'
+    };
+    return linkTypeLabels[value] || String(value);
+  }
+
+  return String(value);
+};
+
+const renderInfoList = (info, visibleKeys) => (
+  <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
+    {Object.entries(info)
+      .filter(([key]) => visibleKeys.includes(key))
+      .map(([key, value]) => (
+        <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{FIELD_LABELS[key] || key}:</b> {formatFieldValue(key, value)}</li>
+      ))}
+  </ul>
+);
+
 function TargetLog({ logs, selectedNode }) {
   const safeLogs = Array.isArray(logs) ? logs : [];
   const navigate = useNavigate();
@@ -70,39 +130,22 @@ function TargetLog({ logs, selectedNode }) {
               {/* Source IP */}
               {info.src_IP && (
                 <div style={{ marginBottom: '12px' }}>
-                  <strong style={{ color: '#3b2c6b' }}>Source IP</strong>
-                  <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
-                    {Object.entries(info.src_IP)
-                      .filter(([key]) => ["ip", "__labels", "__id", "id", "index"].includes(key))
-                      .map(([key, value]) => (
-                        <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                      ))}
-                  </ul>
+                  <strong style={{ color: '#3b2c6b' }}>{SECTION_LABELS.src_IP}</strong>
+                  {renderInfoList(info.src_IP, ["ip", "__labels", "__id", "id", "index"])}
                 </div>
               )}
               {/* Destination IP */}
               {info.dst_IP && (
                 <div style={{ marginBottom: '12px' }}>
-                  <strong style={{ color: '#3b2c6b' }}>Destination IP</strong>
-                  <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
-                    {Object.entries(info.dst_IP)
-                      .filter(([key]) => ["ip", "__labels", "__id", "id", "__indexColor", "color", "index"].includes(key))
-                      .map(([key, value]) => (
-                        <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                      ))}
-                  </ul>
+                  <strong style={{ color: '#3b2c6b' }}>{SECTION_LABELS.dst_IP}</strong>
+                  {renderInfoList(info.dst_IP, ["ip", "__labels", "__id", "id", "__indexColor", "color", "index"])}
                 </div>
               )}
               {/* Edge Info */}
               {info.edge && (
                 <div>
-                  <strong style={{ color: '#3b2c6b' }}>Edge Info</strong>
-                  <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
-                    {Object.entries(info.edge)
-                      .map(([key, value]) => (
-                        <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                      ))}
-                  </ul>
+                  <strong style={{ color: '#3b2c6b' }}>{SECTION_LABELS.edge}</strong>
+                  {renderInfoList(info.edge, ["sourceIP", "targetIP", "type"])}
                 </div>
               )}
             </div>

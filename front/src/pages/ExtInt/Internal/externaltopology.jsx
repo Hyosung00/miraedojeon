@@ -99,6 +99,30 @@ const idOf = (n) => typeof n === "object" ? n.id : n;
 const getId = (end) => (end && typeof end === "object") ? (end.id ?? String(end)) : String(end);
 const hashId = (s) => { s = String(s || ""); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 131 + s.charCodeAt(i)) >>> 0; return h; };
 
+const NODE_FIELD_LABELS = {
+  label: '이름',
+  kind: '장비 유형',
+  ip: 'IP 주소',
+  subnet: '서브넷',
+  zone: '영역',
+  id: '식별자'
+};
+
+const NODE_KIND_LABELS = {
+  core: '코어',
+  firewall: '방화벽',
+  router: '라우터',
+  l3switch: 'L3 스위치',
+  switchrouter: '스위치 라우터',
+  layer3: '레이어 3 장비',
+  switch: '스위치',
+  l2switch: 'L2 스위치',
+  hub: '허브',
+  server: '서버',
+  host: '호스트',
+  default: '기본 장비'
+};
+
 const buildAdjacency = (() => {
   const cache = new WeakMap();
   return (links) => {
@@ -145,6 +169,10 @@ function computeZoneCenters(zones) {
 function anchorNode(n, { x, y, z }) { n.x = x; n.y = y; n.z = z; }
 
 function normalizeZoneVal(z) { return (z === null || z === undefined) ? null : Number.isFinite(z) ? z : Number(z); }
+function getZoneDisplayName(zoneVal) {
+  const normalized = normalizeZoneVal(zoneVal);
+  return normalized === null ? '코어 영역' : getZoneName(normalized);
+}
 function buildFilteredGraph(fullGraph, selectedZones) {
   if (!fullGraph || !fullGraph.nodes) return { nodes: [], links: [] };
   const zonesSet = new Set(selectedZones ?? []);
@@ -214,7 +242,19 @@ function getZoneName(zoneNum) {
     6: '백업망',
     7: '내부망'
   };
-  return zoneNames[zoneNum] || `Zone ${zoneNum}`;
+  return zoneNames[zoneNum] || `영역 ${zoneNum}`;
+}
+
+function formatNodeDisplayValue(key, value) {
+  if (key === 'kind') {
+    return NODE_KIND_LABELS[String(value).toLowerCase()] || String(value ?? '');
+  }
+
+  if (key === 'zone') {
+    return getZoneDisplayName(value);
+  }
+
+  return String(value ?? '');
 }
 
 // === 컴포넌트 ===
@@ -371,10 +411,10 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
     const inspectorJsx = (
       <div className="inspector-panel">
         <div className="inspector-header">
-          <h2>Node</h2>
+          <h2>노드 정보</h2>
           {selected && (
             <span className="node-label">
-              Zone {String(normalizeZoneVal(selected.zone))}
+              {getZoneDisplayName(selected.zone)}
             </span>
           )}
         </div>
@@ -384,12 +424,12 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
               <tbody>
                 {['label','kind','ip','subnet','zone','id'].map((key) => (
                   <tr key={key}>
-                    <td>{key}</td>
-                    <td>{String(selected[key] ?? '')}</td>
+                    <td>{NODE_FIELD_LABELS[key] || key}</td>
+                    <td>{formatNodeDisplayValue(key, selected[key])}</td>
                   </tr>
                 ))}
                 <tr>
-                  <td>이웃연결수</td>
+                  <td>이웃 연결 수</td>
                   <td>{adjacency.get(selected.id)?.size ?? 0}</td>
                 </tr>
               </tbody>
@@ -640,11 +680,11 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
         {/* 왼쪽 툴바 (UI 변경 없음) */}
         <Card sx={{ width: 280, flex: 'none', bgcolor: '#f0edfd', color: '#000', border: '1px solid #d0c9f0', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: '20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
           <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }} className="left-sidebar">
-            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, fontSize: '1rem', color: '#000000ff' }}>Network Topology</Typography>
+            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, fontSize: '1rem', color: '#000000ff' }}>네트워크 토폴로지</Typography>
             <div className="divider" />
             {/* 링크 유형 */}
             <div className="link-type-header">
-              <Typography variant="body2" sx={{ fontWeight: 600, color: '#000000ff' }}>Link Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#000000ff' }}>링크 유형</Typography>
             </div>
             <div className="link-type-buttons">
               <button onClick={()=>{
@@ -654,7 +694,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                   () => setLinkTypeFilter('physical'),
                   { filterType: 'physical' }
                 );
-              }} className={linkTypeFilter==='physical' ? 'active' : 'inactive'} title="물리 링크만 보기">Physical</button>
+              }} className={linkTypeFilter==='physical' ? 'active' : 'inactive'} title="물리 링크만 보기">물리</button>
               <button onClick={()=>{
                 interactionTracker.measureResponseSync(
                   'InternalTopology',
@@ -662,7 +702,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                   () => setLinkTypeFilter('logical'),
                   { filterType: 'logical' }
                 );
-              }} className={linkTypeFilter==='logical' ? 'active' : 'inactive'} title="논리 링크(점선)만 보기">Logical</button>
+              }} className={linkTypeFilter==='logical' ? 'active' : 'inactive'} title="논리 링크(점선)만 보기">논리</button>
             </div>
             {/* 뷰 초기화 */}
             <div className="view-reset-container">
@@ -695,7 +735,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             {/* Zones 목록 */}
             <div className="zones-header">
               <div className="zone-indicator"></div>
-              <Typography variant="body1" sx={{ fontWeight: 600, color: '#000000ff' }}>Zones</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 600, color: '#000000ff' }}>영역 목록</Typography>
             </div>
             <div className="zones-list">
               {allZones.map((z) => {
@@ -725,7 +765,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                           () => setActiveZone(z),
                           { zone: z, zoneName: getZoneName(z), nodeCount: ct }
                         );
-                      }} title="존 상세 보기">Details</button>
+                      }} title="영역 상세 보기">상세</button>
                     </div>
                   </div>
                 );
@@ -733,7 +773,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             </div>
             {/* Zone filter checkboxes */}
             <div className="zone-filter-section">
-              <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#000000ff' }}>Zone Filter</Typography>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#000000ff' }}>영역 필터</Typography>
               <form>
                 {allZones.filter(z => z !== 7).map((z) => (
                   <label key={z}>
@@ -757,7 +797,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                     () => selectAll(),
                     { zoneCount: allZones.length }
                   );
-                }}>All</button>
+                }}>전체</button>
                 <button onClick={() => {
                   interactionTracker.measureResponseSync(
                     'InternalTopology',
@@ -765,7 +805,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                     () => selectNone(),
                     {}
                   );
-                }}>None</button>
+                }}>해제</button>
               </div>
               <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#000000ff' }}>
                 {filtered.nodes.length} nodes • {filtered.links.length} links
@@ -780,7 +820,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             <div ref={mainGraphContainerRef} className="graph-container" role="img" aria-label="Internal network topology (800 nodes)">
             <Suspense fallback={
               <div className="loading-overlay">
-                <div className="loading-box">Loading Graph...</div>
+                <div className="loading-box">그래프 불러오는 중...</div>
               </div>
             }>
               <ForceGraph3D
@@ -872,7 +912,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             </Suspense>
             {loading && (
               <div className="loading-overlay no-pointer-events">
-                <div className="loading-box">Loading…</div>
+                <div className="loading-box">불러오는 중…</div>
               </div>
             )}
 

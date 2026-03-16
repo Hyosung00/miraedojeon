@@ -21,7 +21,7 @@ const viewLabelMap = {
 };
 
 function EventLog({ logs, activeView, selectedNode }) {
-	const title = viewLabelMap[activeView] || "Event Log";
+	const title = viewLabelMap[activeView] || "이벤트 로그";
 	const safeLogs = Array.isArray(logs) ? logs : [];
 
 	return (

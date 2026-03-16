@@ -99,6 +99,30 @@ const idOf = (n) => typeof n === "object" ? n.id : n;
 const getId = (end) => (end && typeof end === "object") ? (end.id ?? String(end)) : String(end);
 const hashId = (s) => { s = String(s || ""); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 131 + s.charCodeAt(i)) >>> 0; return h; };
 
+const NODE_FIELD_LABELS = {
+  label: '이름',
+  kind: '장비 유형',
+  ip: 'IP 주소',
+  subnet: '서브넷',
+  zone: '영역',
+  id: '식별자'
+};
+
+const NODE_KIND_LABELS = {
+  core: '코어',
+  firewall: '방화벽',
+  router: '라우터',
+  l3switch: 'L3 스위치',
+  switchrouter: '스위치 라우터',
+  layer3: '레이어 3 장비',
+  switch: '스위치',
+  l2switch: 'L2 스위치',
+  hub: '허브',
+  server: '서버',
+  host: '호스트',
+  default: '기본 장비'
+};
+
 const buildAdjacency = (() => {
   const cache = new WeakMap();
   return (links) => {
@@ -145,6 +169,10 @@ function computeZoneCenters(zones) {
 function anchorNode(n, { x, y, z }) { n.x = x; n.y = y; n.z = z; }
 
 function normalizeZoneVal(z) { return (z === null || z === undefined) ? null : Number.isFinite(z) ? z : Number(z); }
+function getZoneDisplayName(zoneVal) {
+  const normalized = normalizeZoneVal(zoneVal);
+  return normalized === null ? '코어 영역' : getZoneName(normalized);
+}
 function buildFilteredGraph(fullGraph, selectedZones) {
   if (!fullGraph || !fullGraph.nodes) return { nodes: [], links: [] };
   const zonesSet = new Set(selectedZones ?? []);
@@ -214,7 +242,54 @@ function getZoneName(zoneNum) {
     6: '백업망',
     7: '내부망'
   };
-  return zoneNames[zoneNum] || `Zone ${zoneNum}`;
+  return zoneNames[zoneNum] || `영역 ${zoneNum}`;
+}
+
+function getKindDisplayName(kind) {
+  return NODE_KIND_LABELS[String(kind || 'default').toLowerCase()] || String(kind || '기타 장비');
+}
+
+function buildKindDetailGraph(fullGraph, selectedZones, targetKind) {
+  if (!fullGraph || !fullGraph.nodes) return { nodes: [], links: [] };
+
+  const zonesSet = new Set(selectedZones ?? []);
+  const normalizedKind = String(targetKind || '').toLowerCase();
+  const seedNodeIds = new Set(
+    fullGraph.nodes
+      .filter((node) => zonesSet.has(normalizeZoneVal(node.zone)) && String(node.kind || '').toLowerCase() === normalizedKind)
+      .map((node) => node.id)
+  );
+
+  if (seedNodeIds.size === 0) {
+    return { nodes: [], links: [] };
+  }
+
+  const detailNodeIds = new Set(seedNodeIds);
+  fullGraph.links.forEach((link) => {
+    const sourceId = idOf(link.source);
+    const targetId = idOf(link.target);
+    if (seedNodeIds.has(sourceId) || seedNodeIds.has(targetId)) {
+      detailNodeIds.add(sourceId);
+      detailNodeIds.add(targetId);
+    }
+  });
+
+  return {
+    nodes: fullGraph.nodes.filter((node) => detailNodeIds.has(node.id)),
+    links: fullGraph.links.filter((link) => detailNodeIds.has(idOf(link.source)) && detailNodeIds.has(idOf(link.target)))
+  };
+}
+
+function formatNodeDisplayValue(key, value) {
+  if (key === 'kind') {
+    return NODE_KIND_LABELS[String(value).toLowerCase()] || String(value ?? '');
+  }
+
+  if (key === 'zone') {
+    return getZoneDisplayName(value);
+  }
+
+  return String(value ?? '');
 }
 
 // === 컴포넌트 ===
@@ -326,12 +401,6 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
     return Array.from(set).sort((a, b) => a - b);
   }, [graph.nodes]);
 
-  const countByZone = useMemo(() => {
-    const m = new Map(); allZones.forEach((z) => m.set(z, 0));
-    graph.nodes.forEach((n) => { const z = normalizeZoneVal(n.zone); if (m.has(z)) m.set(z, (m.get(z) || 0) + 1); });
-    return m;
-  }, [graph.nodes, allZones]);
-
   const [selectedZones, setSelectedZones] = useState([]);
   useEffect(() => { 
     // Zone 7(내부망)만 기본으로 선택 - allZones가 로드되었을 때만 실행
@@ -346,18 +415,75 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
 
   const [linkTypeFilter, setLinkTypeFilter] = useState('all');
   const [activeZone, setActiveZone] = useState(null);
+  const [activeKind, setActiveKind] = useState(null);
+  const [selectedKinds, setSelectedKinds] = useState([]);
 
   const filtered = useMemo(() => {
     const base = buildFilteredGraph(graph, selectedZones);
     if (!base || !base.links) return base;
+    let nodes = base.nodes;
     let links = base.links;
+    if (selectedKinds.length > 0) {
+      const allowedKinds = new Set(selectedKinds);
+      const allowedNodeIds = new Set(
+        nodes
+          .filter((node) => allowedKinds.has(String(node.kind || 'default').toLowerCase()))
+          .map((node) => node.id)
+      );
+      nodes = nodes.filter((node) => allowedNodeIds.has(node.id));
+      links = links.filter((link) => allowedNodeIds.has(idOf(link.source)) && allowedNodeIds.has(idOf(link.target)));
+    }
     if (linkTypeFilter !== 'all') {
       const wantPhysical = linkTypeFilter === 'physical';
       links = links.filter((l) => (String(l.type || '').toLowerCase() === (wantPhysical ? 'physical' : 'logical')));
     }
     // Zone 7 링크와 노드 제외 로직 제거 - Zone 7도 정상적으로 표시
-    return { nodes: base.nodes, links };
-  }, [graph, selectedZones, linkTypeFilter]);
+    return { nodes, links };
+  }, [graph, selectedZones, selectedKinds, linkTypeFilter]);
+
+  const nodesInSelectedZones = useMemo(
+    () => graph.nodes.filter((node) => selectedZones.includes(normalizeZoneVal(node.zone))),
+    [graph.nodes, selectedZones]
+  );
+
+  const allKinds = useMemo(() => {
+    const kinds = new Set();
+    nodesInSelectedZones.forEach((node) => kinds.add(String(node.kind || 'default').toLowerCase()));
+    const order = ['firewall', 'router', 'l3switch', 'switchrouter', 'layer3', 'switch', 'l2switch', 'server', 'host', 'hub'];
+    return Array.from(kinds).sort((left, right) => {
+      const leftIndex = order.indexOf(left);
+      const rightIndex = order.indexOf(right);
+      if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+      if (leftIndex === -1) return 1;
+      if (rightIndex === -1) return -1;
+      return leftIndex - rightIndex;
+    });
+  }, [nodesInSelectedZones]);
+
+  const countByKind = useMemo(() => {
+    const counts = new Map();
+    allKinds.forEach((kind) => counts.set(kind, 0));
+    nodesInSelectedZones.forEach((node) => {
+      const kind = String(node.kind || 'default').toLowerCase();
+      counts.set(kind, (counts.get(kind) || 0) + 1);
+    });
+    return counts;
+  }, [allKinds, nodesInSelectedZones]);
+
+  useEffect(() => {
+    if (allKinds.length === 0) return;
+    setSelectedKinds((prev) => {
+      const next = prev.filter((kind) => allKinds.includes(kind));
+      if (next.length === 0) return [...allKinds];
+      if (next.length === prev.length && next.every((kind, index) => kind === prev[index])) return prev;
+      return next;
+    });
+  }, [allKinds]);
+
+  const activeKindGraph = useMemo(
+    () => (activeKind ? buildKindDetailGraph(graph, selectedZones, activeKind) : { nodes: [], links: [] }),
+    [graph, selectedZones, activeKind]
+  );
 
   const adjacency = useMemo(() => buildAdjacency(filtered.links), [filtered.links]);
   const [selectedId, setSelectedId] = useState(null);
@@ -371,10 +497,10 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
     const inspectorJsx = (
       <div className="inspector-panel">
         <div className="inspector-header">
-          <h2>Node</h2>
+          <h2>노드 정보</h2>
           {selected && (
             <span className="node-label">
-              Zone {String(normalizeZoneVal(selected.zone))}
+              {getZoneDisplayName(selected.zone)}
             </span>
           )}
         </div>
@@ -384,12 +510,12 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
               <tbody>
                 {['label','kind','ip','subnet','zone','id'].map((key) => (
                   <tr key={key}>
-                    <td>{key}</td>
-                    <td>{String(selected[key] ?? '')}</td>
+                    <td>{NODE_FIELD_LABELS[key] || key}</td>
+                    <td>{formatNodeDisplayValue(key, selected[key])}</td>
                   </tr>
                 ))}
                 <tr>
-                  <td>이웃연결수</td>
+                  <td>이웃 연결 수</td>
                   <td>{adjacency.get(selected.id)?.size ?? 0}</td>
                 </tr>
               </tbody>
@@ -571,6 +697,17 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
   }, []);
   const selectAll = useCallback(() => setSelectedZones(allZones), [allZones]);
   const selectNone = useCallback(() => setSelectedZones([]), []);
+  const toggleKind = useCallback((kind) => {
+    setActiveKind((prev) => (prev === kind ? null : prev));
+    setSelectedKinds((prev) => {
+      const set = new Set(prev);
+      if (set.has(kind)) set.delete(kind);
+      else set.add(kind);
+      return allKinds.filter((item) => set.has(item));
+    });
+  }, [allKinds]);
+  const selectAllKinds = useCallback(() => setSelectedKinds(allKinds), [allKinds]);
+  const selectNoKinds = useCallback(() => setSelectedKinds([]), []);
 
   // === Space 패닝 ===
   const spaceDownRef = useRef(false);
@@ -636,15 +773,15 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
 
   return (
     <Card sx={{ width: '100%', height: 'calc(100vh - 120px)', bgcolor: 'background.paper', borderRadius: 2, boxShadow: 3, overflow: 'hidden' }}>
-      <CardContent sx={{ p: 2, height: '100%', display: 'flex', gap: 2 }}>
+      <CardContent sx={{ p: 2, height: '100%', display: 'flex', gap: 2, minWidth: 0, minHeight: 0, overflow: 'hidden', boxSizing: 'border-box' }}>
         {/* 왼쪽 툴바 (UI 변경 없음) */}
-        <Card sx={{ width: 280, flex: 'none', bgcolor: '#f0edfd', color: '#000', border: '1px solid #d0c9f0', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: '20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: 1, height: '100%' }} className="left-sidebar">
-            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, fontSize: '1rem', color: '#000000ff' }}>Network Topology</Typography>
+        <Card sx={{ width: 280, flex: 'none', bgcolor: '#f0edfd', color: '#000', border: '1px solid #d0c9f0', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: '20px', height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+          <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', flex: 1, height: '100%', minHeight: 0, overflow: 'hidden' }} className="left-sidebar">
+            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, fontSize: '1rem', color: '#000000ff' }}>네트워크 토폴로지</Typography>
             <div className="divider" />
             {/* 링크 유형 */}
             <div className="link-type-header">
-              <Typography variant="body2" sx={{ fontWeight: 600, color: '#000000ff' }}>Link Type</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#000000ff' }}>링크 유형</Typography>
             </div>
             <div className="link-type-buttons">
               <button onClick={()=>{
@@ -654,7 +791,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                   () => setLinkTypeFilter('physical'),
                   { filterType: 'physical' }
                 );
-              }} className={linkTypeFilter==='physical' ? 'active' : 'inactive'} title="물리 링크만 보기">Physical</button>
+              }} className={linkTypeFilter==='physical' ? 'active' : 'inactive'} title="물리 링크만 보기">물리</button>
               <button onClick={()=>{
                 interactionTracker.measureResponseSync(
                   'InternalTopology',
@@ -662,7 +799,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                   () => setLinkTypeFilter('logical'),
                   { filterType: 'logical' }
                 );
-              }} className={linkTypeFilter==='logical' ? 'active' : 'inactive'} title="논리 링크(점선)만 보기">Logical</button>
+              }} className={linkTypeFilter==='logical' ? 'active' : 'inactive'} title="논리 링크(점선)만 보기">논리</button>
             </div>
             {/* 뷰 초기화 */}
             <div className="view-reset-container">
@@ -672,7 +809,9 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                   'View Reset',
                   () => {
                     setSelected(null);
+                    setActiveKind(null);
                     setSelectedZones(allZones);
+                    setSelectedKinds(allKinds);
                     setLinkTypeFilter('all');
                     const core = graph.nodes.find((n) => n.kind === "core");
                     if (fgRef.current) {
@@ -688,64 +827,68 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                       fgRef.current.resumeAnimation?.();
                     }
                   },
-                  { zoneCount: allZones.length, hasCoreNode: !!graph.nodes.find((n) => n.kind === "core") }
+                  { zoneCount: allZones.length, kindCount: allKinds.length, hasCoreNode: !!graph.nodes.find((n) => n.kind === "core") }
                 );
               }}>뷰 초기화</button>
             </div>
-            {/* Zones 목록 */}
-            <div className="zones-header">
+            <div className="zones-header" style={{ marginTop: 12 }}>
               <div className="zone-indicator"></div>
-              <Typography variant="body1" sx={{ fontWeight: 600, color: '#000000ff' }}>Zones</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 600, color: '#000000ff' }}>영역 목록</Typography>
             </div>
             <div className="zones-list">
-              {allZones.map((z) => {
-                const active = selectedZones.includes(z);
-                const ct = countByZone.get(z) || 0;
-                if (!active) return null;
+              {allKinds.filter((kind) => selectedKinds.includes(kind)).map((kind) => {
+                const count = countByKind.get(kind) || 0;
+                if (count === 0) return null;
                 return (
-                  <div key={z} className={`zone-item ${active ? 'active' : 'inactive'}`}>
+                  <div key={kind} className="zone-item active">
                     <button onClick={() => {
                       interactionTracker.measureResponseSync(
                         'InternalTopology',
-                        'Zone Header Click',
-                        () => setActiveZone(z),
-                        { zone: z, zoneName: getZoneName(z), nodeCount: ct }
+                        'Kind Header Click',
+                        () => {
+                          setActiveZone(null);
+                          setActiveKind(kind);
+                        },
+                        { kind, kindName: getKindDisplayName(kind), nodeCount: count }
                       );
-                    }} className={`zone-button ${active ? 'active' : 'inactive'}`}>
+                    }} className="zone-button active">
                       <div className="zone-header">
-                        <span>{getZoneName(z)}</span>
-                        <span className="zone-count">{ct}</span>
+                        <span>{getKindDisplayName(kind)}</span>
+                        <span className="zone-count">{count}</span>
                       </div>
                     </button>
                     <div className="zone-actions">
                       <button onClick={() => {
                         interactionTracker.measureResponseSync(
                           'InternalTopology',
-                          'Zone Details Button Click',
-                          () => setActiveZone(z),
-                          { zone: z, zoneName: getZoneName(z), nodeCount: ct }
+                          'Kind Details Button Click',
+                          () => {
+                            setActiveZone(null);
+                            setActiveKind(kind);
+                          },
+                          { kind, kindName: getKindDisplayName(kind), nodeCount: count }
                         );
-                      }} title="존 상세 보기">Details</button>
+                      }} title="장비 유형 상세 보기">상세</button>
                     </div>
                   </div>
                 );
               })}
             </div>
-            {/* Zone filter checkboxes */}
+            {/* Kind filter checkboxes */}
             <div className="zone-filter-section">
-              <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#000000ff' }}>Zone Filter</Typography>
+              <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#000000ff' }}>영역 필터</Typography>
               <form>
-                {allZones.map((z) => (
-                  <label key={z}>
-                    <input type="checkbox" checked={selectedZones.includes(z)} onChange={() => {
+                {allKinds.map((kind) => (
+                  <label key={kind}>
+                    <input type="checkbox" checked={selectedKinds.includes(kind)} onChange={() => {
                       interactionTracker.measureResponseSync(
                         'InternalTopology',
-                        'Zone Filter Checkbox Toggle',
-                        () => toggleZone(z),
-                        { zone: z, zoneName: getZoneName(z), isChecked: !selectedZones.includes(z) }
+                        'Kind Filter Checkbox Toggle',
+                        () => toggleKind(kind),
+                        { kind, kindName: getKindDisplayName(kind), isChecked: !selectedKinds.includes(kind) }
                       );
                     }} />
-                    <span>{getZoneName(z)} <span className="zone-count-inline">({countByZone.get(z) || 0})</span></span>
+                    <span>{getKindDisplayName(kind)} <span className="zone-count-inline">({countByKind.get(kind) || 0})</span></span>
                   </label>
                 ))}
               </form>
@@ -753,19 +896,19 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                 <button onClick={() => {
                   interactionTracker.measureResponseSync(
                     'InternalTopology',
-                    'Select All Zones',
-                    () => selectAll(),
-                    { zoneCount: allZones.length }
+                    'Select All Kinds',
+                    () => selectAllKinds(),
+                    { kindCount: allKinds.length }
                   );
-                }}>All</button>
+                }}>전체</button>
                 <button onClick={() => {
                   interactionTracker.measureResponseSync(
                     'InternalTopology',
-                    'Select None Zones',
-                    () => selectNone(),
+                    'Select None Kinds',
+                    () => selectNoKinds(),
                     {}
                   );
-                }}>None</button>
+                }}>해제</button>
               </div>
               <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#000000ff' }}>
                 {filtered.nodes.length} nodes • {filtered.links.length} links
@@ -775,12 +918,12 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
         </Card>
 
         {/* 그래프 영역 */}
-        <Card sx={{ flex: 1, height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '20px', boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)', background: '#856affff' }}>
+        <Card sx={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', position: 'relative', overflow: 'hidden', borderRadius: '20px', boxShadow: '0 2px 8px rgba(57, 48, 107, 0.07)', background: '#856affff' }}>
           <CardContent sx={{ p: 0, height: '100%', '&:last-child': { pb: 0 } }}>
             <div ref={mainGraphContainerRef} className="graph-container" role="img" aria-label="Internal network topology (800 nodes)">
             <Suspense fallback={
               <div className="loading-overlay">
-                <div className="loading-box">Loading Graph...</div>
+                <div className="loading-box">그래프 불러오는 중...</div>
               </div>
             }>
               <ForceGraph3D
@@ -872,7 +1015,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
             </Suspense>
             {loading && (
               <div className="loading-overlay no-pointer-events">
-                <div className="loading-box">Loading…</div>
+                <div className="loading-box">불러오는 중…</div>
               </div>
             )}
 
@@ -891,12 +1034,44 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                   <Suspense fallback={<div className="overlay-loading">Loading...</div>}>
                     <ZonePage
                       zone={activeZone}
+                      title={getZoneName(activeZone)}
                       onBack={() => {
                         interactionTracker.measureResponseSync(
                           'InternalTopology',
                           'Zone Detail Back Button',
                           () => setActiveZone(null),
                           { zone: activeZone }
+                        );
+                      }}
+                      onInspectorChange={onInspectorChange}
+                      setEventLogs={setEventLogs}
+                    />
+                  </Suspense>
+                </div>
+              </div>
+            )}
+            {activeKind !== null && (
+              <div className="zone-detail-overlay">
+                <div onClick={() => {
+                  interactionTracker.measureResponseSync(
+                    'InternalTopology',
+                    'Kind Overlay Backdrop Click (Close)',
+                    () => setActiveKind(null),
+                    { kind: activeKind, kindName: getKindDisplayName(activeKind) }
+                  );
+                }} className="overlay-backdrop" />
+                <div onClick={(e)=>e.stopPropagation()} className="overlay-content">
+                  <Suspense fallback={<div className="overlay-loading">Loading...</div>}>
+                    <ZonePage
+                      zone={null}
+                      title={`${getKindDisplayName(activeKind)} 상세`}
+                      graphData={activeKindGraph}
+                      onBack={() => {
+                        interactionTracker.measureResponseSync(
+                          'InternalTopology',
+                          'Kind Detail Back Button',
+                          () => setActiveKind(null),
+                          { kind: activeKind, kindName: getKindDisplayName(activeKind) }
                         );
                       }}
                       onInspectorChange={onInspectorChange}

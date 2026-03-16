@@ -18,7 +18,7 @@ const ChartLoadingFallback = () => (
     color: '#666',
     fontSize: '0.75rem'
   }}>
-    Loading...
+    불러오는 중...
   </div>
 );
 

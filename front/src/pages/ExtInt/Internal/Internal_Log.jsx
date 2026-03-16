@@ -3,13 +3,86 @@ import { Card, CardContent, Typography, IconButton } from '@mui/material';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import { useNavigate } from 'react-router-dom';
 
+const SECTION_LABELS = {
+  src_IP: '출발지 IP',
+  dst_IP: '목적지 IP',
+  edge: '연결 정보'
+};
+
+const FIELD_LABELS = {
+  ip: 'IP 주소',
+  subnet: '서브넷',
+  gateway: '게이트웨이',
+  __labels: '장비 유형',
+  id: '식별자',
+  sourceIP: '출발지 ID',
+  targetIP: '목적지 ID',
+  type: '링크 유형',
+  count: '연결 수'
+};
+
+const KIND_LABELS = {
+  core: '코어',
+  firewall: '방화벽',
+  router: '라우터',
+  l3switch: 'L3 스위치',
+  switchrouter: '스위치 라우터',
+  layer3: '레이어 3 장비',
+  switch: '스위치',
+  l2switch: 'L2 스위치',
+  hub: '허브',
+  server: '서버',
+  host: '호스트',
+  default: '기본 장비'
+};
+
+const formatFieldValue = (key, value) => {
+  if (Array.isArray(value)) {
+    if (key === '__labels') {
+      return value.map((item) => KIND_LABELS[item] || item).join(', ');
+    }
+    return value.join(', ');
+  }
+
+  if (value && typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+
+  if (key === '__labels') {
+    return KIND_LABELS[value] || String(value);
+  }
+
+  if (key === 'type') {
+    const typeLabels = {
+      physical: '물리',
+      logical: '논리'
+    };
+    return typeLabels[value] || String(value);
+  }
+
+  return String(value);
+};
+
+const renderInfoList = (info, visibleKeys) => (
+  <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
+    {Object.entries(info)
+      .filter(([key, value]) => visibleKeys.includes(key) && value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => (
+        <li key={key} style={{ color: '#2a2050' }}>
+          <b style={{ color: '#6553a7' }}>{FIELD_LABELS[key] || key}:</b> {formatFieldValue(key, value)}
+        </li>
+      ))}
+  </ul>
+);
+
 function InternalLog({ eventLogs = [] }) {
   const navigate = useNavigate();
 
   return (
     <Card sx={{
-      minWidth: 350,
+      minWidth: 300,
       width: 300,
+      maxWidth: 300,
       bgcolor: '#f0edfd',
       color: '#000',
       border: '1px solid #d0c9f0',
@@ -18,7 +91,9 @@ function InternalLog({ eventLogs = [] }) {
       display: 'flex',
       flexDirection: 'column',
       flexShrink: 0,
-      height: '100%'
+      height: '100%',
+      minHeight: 0,
+      overflow: 'hidden'
     }}>
       <CardContent sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minHeight: 0 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#39306b', mb: 1 }}>이벤트 로그</Typography>
@@ -96,45 +171,24 @@ function InternalLog({ eventLogs = [] }) {
                   {/* Source IP */}
                   {info.src_IP && (
                     <div style={{ marginBottom: '12px' }}>
-                      <strong style={{ color: '#3b2c6b' }}>Source IP</strong>
-                      <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
-                        {Object.entries(info.src_IP)
-                          .filter(([key, value]) => ["ip", "subnet", "gateway", "__labels", "id"].includes(key) && value !== undefined && value !== null && value !== '')
-                          .map(([key, value]) => (
-                            <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                          ))}
-                      </ul>
+                      <strong style={{ color: '#3b2c6b' }}>{SECTION_LABELS.src_IP}</strong>
+                      {renderInfoList(info.src_IP, ['ip', 'subnet', 'gateway', '__labels', 'id'])}
                     </div>
                   )}
                   
                   {/* Destination IP */}
                   {info.dst_IP && (
                     <div style={{ marginBottom: '12px' }}>
-                      <strong style={{ color: '#3b2c6b' }}>Destination IP</strong>
-                      <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
-                        {Object.entries(info.dst_IP)
-                          .filter(([key, value]) => ["ip", "subnet", "gateway", "__labels", "id"].includes(key) && value !== undefined && value !== null && value !== '')
-                          .map(([key, value]) => (
-                            <li key={key} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{key}:</b> {String(value)}</li>
-                          ))}
-                      </ul>
+                      <strong style={{ color: '#3b2c6b' }}>{SECTION_LABELS.dst_IP}</strong>
+                      {renderInfoList(info.dst_IP, ['ip', 'subnet', 'gateway', '__labels', 'id'])}
                     </div>
                   )}
                   
                   {/* Edge Info */}
                   {info.edge && (
                     <div>
-                      <strong style={{ color: '#3b2c6b' }}>Edge Info</strong>
-                      <ul style={{ margin: 0, paddingLeft: 16, marginTop: 6 }}>
-                        {Object.entries(info.edge)
-                          .filter(([key]) => !["count"].includes(key))
-                          .map(([key, value]) => {
-                            const label = key === 'sourceIP' ? 'SrcID' : key === 'targetIP' ? 'targetID' : key;
-                            return (
-                              <li key={label} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{label}:</b> {String(value)}</li>
-                            );
-                          })}
-                      </ul>
+                      <strong style={{ color: '#3b2c6b' }}>{SECTION_LABELS.edge}</strong>
+                      {renderInfoList(info.edge, ['sourceIP', 'targetIP', 'type'])}
                     </div>
                   )}
                 </div>

@@ -2457,9 +2457,9 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
           fullWidth
           PaperProps={{ sx: { borderRadius: 2 } }}
         >
-          <Box sx={{ p: 3, bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Box sx={{ p: 3, bgcolor: '#ede7f6', color: 'white' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#000' }}>
                 🔍 노드 상세 정보
               </Typography>
               <IconButton
@@ -2471,14 +2471,14 @@ function OffensiveStrategy({ deviceElementId, onSelectDevice }) {
                     { nodeId: selectedNodeDetail?.id }
                   );
                 }}
-                sx={{ color: 'white', '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}
+                sx={{ color: '#4a148c', '&:hover': { bgcolor: 'rgba(74, 20, 140, 0.12)' } }}
               >
                 ✕
               </IconButton>
             </Box>
           </Box>
 
-          <DialogContent sx={{ p: 3 }}>
+          <DialogContent sx={{ p: 3, bgcolor: '#f3ecff' }}>
             {selectedNodeDetail && (() => {
               const props = selectedNodeDetail?.properties || selectedNodeDetail?.props || {};
               const cveInfos = props.cveInfos || [];

@@ -18,7 +18,22 @@ const TYPE_COLORS = {
   default: "#a0b4ff",
 };
 
-export default function ZonePage({ zone, staticData, onBack, onInspectorChange, setEventLogs }) {
+function getZoneLabel(zoneValue) {
+  const zoneNames = {
+    0: '운영망',
+    1: '관리망',
+    2: '업무망',
+    3: '테스트망',
+    4: '서버망',
+    5: '개발망',
+    6: '백업망',
+    7: '내부망'
+  };
+
+  return zoneNames[zoneValue] || `영역 ${zoneValue}`;
+}
+
+export default function ZonePage({ zone, staticData, graphData, title, onBack, onInspectorChange, setEventLogs }) {
   const fgRef = useRef();
   const graphContainerRef = useRef(null);
   const [zoneGraph, setZoneGraph] = useState({ nodes: [], links: [] });
@@ -60,51 +75,76 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
       try {
         setLoading(true);
         // 백엔드에서 모든 존 데이터를 동일하게 처리 (고립 노드 포함)
-        const data = staticData || await fetch(`http://localhost:8000/neo4j/nodes?activeView=zone${zone}&includeIsolated=true`).then((r) => r.json());
+        let nodes = [];
+        let links = [];
 
-        const nodesMap = new Map();
-        const rawLinks = [];
-        data.forEach((item) => {
-          if (item.src_IP?.id) nodesMap.set(String(item.src_IP.id), item.src_IP);
-          if (item.dst_IP?.id) nodesMap.set(String(item.dst_IP.id), item.dst_IP);
-          if (item.edge?.sourceIP && item.edge?.targetIP) {
-            rawLinks.push({
-              source: String(item.edge.sourceIP),
-              target: String(item.edge.targetIP),
-              ...item.edge,
-            });
+        if (graphData) {
+          nodes = (graphData.nodes || []).map((node) => {
+            const kind = (node.kind || node.type || 'host').toLowerCase();
+            const label = node.label || node.ip || String(node.id);
+            const color = node.color || TYPE_COLORS[kind] || TYPE_COLORS.default;
+            const status = node.status || 'up';
+            const subnet =
+              node.subnet
+                ? node.subnet
+                : typeof node.ip === 'string' && node.ip.includes('.')
+                ? node.ip.split('.').slice(0, 3).join('.') + '.0/24'
+                : 'unknown/24';
+            const zoneNum = Number.isFinite(node.zone) ? node.zone : null;
+            return { ...node, id: String(node.id), kind, label, color, status, subnet, zone: zoneNum };
+          });
+
+          links = (graphData.links || []).map((link) => ({
+            ...link,
+            source: String(typeof link.source === 'object' ? link.source.id : link.source),
+            target: String(typeof link.target === 'object' ? link.target.id : link.target)
+          }));
+        } else {
+          const data = staticData || await fetch(`http://localhost:8000/neo4j/nodes?activeView=zone${zone}&includeIsolated=true`).then((r) => r.json());
+
+          const nodesMap = new Map();
+          const rawLinks = [];
+          data.forEach((item) => {
+            if (item.src_IP?.id) nodesMap.set(String(item.src_IP.id), item.src_IP);
+            if (item.dst_IP?.id) nodesMap.set(String(item.dst_IP.id), item.dst_IP);
+            if (item.edge?.sourceIP && item.edge?.targetIP) {
+              rawLinks.push({
+                source: String(item.edge.sourceIP),
+                target: String(item.edge.targetIP),
+                ...item.edge,
+              });
+            }
+          });
+
+          const nodeIds = new Set([...nodesMap.keys()]);
+          const filtered = rawLinks.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
+
+          const seen = new Set();
+          links = [];
+          for (const l of filtered) {
+            const a = String(l.source);
+            const b = String(l.target);
+            const key = a < b ? `${a}__${b}__${l.type || ""}` : `${b}__${a}__${l.type || ""}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            links.push(l);
           }
-        });
 
-        const nodeIds = new Set([...nodesMap.keys()]);
-        const filtered = rawLinks.filter((l) => nodeIds.has(l.source) && nodeIds.has(l.target));
-
-        const seen = new Set();
-        const links = [];
-        for (const l of filtered) {
-          const a = String(l.source);
-          const b = String(l.target);
-          const key = a < b ? `${a}__${b}__${l.type || ""}` : `${b}__${a}__${l.type || ""}`;
-          if (seen.has(key)) continue;
-          seen.add(key);
-          links.push(l);
+          nodes = Array.from(nodesMap.values()).map((n) => {
+            const kind = (n.kind || n.type || "host").toLowerCase();
+            const label = n.label || n.ip || String(n.id);
+            const color = n.color || TYPE_COLORS[kind] || TYPE_COLORS.default;
+            const status = n.status || "up";
+            const subnet =
+              n.subnet
+                ? n.subnet
+                : typeof n.ip === "string" && n.ip.includes(".")
+                ? n.ip.split(".").slice(0, 3).join(".") + ".0/24"
+                : "unknown/24";
+            const zoneNum = Number.isFinite(n.zone) ? n.zone : null;
+            return { ...n, id: String(n.id), kind, label, color, status, subnet, zone: zoneNum };
+          });
         }
-
-        // 모든 노드를 렌더링 (고립 노드 포함)
-        const nodes = Array.from(nodesMap.values()).map((n) => {
-          const kind = (n.kind || n.type || "host").toLowerCase();
-          const label = n.label || n.ip || String(n.id);
-          const color = n.color || TYPE_COLORS[kind] || TYPE_COLORS.default;
-          const status = n.status || "up";
-          const subnet =
-            n.subnet
-              ? n.subnet
-              : typeof n.ip === "string" && n.ip.includes(".")
-              ? n.ip.split(".").slice(0, 3).join(".") + ".0/24"
-              : "unknown/24";
-          const zoneNum = Number.isFinite(n.zone) ? n.zone : null;
-          return { ...n, id: String(n.id), kind, label, color, status, subnet, zone: zoneNum };
-        });
 
         if (mounted) setZoneGraph({ nodes, links });
       } catch (e) {
@@ -115,7 +155,7 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
       }
     })();
     return () => { mounted = false; };
-  }, [zone, staticData]);
+  }, [zone, staticData, graphData]);
 
   const geoCache = useMemo(
     () => ({
@@ -356,8 +396,9 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
       edge: null
     }] : dbInfo;
     
+    const pageTitle = title || getZoneLabel(zone);
     const newLog = {
-      message: `Zone ${zone} - 노드 선택: ${selected.label || selected.id}`,
+      message: `${pageTitle} - 노드 선택: ${selected.label || selected.id}`,
       nodeInfo: { 
         label: selected.label,
         kind: selected.kind, 
@@ -373,7 +414,7 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
     };
     
     setEventLogs([newLog]);
-  }, [selected, adjacency, zoneGraph.nodes, zoneGraph.links, zone, setEventLogs]);
+  }, [selected, adjacency, zoneGraph.nodes, zoneGraph.links, zone, setEventLogs, title]);
 
   // Custom node object with highlight and always show IP label
   function nodeThreeObjectHL(node) {
@@ -495,7 +536,7 @@ export default function ZonePage({ zone, staticData, onBack, onInspectorChange, 
           >
             ← Back
           </button>
-          <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#000000ff' }}>{`Zone ${zone}`}</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: '#000000ff' }}>{title || getZoneLabel(zone)}</h2>
           <div style={{ color: '#cbd5e1' }}>
             {loading ? 'Loading…' : `${zoneGraph.nodes.length} nodes • ${zoneGraph.links.length} links`}
           </div>
