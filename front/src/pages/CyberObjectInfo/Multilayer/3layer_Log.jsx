@@ -1,6 +1,31 @@
 import React, { memo } from "react";
 import { Card, CardContent, Typography } from '@mui/material';
 
+const labelMap = {
+  name: '노드명',
+  type: '장비 유형',
+  ip: 'IP 주소',
+  subnet: '서브넷',
+  dns: 'DNS 서버',
+  gateway: '게이트웨이',
+  description: '설명',
+  cve: '취약점',
+  rel: '관계 유형',
+  SrcID: '출발 노드 ID',
+  TargetID: '대상 노드 ID',
+  id: '식별자',
+  key: '키',
+  value: '값'
+};
+
+const sectionTitleMap = {
+  srcNode: '출발 노드',
+  dstNode: '대상 노드',
+  edgeInfo: '연결 정보'
+};
+
+const toKoreanLabel = (key) => labelMap[key] || key;
+
 const InternalLog = memo(({ eventLogs = [] }) => {
   return (
       <Card elevation={0} sx={{
@@ -36,7 +61,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                 {log.message && <div style={{ fontWeight: 600, marginBottom: '4px', color: '#222' }}>{log.message}</div>}
                 {log.nodeInfo && (
                   <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
-                    Layer: {log.nodeInfo.layer} | Type: {log.nodeInfo.type}
+                    레이어: {log.nodeInfo.layer} | 유형: {log.nodeInfo.type}
                   </div>
                 )}
 
@@ -76,7 +101,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                               {/* Src Node (physical) */}
                               {info.src_IP && (
                                 <div style={{ marginBottom: '12px' }}>
-                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Src Node</Typography>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.srcNode}</Typography>
                                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                                     {[
                                       ['name', info.src_IP.name],
@@ -86,7 +111,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                                       ['dns', info.src_IP.dns],
                                       ['gateway', info.src_IP.gateway]
                                     ].filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => (
-                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {String(v)}</li>
+                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {String(v)}</li>
                                     ))}
                                   </ul>
                                 </div>
@@ -95,14 +120,14 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                               {/* Dst Node (logical-like) */}
                               {info.dst_IP && (
                                 <div style={{ marginBottom: '12px' }}>
-                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Dst Node</Typography>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.dstNode}</Typography>
                                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                                     {[
                                       ['name', info.dst_IP.name],
                                       ['description', info.dst_IP.description],
                                       ['cve', info.dst_IP.cve]
                                     ].filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => (
-                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {String(v)}</li>
+                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {String(v)}</li>
                                     ))}
                                   </ul>
                                 </div>
@@ -111,7 +136,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                               {/* Edge (rel, SrcID, targetID) */}
                               {info.edge && (
                                 <div>
-                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Edge Info</Typography>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.edgeInfo}</Typography>
                                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                                     {[
                                       ['rel', info.edge.rel || info.edge.kind],
@@ -120,7 +145,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                                     ].map(([k, v]) => {
                                       const display = Array.isArray(v) ? v.join(', ') : String(v);
                                       return (
-                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {display}</li>
                                       );
                                     })}
                                   </ul>
@@ -137,7 +162,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                               {/* Src Node (logical) */}
                               {info.src_IP && (
                                 <div style={{ marginBottom: '12px' }}>
-                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Src Node</Typography>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.srcNode}</Typography>
                                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                                     {[
                                       ['name', info.src_IP.name],
@@ -146,7 +171,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                                     ].filter(([, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => {
                                       const display = Array.isArray(v) ? v.join(', ') : String(v);
                                       return (
-                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {display}</li>
                                       );
                                     })}
                                   </ul>
@@ -156,7 +181,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                               {/* Dst Node (logical) - KV vs Entity 구분 */}
                               {info.dst_IP && (
                                 <div style={{ marginBottom: '12px' }}>
-                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Dst Node</Typography>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.dstNode}</Typography>
                                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                                     {(() => {
                                       const isKV = info.dst_IP.key !== undefined || info.dst_IP.value !== undefined;
@@ -176,7 +201,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                                         .map(([k, v]) => {
                                           const display = Array.isArray(v) ? v.join(', ') : String(v);
                                           return (
-                                            <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                            <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {display}</li>
                                           );
                                         });
                                     })()}
@@ -187,7 +212,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                               {/* Edge (rel, SrcID, targetID) */}
                               {info.edge && (
                                 <div>
-                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Edge Info</Typography>
+                                  <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.edgeInfo}</Typography>
                                   <ul style={{ margin: 0, paddingLeft: 16 }}>
                                     {[
                                       ['rel', info.edge.rel || info.edge.kind],
@@ -196,7 +221,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                                     ].map(([k, v]) => {
                                       const display = Array.isArray(v) ? v.join(', ') : String(v);
                                       return (
-                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                        <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {display}</li>
                                       );
                                     })}
                                   </ul>
@@ -211,22 +236,22 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                           <>
                             {info.src_IP && (
                               <div style={{ marginBottom: '12px' }}>
-                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Src Node</Typography>
+                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.srcNode}</Typography>
                                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                                   {[['id', info.src_IP.id]].map(([k, v]) => (
-                                    <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {String(v)}</li>
+                                    <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {String(v)}</li>
                                   ))}
                                 </ul>
                               </div>
                             )}
                             {info.dst_IP && (
                               <div style={{ marginBottom: '12px' }}>
-                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Dst Node</Typography>
+                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.dstNode}</Typography>
                                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                                   {[['id', info.dst_IP.id]].map(([k, v]) => {
                                     const display = Array.isArray(v) ? v.join(', ') : String(v);
                                     return (
-                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {display}</li>
                                     );
                                   })}
                                 </ul>
@@ -234,7 +259,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                             )}
                             {info.edge && (
                               <div>
-                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>Edge Info</Typography>
+                                <Typography variant="subtitle2" sx={{ color: '#3b2c6b', fontWeight: 700, mb: 0.5 }}>{sectionTitleMap.edgeInfo}</Typography>
                                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                                   {[
                                     ['rel', info.edge.rel || info.edge.kind],
@@ -243,7 +268,7 @@ const InternalLog = memo(({ eventLogs = [] }) => {
                                   ].map(([k, v]) => {
                                     const display = Array.isArray(v) ? v.join(', ') : String(v);
                                     return (
-                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{k}:</b> {display}</li>
+                                      <li key={k} style={{ color: '#2a2050' }}><b style={{ color: '#6553a7' }}>{toKoreanLabel(k)}:</b> {display}</li>
                                     );
                                   })}
                                 </ul>

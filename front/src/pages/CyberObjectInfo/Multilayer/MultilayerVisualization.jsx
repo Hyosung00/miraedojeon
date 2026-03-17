@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Card, CardContent, Typography, IconButton } from '@mui/material';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Card, CardContent, IconButton } from '@mui/material';
 import interactionTracker from '../../../utils/interactionTracker';
 import { ClusterOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
 import ThreelayerLog from './3layer_Log.jsx';
@@ -24,6 +23,20 @@ const KIND_COLORS = {
   IN_SUBNET: '#93C5FD',
   IN_VLAN: '#C084FC',
   MEMBER_OF: '#FBBF24'
+};
+const NODE_VISUAL_SCALE = 1.8;
+const CANONICAL_DEVICE_KINDS = ['router', 'server', 'firewall', 'sensor', 'switch', 'laptop', 'workstation', 'printer', 'plc', 'persona'];
+const LEGEND_COLOR_BY_KIND = {
+  router: LAYER_COLORS.physical,
+  server: LAYER_COLORS.physical,
+  firewall: LAYER_COLORS.physical,
+  sensor: LAYER_COLORS.physical,
+  switch: LAYER_COLORS.physical,
+  laptop: LAYER_COLORS.physical,
+  workstation: LAYER_COLORS.physical,
+  printer: LAYER_COLORS.physical,
+  plc: LAYER_COLORS.physical,
+  persona: LAYER_COLORS.persona
 };
 
 // 백엔드 API 베이스
@@ -68,6 +81,279 @@ function extractCVE(node) {
   return Array.from(out);
 }
 
+function resolveTopologyKind(node) {
+  const layer = String(node?.layer || '').toLowerCase();
+  const type = String(node?.type || '').toLowerCase();
+  const text = [
+    type,
+    node?.label,
+    node?.description,
+    node?.id,
+    node?.service_name,
+    node?.key
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  const classify = (value) => {
+    const original = String(value || '').toLowerCase().trim();
+    if (!original) return null;
+    const s = original.replace(/[_\s]/g, '').replace(/-logical$/g, '').replace(/^logical-/g, '');
+    if (/(persona|account|employee|analyst|admin|operator|user)/.test(s)) return 'persona';
+    if (/(router|routing|gateway|vpn|dns|dhcp)/.test(s)) return 'router';
+    if (/(firewall|\bfw\b|proxy|filter|threat|securitygateway|ssl|certificate)/.test(s)) return 'firewall';
+    if (/(sensor|ids|ips|probe)/.test(s)) return 'sensor';
+    if (/(switch|l2switch|l3switch|switchrouter|layer3|core|subnet|vlan|backbone|monitor|monitoring|snmp|netflow|siem|backup|policy|analyzer|sync|collector|detection|intrusion)/.test(s)) return 'switch';
+    if (/(laptop|notebook)/.test(s)) return 'laptop';
+    if (/(workstation|desktop|endpoint|client|pc)/.test(s)) return 'workstation';
+    if (/(printer|print)/.test(s)) return 'printer';
+    if (/(plc|controller|scada|hmi|ot|controldriver|controlservice|visualization)/.test(s)) return 'plc';
+    if (/(server|service|app|application|identity|directory|sso|auth|ldap|database|db|mysql|mail|smtp|api|portal|platform|host|node|device|asset|system)/.test(s)) return 'server';
+    return null;
+  };
+
+  const cleanedType = type.replace(/[_\s]/g, '').replace(/-logical$/g, '').replace(/^logical-/g, '');
+  const isGenericType = /^(service|logical|physical|node|device|host|asset|entity|unknown|na)?$/.test(cleanedType);
+
+  const fromType = classify(type);
+  if (fromType && !isGenericType) return fromType;
+
+  const fromText = classify(text);
+  if (fromText) return fromText;
+
+  if (layer === 'persona') return 'persona';
+  return 'server';
+}
+
+function resolveLayerZ(layer) {
+  if (layer === 'persona') return LAYOUT.layerZ.persona;
+  if (layer === 'logical') return LAYOUT.layerZ.logical;
+  return LAYOUT.layerZ.physical;
+}
+
+function formatDeviceType(typeName) {
+  const base = String(typeName || 'server').replace(/^logical-/, '').toLowerCase();
+  if (!base) return 'Server';
+  if (base === 'plc') return 'PLC';
+  return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
+function createLegendModelObject(kind, colorHex) {
+  let baseKind = String(kind || 'server').replace(/^logical-/, '');
+  if (baseKind === 'core' || baseKind === 'l3switch' || baseKind === 'monitor') baseKind = 'switch';
+  if (baseKind === 'client') baseKind = 'workstation';
+  if (baseKind === 'app' || baseKind === 'identity' || baseKind === 'database' || baseKind === 'mail') baseKind = 'server';
+  const material = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(colorHex || '#8B5CF6'),
+    metalness: 0.2,
+    roughness: 0.72
+  });
+  const makeMesh = (geometry) => new THREE.Mesh(geometry, material.clone());
+
+  if (baseKind === 'core') {
+    const mesh = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    mesh.scale.set(1.2, 0.95, 1.2);
+    return mesh;
+  }
+  if (baseKind === 'router') return makeMesh(new THREE.CylinderGeometry(3.6, 3.6, 7.2, 18));
+  if (baseKind === 'switch') {
+    const mesh = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    mesh.scale.set(1.2, 0.95, 1.2);
+    return mesh;
+  }
+  if (baseKind === 'laptop') {
+    const group = new THREE.Group();
+    const keyboard = makeMesh(new THREE.BoxGeometry(8.4, 0.95, 6.2));
+    const screen = makeMesh(new THREE.BoxGeometry(8.2, 4.8, 0.7));
+    keyboard.position.y = -1.8;
+    screen.position.set(0, 1.1, -2.7);
+    screen.rotation.x = -0.35;
+    group.add(keyboard);
+    group.add(screen);
+    return group;
+  }
+  if (baseKind === 'workstation') {
+    const group = new THREE.Group();
+    const tower = makeMesh(new THREE.BoxGeometry(3.2, 7.8, 3.0));
+    const monitor = makeMesh(new THREE.BoxGeometry(7.0, 4.4, 0.7));
+    tower.position.set(-2.8, -0.2, 0);
+    monitor.position.set(2.0, 0.6, 0);
+    group.add(tower);
+    group.add(monitor);
+    return group;
+  }
+  if (baseKind === 'l3switch') {
+    const group = new THREE.Group();
+    const base = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    const top = makeMesh(new THREE.CylinderGeometry(2.8, 2.8, 2.2, 16));
+    top.position.y = 2.6;
+    group.add(base);
+    group.add(top);
+    return group;
+  }
+  if (baseKind === 'firewall') return makeMesh(new THREE.ConeGeometry(4.2, 9, 10));
+  if (baseKind === 'plc') {
+    const group = new THREE.Group();
+    const core = makeMesh(new THREE.SphereGeometry(3.0, 16, 16));
+    const base = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    base.scale.set(1.3, 0.4, 1.0);
+    base.position.y = -2.0;
+    group.add(core);
+    group.add(base);
+    return group;
+  }
+  if (baseKind === 'printer') {
+    const group = new THREE.Group();
+    const body = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    const tray = makeMesh(new THREE.BoxGeometry(7.6, 1.1, 1.8));
+    body.scale.set(1.12, 0.58, 1.0);
+    tray.scale.set(0.96, 0.36, 0.82);
+    tray.position.y = 1.3;
+    group.add(body);
+    group.add(tray);
+    return group;
+  }
+  if (baseKind === 'database') {
+    const group = new THREE.Group();
+    [-1.8, 0, 1.8].forEach((y) => {
+      const disk = makeMesh(new THREE.CylinderGeometry(5.2, 5.2, 1.4, 24));
+      disk.position.y = y;
+      group.add(disk);
+    });
+    return group;
+  }
+  if (baseKind === 'mail') {
+    const group = new THREE.Group();
+    const body = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    const flap = makeMesh(new THREE.BoxGeometry(7.6, 1.1, 1.8));
+    body.scale.set(1.2, 0.48, 0.9);
+    flap.scale.set(1.08, 0.45, 0.66);
+    flap.rotation.z = 0.52;
+    flap.position.y = 1.2;
+    group.add(body);
+    group.add(flap);
+    return group;
+  }
+  if (baseKind === 'monitor') {
+    const group = new THREE.Group();
+    const ring = makeMesh(new THREE.TorusGeometry(7, 1.6, 16, 32));
+    const eye = makeMesh(new THREE.SphereGeometry(3.0, 16, 16));
+    ring.rotation.x = Math.PI / 2;
+    ring.scale.set(0.86, 0.86, 0.86);
+    eye.scale.set(0.52, 0.52, 0.52);
+    eye.position.y = 0.5;
+    group.add(ring);
+    group.add(eye);
+    return group;
+  }
+  if (baseKind === 'client') {
+    const group = new THREE.Group();
+    const core = makeMesh(new THREE.TetrahedronGeometry(4.4));
+    const sat = makeMesh(new THREE.SphereGeometry(3.0, 16, 16));
+    sat.scale.set(0.35, 0.35, 0.35);
+    sat.position.set(2.4, 1.3, 0);
+    group.add(core);
+    group.add(sat);
+    return group;
+  }
+  if (baseKind === 'app') {
+    const group = new THREE.Group();
+    const layer1 = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    const layer2 = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    const layer3 = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+    layer1.scale.set(1.25, 0.3, 1.0);
+    layer1.position.y = -1.4;
+    layer2.scale.set(1.0, 0.3, 0.85);
+    layer2.position.y = 0.2;
+    layer3.scale.set(0.8, 0.3, 0.7);
+    layer3.position.y = 1.8;
+    group.add(layer1);
+    group.add(layer2);
+    group.add(layer3);
+    return group;
+  }
+  if (baseKind === 'identity') {
+    const group = new THREE.Group();
+    const column = makeMesh(new THREE.CylinderGeometry(1.6, 1.6, 8.6, 14));
+    const head = makeMesh(new THREE.SphereGeometry(3.0, 16, 16));
+    column.scale.set(0.66, 0.95, 0.66);
+    head.scale.set(0.58, 0.58, 0.58);
+    head.position.y = 3.9;
+    group.add(column);
+    group.add(head);
+    return group;
+  }
+  if (baseKind === 'sensor') {
+    const group = new THREE.Group();
+    const body = makeMesh(new THREE.SphereGeometry(3.0, 16, 16));
+    const tip = makeMesh(new THREE.ConeGeometry(4.2, 9, 10));
+    tip.scale.set(0.45, 0.55, 0.45);
+    tip.position.y = 2.4;
+    group.add(body);
+    group.add(tip);
+    return group;
+  }
+  if (baseKind === 'persona') return makeMesh(new THREE.SphereGeometry(3.0, 16, 16));
+
+  const fallback = new THREE.Group();
+  const body = makeMesh(new THREE.BoxGeometry(8.2, 2.6, 6.2));
+  const head = makeMesh(new THREE.CylinderGeometry(2.8, 2.8, 2.2, 16));
+  body.scale.set(1.0, 1.8, 1.0);
+  head.position.y = 3.6;
+  head.scale.set(1.05, 1.0, 1.05);
+  fallback.add(body);
+  fallback.add(head);
+  return fallback;
+}
+
+function renderLegendThumbnail(kind, colorHex) {
+  if (typeof window === 'undefined') return null;
+  let renderer;
+  try {
+    const size = 56;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+    camera.position.set(0, 0, 24);
+    camera.lookAt(0, 0, 0);
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+    const key = new THREE.DirectionalLight(0xffffff, 0.7);
+    key.position.set(10, 14, 10);
+    scene.add(ambient);
+    scene.add(key);
+
+    const model = createLegendModelObject(kind, colorHex);
+    const bbox = new THREE.Box3().setFromObject(model);
+    const center = bbox.getCenter(new THREE.Vector3());
+    model.position.sub(center);
+    const sizeVec = bbox.getSize(new THREE.Vector3());
+    const maxDim = Math.max(sizeVec.x || 0, sizeVec.y || 0, sizeVec.z || 0) || 1;
+    const scale = 11 / maxDim;
+    model.scale.set(scale, scale, scale);
+    model.rotation.y = -Math.PI / 6;
+    model.rotation.x = Math.PI / 10;
+    scene.add(model);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    renderer.setPixelRatio(1);
+    renderer.setSize(size, size, false);
+    renderer.setClearColor(0x000000, 0);
+    renderer.render(scene, camera);
+    const dataUrl = renderer.domElement.toDataURL('image/png');
+
+    model.traverse((child) => {
+      if (child && child.isMesh) {
+        child.geometry?.dispose?.();
+        if (Array.isArray(child.material)) child.material.forEach((mat) => mat?.dispose?.());
+        else child.material?.dispose?.();
+      }
+    });
+    renderer.dispose();
+    return dataUrl;
+  } catch (e) {
+    try { renderer && renderer.dispose(); } catch (disposeErr) {}
+    return null;
+  }
+}
+
 // ===================== 정규화: Node/Edge =====================
 function normalizeNode(raw) {
   // __labels / layer 속성 기반으로 레이어 판정
@@ -83,6 +369,7 @@ function normalizeNode(raw) {
   let type = (raw.type || labelsLower[0] || 'device').toString().toLowerCase();
   let label = raw.label || raw.hostname || raw.name || raw.user_name || raw.service_name || raw.subnet || raw.ip || raw.id;
   if (!label && raw.vlan !== undefined) label = `VLAN-${raw.vlan}`;
+  const layerZ = resolveLayerZ(layer);
 
     return {
     id: raw.id,
@@ -118,7 +405,8 @@ function normalizeNode(raw) {
   // 초기 위치 (레이어별 z 고정) — 노드를 레이어 평면 영역에 골고루 분포시킴
   x: (Math.random() - 0.5) * LAYOUT.plane.width * 0.9,
   y: (Math.random() - 0.5) * LAYOUT.plane.height * 0.9,
-    z: layer === 'persona' ? LAYOUT.layerZ.persona : layer === 'logical' ? LAYOUT.layerZ.logical : LAYOUT.layerZ.physical
+    z: layerZ,
+    fz: layerZ
   };
 }
 
@@ -209,9 +497,9 @@ function buildAdjacency(nodes, links) {
 function generateMockGraph() {
   const nodes = [];
   const links = [];
-  for (let i = 0; i < 30; i++) nodes.push({ id: `dev-${i}`, layer: 'physical', type: 'server', label: `DEV-${i}`, status: 'up', severity: 0, x: (Math.random()-0.5)*LAYOUT.nodeSpread, y: (Math.random()-0.5)*LAYOUT.nodeSpread, z: LAYOUT.layerZ.physical });
-  for (let i = 0; i < 10; i++) nodes.push({ id: `svc-${i}`, layer: 'logical', type: 'service', label: `SVC-${i}`, status: 'up', severity: 0, x: (Math.random()-0.5)*LAYOUT.nodeSpread, y: (Math.random()-0.5)*LAYOUT.nodeSpread, z: LAYOUT.layerZ.logical });
-  for (let i = 0; i < 10; i++) nodes.push({ id: `user-${i}`, layer: 'persona', type: 'user', label: `USER-${i}`, status: 'up', severity: 0, x: (Math.random()-0.5)*LAYOUT.nodeSpread, y: (Math.random()-0.5)*LAYOUT.nodeSpread, z: LAYOUT.layerZ.persona });
+  for (let i = 0; i < 30; i++) nodes.push({ id: `dev-${i}`, layer: 'physical', type: 'server', label: `DEV-${i}`, status: 'up', severity: 0, x: (Math.random()-0.5)*LAYOUT.nodeSpread, y: (Math.random()-0.5)*LAYOUT.nodeSpread, z: LAYOUT.layerZ.physical, fz: LAYOUT.layerZ.physical });
+  for (let i = 0; i < 10; i++) nodes.push({ id: `svc-${i}`, layer: 'logical', type: 'service', label: `SVC-${i}`, status: 'up', severity: 0, x: (Math.random()-0.5)*LAYOUT.nodeSpread, y: (Math.random()-0.5)*LAYOUT.nodeSpread, z: LAYOUT.layerZ.logical, fz: LAYOUT.layerZ.logical });
+  for (let i = 0; i < 10; i++) nodes.push({ id: `user-${i}`, layer: 'persona', type: 'user', label: `USER-${i}`, status: 'up', severity: 0, x: (Math.random()-0.5)*LAYOUT.nodeSpread, y: (Math.random()-0.5)*LAYOUT.nodeSpread, z: LAYOUT.layerZ.persona, fz: LAYOUT.layerZ.persona });
   for (let i = 0; i < 80; i++) links.push({ source: `dev-${Math.floor(Math.random()*30)}`, target: `svc-${Math.floor(Math.random()*10)}`, kind: 'HOSTS' });
   for (let i = 0; i < 80; i++) links.push({ source: `user-${Math.floor(Math.random()*10)}`, target: `svc-${Math.floor(Math.random()*10)}`, kind: 'USES' });
   return { nodes, links };
@@ -302,6 +590,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   const fgRef = useRef();
   const containerRef = useRef(null);
   const graphContainerRef = useRef(null);
+  const graphNodesRef = useRef([]);   // z-lock 포스가 최신 노드를 참조하기 위한 ref
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
@@ -315,6 +604,60 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   const [eventLogs, setEventLogs] = useState([]);
 
   const { byId, adj } = useMemo(() => buildAdjacency(graphData.nodes, graphData.links), [graphData]);
+  const geoCache = useMemo(() => ({
+    torus: new THREE.TorusGeometry(7, 1.6, 16, 32),
+    cone: new THREE.ConeGeometry(4.2, 9, 10),
+    cylinder: new THREE.CylinderGeometry(4.2, 4.2, 8, 18),
+    disk: new THREE.CylinderGeometry(5.2, 5.2, 1.4, 24),
+    pill: new THREE.CylinderGeometry(1.6, 1.6, 8.6, 14),
+    box: new THREE.BoxGeometry(8.2, 2.6, 6.2),
+    bar: new THREE.BoxGeometry(7.6, 1.1, 1.8),
+    l3top: new THREE.CylinderGeometry(2.8, 2.8, 2.2, 16),
+    sphere: new THREE.SphereGeometry(3.0, 16, 16),
+    octa: new THREE.OctahedronGeometry(4.2),
+    tetra: new THREE.TetrahedronGeometry(4.4),
+    led: new THREE.SphereGeometry(0.7, 8, 8),
+    hit: new THREE.SphereGeometry(7, 8, 8)
+  }), []);
+  const nodeMatCache = useMemo(() => ({
+    base: new Map(),
+    highlight: new THREE.MeshStandardMaterial({ color: 0xffda79, metalness: 0.25, roughness: 0.72 }),
+    dim: new THREE.MeshStandardMaterial({ color: 0x324055, metalness: 0.25, roughness: 0.72 }),
+    ledUp: new THREE.MeshBasicMaterial({ color: 0x00ff99 }),
+    ledDown: new THREE.MeshBasicMaterial({ color: 0xff3355 }),
+    hit: new THREE.MeshBasicMaterial({ opacity: 0.0, transparent: true, depthWrite: false })
+  }), []);
+  const getBaseMat = useCallback((hex) => {
+    let material = nodeMatCache.base.get(hex);
+    if (!material) {
+      material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(hex),
+        metalness: 0.25,
+        roughness: 0.72
+      });
+      nodeMatCache.base.set(hex, material);
+    }
+    return material;
+  }, [nodeMatCache]);
+  const estimateNodeScale = useCallback((node) => {
+    const kind = String(resolveTopologyKind(node) || 'server').replace(/^logical-/, '');
+    const degree = adj.get(node.id)?.size || 0;
+    const baseByKind = {
+      router: 1.55,
+      firewall: 1.45,
+      plc: 1.52,
+      switch: 1.45,
+      laptop: 1.4,
+      workstation: 1.45,
+      printer: 1.45,
+      server: 1.5,
+      sensor: 1.42,
+      hub: 1.42,
+      persona: 1.35
+    };
+    const base = baseByKind[kind] ?? (1.35 + degree * 0.06);
+    return Math.max(1.25, Math.min(3.0, base)) * NODE_VISUAL_SCALE;
+  }, [adj]);
 
   // 컴포넌트 마운트/언마운트 추적
   useEffect(() => {
@@ -325,6 +668,28 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   }, []);
 
   // 레이어 플레인
+  const addSceneLights = () => {
+    const scene = fgRef.current?.scene?.(); if (!scene) return;
+    const existing = scene.getObjectByName('scene-lights'); if (existing) scene.remove(existing);
+    const group = new THREE.Group(); group.name = 'scene-lights';
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.38);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x253043, 0.95);
+    hemi.position.set(0, 1200, 0);
+
+    const key = new THREE.DirectionalLight(0xffffff, 1.1);
+    key.position.set(900, 1200, 700);
+
+    const fill = new THREE.DirectionalLight(0x9ec5ff, 0.45);
+    fill.position.set(-900, 500, -700);
+
+    group.add(ambient);
+    group.add(hemi);
+    group.add(key);
+    group.add(fill);
+    scene.add(group);
+  };
+
   const addLayerPlanes = () => {
     const scene = fgRef.current?.scene?.(); if (!scene) return;
     const existing = scene.getObjectByName('layer-planes'); if (existing) scene.remove(existing);
@@ -368,14 +733,27 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
     }
     fg.cameraPosition({ x: 0, y: 1800, z: 0 }, { x: 0, y: 0, z: 0 }, 0);
     const scene = fg.scene(); scene.rotation.order = 'YXZ'; scene.rotation.set(0, 0, 0, 'YXZ');
+    addSceneLights();
     addLayerPlanes(); toggleLayerPlanes(true);
   }, []);
 
-  // 포스(힘) 설정 완화
+  // 포스(힘) 설정 완화 + z축 고정 (노드가 레이어 평면 밖으로 벗어나지 않도록)
   useEffect(() => {
     const fg = fgRef.current; if (!fg) return;
     try { fg.d3Force('charge') && fg.d3Force('charge').strength(0); } catch {}
     try { fg.d3Force('link') && fg.d3Force('link').strength(() => 0.05); } catch {}
+    // 매 틱마다 각 노드의 z를 레이어 기준값으로 강제 고정
+    try {
+      fg.d3Force('z-lock', () => {
+        graphNodesRef.current.forEach(node => {
+          const targetZ = node.layer === 'persona' ? LAYOUT.layerZ.persona
+            : node.layer === 'logical' ? LAYOUT.layerZ.logical
+            : LAYOUT.layerZ.physical;
+          node.z = targetZ;
+          node.vz = 0;
+        });
+      });
+    } catch {}
   }, []);
 
   // 데이터 로딩 (3계층 통합: HOSTS + USES+ PHYSICAL 동일레이어 연결)
@@ -520,6 +898,357 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   const linkWidth = (l) => isLinkDimmed(l) ? 0.3 : (l.assumed ? 0.6 : 1.5);
   const linkParticles = (l) => { if (!pulse || !selectedId) return 0; const s = l.source; const t = l.target; if (!s || !t || typeof s.id === 'undefined' || typeof t.id === 'undefined') return 0; const touchesSel = s.id === selectedId || t.id === selectedId; return touchesSel && isCrossLayer(s, t) ? 2 : 0; };
   const linkMaterial = (l) => { const color = new THREE.Color(linkColor(l)); if (l.assumed) { try { return new THREE.LineDashedMaterial({ color, dashSize: 2, gapSize: 1, transparent: true, opacity: isLinkDimmed(l) ? 0.25 : 0.65 }); } catch { return new THREE.LineBasicMaterial({ color, transparent: true, opacity: isLinkDimmed(l) ? 0.25 : 0.65 }); } } return new THREE.LineBasicMaterial({ color, transparent: true, opacity: isLinkDimmed(l) ? 0.25 : 0.95 }); };
+  const nodeThreeObject = useCallback((node) => {
+    const group = new THREE.Group();
+    const kind = String(resolveTopologyKind(node) || 'server').replace(/^logical-/, '');
+    const baseHex = nodeColor(node);
+    const material = !selectedId
+      ? getBaseMat(baseHex)
+      : (highlight.nodes.has(node.id) ? nodeMatCache.highlight : nodeMatCache.dim);
+    let mesh;
+    if (kind === 'core') {
+      const boxMesh = new THREE.Mesh(geoCache.box, material);
+      boxMesh.scale.set(1.2, 0.95, 1.2);
+      mesh = boxMesh;
+    } else if (kind === 'firewall') {
+      mesh = new THREE.Mesh(geoCache.cone, material);
+    } else if (kind === 'logical-firewall') {
+      const logicalFirewall = new THREE.Group();
+      const coreShield = new THREE.Mesh(geoCache.octa, material);
+      const basePlate = new THREE.Mesh(geoCache.box, material);
+      basePlate.scale.set(1.15, 0.35, 0.9);
+      basePlate.position.y = -1.8;
+      logicalFirewall.add(coreShield);
+      logicalFirewall.add(basePlate);
+      mesh = logicalFirewall;
+    } else if (kind === 'router') {
+      mesh = new THREE.Mesh(geoCache.cylinder, material);
+    } else if (kind === 'logical-router') {
+      const logicalRouter = new THREE.Group();
+      const coreSphere = new THREE.Mesh(geoCache.sphere, material);
+      const orbitRing = new THREE.Mesh(geoCache.torus, material);
+      orbitRing.rotation.x = Math.PI / 2;
+      orbitRing.scale.set(0.7, 0.7, 0.7);
+      logicalRouter.add(coreSphere);
+      logicalRouter.add(orbitRing);
+      mesh = logicalRouter;
+    } else if (kind === 'switch') {
+      const boxMesh = new THREE.Mesh(geoCache.box, material);
+      boxMesh.scale.set(1.2, 0.95, 1.2);
+      mesh = boxMesh;
+    } else if (kind === 'laptop') {
+      const laptopGroup = new THREE.Group();
+      const keyboard = new THREE.Mesh(geoCache.box, material);
+      const screen = new THREE.Mesh(geoCache.bar, material);
+      keyboard.scale.set(1.25, 0.35, 1.05);
+      keyboard.position.y = -1.6;
+      screen.scale.set(1.15, 1.7, 0.22);
+      screen.position.set(0, 0.95, -2.25);
+      screen.rotation.x = -0.34;
+      laptopGroup.add(keyboard);
+      laptopGroup.add(screen);
+      mesh = laptopGroup;
+    } else if (kind === 'workstation') {
+      const wsGroup = new THREE.Group();
+      const tower = new THREE.Mesh(geoCache.box, material);
+      const monitor = new THREE.Mesh(geoCache.bar, material);
+      tower.scale.set(0.52, 1.8, 0.58);
+      tower.position.set(-2.2, 0, 0);
+      monitor.scale.set(1.05, 1.4, 0.28);
+      monitor.position.set(1.6, 0.3, 0);
+      wsGroup.add(tower);
+      wsGroup.add(monitor);
+      mesh = wsGroup;
+    } else if (kind === 'printer') {
+      const printerGroup = new THREE.Group();
+      const body = new THREE.Mesh(geoCache.box, material);
+      const tray = new THREE.Mesh(geoCache.bar, material);
+      body.scale.set(1.12, 0.58, 1.0);
+      tray.scale.set(0.96, 0.36, 0.82);
+      tray.position.y = 1.3;
+      printerGroup.add(body);
+      printerGroup.add(tray);
+      mesh = printerGroup;
+    } else if (kind === 'logical-switch') {
+      const logicalSwitch = new THREE.Group();
+      const baseBox = new THREE.Mesh(geoCache.box, material);
+      const topCyl = new THREE.Mesh(geoCache.l3top, material);
+      baseBox.scale.set(1.45, 0.45, 1.2);
+      topCyl.scale.set(0.95, 0.75, 0.95);
+      topCyl.position.y = 1.4;
+      logicalSwitch.add(baseBox);
+      logicalSwitch.add(topCyl);
+      mesh = logicalSwitch;
+    } else if (kind === 'l3switch') {
+      const baseBox = new THREE.Mesh(geoCache.box, material);
+      const topCyl = new THREE.Mesh(geoCache.l3top, material);
+      topCyl.position.y = 2.6;
+      const l3Group = new THREE.Group();
+      l3Group.add(baseBox);
+      l3Group.add(topCyl);
+      mesh = l3Group;
+    } else if (kind === 'logical-l3switch') {
+      const logicalL3Group = new THREE.Group();
+      const baseBox = new THREE.Mesh(geoCache.box, material);
+      const topCyl = new THREE.Mesh(geoCache.l3top, material);
+      const topSphere = new THREE.Mesh(geoCache.sphere, material);
+      baseBox.scale.set(1.35, 0.6, 1.25);
+      topCyl.position.y = 1.9;
+      topSphere.scale.set(0.55, 0.55, 0.55);
+      topSphere.position.y = 3.5;
+      logicalL3Group.add(baseBox);
+      logicalL3Group.add(topCyl);
+      logicalL3Group.add(topSphere);
+      mesh = logicalL3Group;
+    } else if (kind === 'persona') {
+      mesh = new THREE.Mesh(geoCache.sphere, material);
+    } else if (kind === 'hub') {
+      mesh = new THREE.Mesh(geoCache.octa, material);
+    } else if (kind === 'sensor') {
+      const sensorGroup = new THREE.Group();
+      const body = new THREE.Mesh(geoCache.sphere, material);
+      const tip = new THREE.Mesh(geoCache.cone, material);
+      tip.scale.set(0.45, 0.55, 0.45);
+      tip.position.y = 2.4;
+      sensorGroup.add(body);
+      sensorGroup.add(tip);
+      mesh = sensorGroup;
+    } else if (kind === 'identity') {
+      const identityGroup = new THREE.Group();
+      const column = new THREE.Mesh(geoCache.pill, material);
+      const head = new THREE.Mesh(geoCache.sphere, material);
+      column.scale.set(0.66, 0.95, 0.66);
+      head.scale.set(0.58, 0.58, 0.58);
+      head.position.y = 3.9;
+      identityGroup.add(column);
+      identityGroup.add(head);
+      mesh = identityGroup;
+    } else if (kind === 'database') {
+      const databaseGroup = new THREE.Group();
+      [-1.8, 0.0, 1.8].forEach((y) => {
+        const disk = new THREE.Mesh(geoCache.disk, material);
+        disk.position.y = y;
+        databaseGroup.add(disk);
+      });
+      mesh = databaseGroup;
+    } else if (kind === 'mail') {
+      const mailGroup = new THREE.Group();
+      const body = new THREE.Mesh(geoCache.box, material);
+      const flap = new THREE.Mesh(geoCache.bar, material);
+      body.scale.set(1.2, 0.48, 0.9);
+      flap.scale.set(1.08, 0.45, 0.66);
+      flap.rotation.z = 0.52;
+      flap.position.y = 1.2;
+      mailGroup.add(body);
+      mailGroup.add(flap);
+      mesh = mailGroup;
+    } else if (kind === 'monitor') {
+      const monitorGroup = new THREE.Group();
+      const ring = new THREE.Mesh(geoCache.torus, material);
+      const eye = new THREE.Mesh(geoCache.sphere, material);
+      ring.rotation.x = Math.PI / 2;
+      ring.scale.set(0.86, 0.86, 0.86);
+      eye.scale.set(0.52, 0.52, 0.52);
+      eye.position.y = 0.5;
+      monitorGroup.add(ring);
+      monitorGroup.add(eye);
+      mesh = monitorGroup;
+    } else if (kind === 'client') {
+      const clientGroup = new THREE.Group();
+      const core = new THREE.Mesh(geoCache.tetra, material);
+      const sat = new THREE.Mesh(geoCache.sphere, material);
+      sat.scale.set(0.35, 0.35, 0.35);
+      sat.position.set(2.4, 1.3, 0);
+      clientGroup.add(core);
+      clientGroup.add(sat);
+      mesh = clientGroup;
+    } else if (kind === 'app') {
+      const appGroup = new THREE.Group();
+      const layer1 = new THREE.Mesh(geoCache.box, material);
+      const layer2 = new THREE.Mesh(geoCache.box, material);
+      const layer3 = new THREE.Mesh(geoCache.box, material);
+      layer1.scale.set(1.25, 0.3, 1.0);
+      layer1.position.y = -1.4;
+      layer2.scale.set(1.0, 0.3, 0.85);
+      layer2.position.y = 0.2;
+      layer3.scale.set(0.8, 0.3, 0.7);
+      layer3.position.y = 1.8;
+      appGroup.add(layer1);
+      appGroup.add(layer2);
+      appGroup.add(layer3);
+      mesh = appGroup;
+    } else if (kind === 'logical-sensor') {
+      const logicalSensor = new THREE.Group();
+      const body = new THREE.Mesh(geoCache.sphere, material);
+      const tip = new THREE.Mesh(geoCache.octa, material);
+      tip.scale.set(0.45, 0.45, 0.45);
+      tip.position.y = 2.8;
+      logicalSensor.add(body);
+      logicalSensor.add(tip);
+      mesh = logicalSensor;
+    } else if (kind === 'logical-printer') {
+      const logicalPrinter = new THREE.Group();
+      const baseBox = new THREE.Mesh(geoCache.box, material);
+      const topNode = new THREE.Mesh(geoCache.sphere, material);
+      baseBox.scale.set(1.2, 0.45, 1.0);
+      topNode.scale.set(0.45, 0.45, 0.45);
+      topNode.position.y = 1.8;
+      logicalPrinter.add(baseBox);
+      logicalPrinter.add(topNode);
+      mesh = logicalPrinter;
+    } else if (kind === 'plc') {
+      const plcGroup = new THREE.Group();
+      const coreSphere = new THREE.Mesh(geoCache.sphere, material);
+      const basePlate = new THREE.Mesh(geoCache.box, material);
+      basePlate.scale.set(1.3, 0.4, 1.0);
+      basePlate.position.y = -2.0;
+      plcGroup.add(coreSphere);
+      plcGroup.add(basePlate);
+      mesh = plcGroup;
+    } else if (kind === 'logical-plc') {
+      const logicalPlc = new THREE.Group();
+      const chip = new THREE.Mesh(geoCache.octa, material);
+      const bridge = new THREE.Mesh(geoCache.l3top, material);
+      bridge.scale.set(0.9, 0.8, 0.9);
+      bridge.position.y = -1.2;
+      logicalPlc.add(chip);
+      logicalPlc.add(bridge);
+      mesh = logicalPlc;
+    } else if (kind === 'logical-identity') {
+      const logicalIdentity = new THREE.Group();
+      const column = new THREE.Mesh(geoCache.pill, material);
+      const halo = new THREE.Mesh(geoCache.torus, material);
+      const head = new THREE.Mesh(geoCache.sphere, material);
+      column.scale.set(0.7, 1.0, 0.7);
+      halo.rotation.x = Math.PI / 2;
+      halo.position.y = 1.2;
+      halo.scale.set(0.72, 0.72, 0.72);
+      head.scale.set(0.55, 0.55, 0.55);
+      head.position.y = 4.2;
+      logicalIdentity.add(column);
+      logicalIdentity.add(halo);
+      logicalIdentity.add(head);
+      mesh = logicalIdentity;
+    } else if (kind === 'logical-database') {
+      const logicalDatabase = new THREE.Group();
+      [-2.3, 0, 2.3].forEach((y) => {
+        const layerDisk = new THREE.Mesh(geoCache.disk, material);
+        layerDisk.position.y = y;
+        logicalDatabase.add(layerDisk);
+      });
+      const topCore = new THREE.Mesh(geoCache.sphere, material);
+      topCore.scale.set(0.38, 0.38, 0.38);
+      topCore.position.y = 4.3;
+      logicalDatabase.add(topCore);
+      mesh = logicalDatabase;
+    } else if (kind === 'logical-mail') {
+      const logicalMail = new THREE.Group();
+      const body = new THREE.Mesh(geoCache.box, material);
+      const leftFlap = new THREE.Mesh(geoCache.bar, material);
+      const rightFlap = new THREE.Mesh(geoCache.bar, material);
+      body.scale.set(1.18, 0.45, 0.92);
+      leftFlap.scale.set(0.72, 0.7, 0.85);
+      rightFlap.scale.set(0.72, 0.7, 0.85);
+      leftFlap.rotation.z = 0.62;
+      rightFlap.rotation.z = -0.62;
+      leftFlap.position.set(-1.55, 0.8, 0);
+      rightFlap.position.set(1.55, 0.8, 0);
+      logicalMail.add(body);
+      logicalMail.add(leftFlap);
+      logicalMail.add(rightFlap);
+      mesh = logicalMail;
+    } else if (kind === 'logical-monitor') {
+      const logicalMonitor = new THREE.Group();
+      const dish = new THREE.Mesh(geoCache.torus, material);
+      const mast = new THREE.Mesh(geoCache.pill, material);
+      const eye = new THREE.Mesh(geoCache.sphere, material);
+      const beam = new THREE.Mesh(geoCache.cone, material);
+      dish.rotation.x = Math.PI / 2;
+      dish.scale.set(0.92, 0.92, 0.92);
+      dish.position.y = -0.4;
+      mast.scale.set(0.34, 0.72, 0.34);
+      mast.position.y = 1.2;
+      eye.scale.set(0.52, 0.52, 0.52);
+      eye.position.y = 3.8;
+      beam.rotation.z = -Math.PI / 2;
+      beam.scale.set(0.34, 0.62, 0.34);
+      beam.position.set(3.1, 3.4, 0);
+      logicalMonitor.add(dish);
+      logicalMonitor.add(mast);
+      logicalMonitor.add(eye);
+      logicalMonitor.add(beam);
+      mesh = logicalMonitor;
+    } else if (kind === 'logical-client') {
+      const logicalClient = new THREE.Group();
+      const core = new THREE.Mesh(geoCache.tetra, material);
+      core.scale.set(0.95, 0.95, 0.95);
+      logicalClient.add(core);
+      [[3.0, 1.8, 0], [-2.5, -1.4, 2.1], [-2.5, -1.4, -2.1]].forEach(([x, y, z]) => {
+        const satellite = new THREE.Mesh(geoCache.sphere, material);
+        satellite.scale.set(0.32, 0.32, 0.32);
+        satellite.position.set(x, y, z);
+        logicalClient.add(satellite);
+      });
+      mesh = logicalClient;
+    } else if (kind === 'logical-app') {
+      const logicalApp = new THREE.Group();
+      const bottomLayer = new THREE.Mesh(geoCache.box, material);
+      const middleLayer = new THREE.Mesh(geoCache.box, material);
+      const topLayer = new THREE.Mesh(geoCache.box, material);
+      const appCore = new THREE.Mesh(geoCache.tetra, material);
+      bottomLayer.scale.set(1.4, 0.3, 1.1);
+      bottomLayer.position.set(-0.6, -2.0, 0);
+      middleLayer.scale.set(1.2, 0.3, 1.0);
+      middleLayer.position.set(0.4, 0, 0);
+      topLayer.scale.set(1.0, 0.3, 0.9);
+      topLayer.position.set(-0.2, 2.0, 0);
+      appCore.scale.set(0.45, 0.45, 0.45);
+      appCore.position.y = 4.0;
+      logicalApp.add(bottomLayer);
+      logicalApp.add(middleLayer);
+      logicalApp.add(topLayer);
+      logicalApp.add(appCore);
+      mesh = logicalApp;
+    } else if (kind === 'logical-server') {
+      const logicalServer = new THREE.Group();
+      const coreSphere = new THREE.Mesh(geoCache.sphere, material);
+      const topCyl = new THREE.Mesh(geoCache.l3top, material);
+      coreSphere.scale.set(1.1, 1.1, 1.1);
+      topCyl.position.y = 2.7;
+      logicalServer.add(coreSphere);
+      logicalServer.add(topCyl);
+      mesh = logicalServer;
+    } else {
+      const serverGroup = new THREE.Group();
+      const serverBody = new THREE.Mesh(geoCache.box, material);
+      const serverHead = new THREE.Mesh(geoCache.l3top, material);
+      serverBody.scale.set(1.0, 1.8, 1.0);
+      serverHead.position.y = 3.6;
+      serverHead.scale.set(1.05, 1.0, 1.05);
+      serverGroup.add(serverBody);
+      serverGroup.add(serverHead);
+      mesh = serverGroup;
+    }
+
+    const s = estimateNodeScale(node);
+    const visualScale = s;
+    const meshScale = visualScale;
+    mesh.scale.set(meshScale, meshScale, meshScale);
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    group.add(mesh);
+
+    const led = new THREE.Mesh(geoCache.led, node.status === 'up' ? nodeMatCache.ledUp : nodeMatCache.ledDown);
+    led.position.set(0, 6 * visualScale * 0.9, 0);
+    group.add(led);
+
+    const hit = new THREE.Mesh(geoCache.hit, nodeMatCache.hit);
+    hit.name = 'hit-proxy';
+    hit.scale.set(visualScale * 1.4, visualScale * 1.4, visualScale * 1.4);
+    group.add(hit);
+
+    return group;
+  }, [estimateNodeScale, geoCache, getBaseMat, highlight, nodeColor, nodeMatCache, selectedId]);
 
   const onBackgroundClick = () => {
     interactionTracker.measureResponseSync(
@@ -655,6 +1384,24 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
     const links = visible.links.filter(l => { const s = l.__sid || (typeof l.source==='object'? l.source.id : l.source); const t = l.__tid || (typeof l.target==='object'? l.target.id : l.target); return sel.has(s) || sel.has(t); });
     return { nodes: visible.nodes, links };
   }, [pulse, visible, selectedId, adj]);
+
+  const modelLegend = useMemo(() => {
+    return CANONICAL_DEVICE_KINDS.map((kind) => ({
+      kind,
+      color: LEGEND_COLOR_BY_KIND[kind] || LAYER_COLORS.physical
+    }));
+  }, []);
+
+  const legendThumbByKind = useMemo(() => {
+    const out = {};
+    modelLegend.forEach(({ kind, color }) => {
+      out[kind] = renderLegendThumbnail(kind, color);
+    });
+    return out;
+  }, [modelLegend]);
+
+  // graphToRender의 노드 목록을 ref에 동기화 (z-lock 포스가 최신 노드를 참조하도록)
+  useEffect(() => { graphNodesRef.current = graphToRender.nodes; }, [graphToRender]);
 
   return (
     <Card ref={containerRef} sx={{
@@ -806,6 +1553,36 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
           </div>
         </div>
 
+        <div style={{
+          position: 'absolute',
+          right: 12,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 10,
+          minWidth: 180,
+          maxWidth: 220,
+          maxHeight: '62%',
+          overflowY: 'auto',
+          background: 'rgba(57,48,107,0.7)',
+          backdropFilter: 'blur(4px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 12,
+          padding: '10px 12px',
+          pointerEvents: 'none'
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#ffffff', marginBottom: 8 }}>장비 유형 범례</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {modelLegend.map(({ kind, color }) => (
+              <div key={kind} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {legendThumbByKind[kind]
+                  ? <img src={legendThumbByKind[kind]} alt={kind} style={{ width: 24, height: 24, objectFit: 'contain', borderRadius: 4, border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.03)' }} />
+                  : <span style={{ width: 20, height: 20, borderRadius: 4, background: color, opacity: 0.9 }} />}
+                <span style={{ fontSize: 11, color: '#e5e7eb', fontWeight: 600 }}>{formatDeviceType(kind)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <ForceGraph3D
           ref={fgRef}
           graphData={graphToRender}
@@ -814,8 +1591,10 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
           height={containerSize.height}
           nodeAutoColorBy={null}
           nodeColor={nodeColor}
-          nodeLabel={(n) => `${n.label} (layer: ${n.layer})`}
-          nodeRelSize={5.2}
+          nodeThreeObject={nodeThreeObject}
+          nodeThreeObjectExtend={false}
+          nodeLabel={(n) => formatDeviceType(resolveTopologyKind(n) || 'server')}
+          nodeRelSize={18}
           linkColor={linkColor}
           linkWidth={linkWidth}
           linkMaterial={linkMaterial}
