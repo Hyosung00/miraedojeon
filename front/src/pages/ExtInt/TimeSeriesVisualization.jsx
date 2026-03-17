@@ -269,22 +269,6 @@ const EarthGlobe = () => {
   const [allAttacks, setAllAttacks] = useState([]); // 전체 데이터 저장 (일주일, 하루당 20개 = 총 140개)
   const [timeRange, setTimeRange] = useState([0, 7]); // 시간 범위 (일 단위, 0일~7일)
 
-  // attackStats를 useMemo로 최적화 (attacks가 변경될 때만 재계산)
-  const attackStats = useMemo(() => {
-    if (!attacks || attacks.length === 0) {
-      return { total: 0, active: 0, blocked: 0, countries: 0 };
-    }
-
-    return {
-      total: attacks.length,
-      active: attacks.length,
-      blocked: 0,
-      countries: new Set([
-        ...attacks.map(a => a.source.name),
-        ...attacks.map(a => a.target.name)
-      ]).size
-    };
-  }, [attacks]);
 
   // 컴포넌트 마운트/언마운트 추적
   useEffect(() => {
@@ -996,7 +980,7 @@ const EarthGlobe = () => {
             }),
             clampToGround: false
           },
-          description: `🔴 사이버 작전: ${attack.source.name} → ${attack.target.name}`,
+          description: `🔴 트래픽: ${attack.source.name} → ${attack.target.name}`,
           attackData: attack
         });
 
@@ -1301,26 +1285,26 @@ const EarthGlobe = () => {
                     <Typography 
                       variant="h4" 
                       sx={{ color: '#7c3aed', fontWeight: 'bold' }}
-                      aria-label={`총 작전 수 ${attackStats.total}개`}
+                      aria-label={`전체 트래픽 수 ${allAttacks.length}개`}
                     >
-                      {attackStats.total}
+                      {allAttacks.length}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      총 작전 수
+                      전체 트래픽
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography 
-                      variant="h4" 
+                    <Typography
+                      variant="h4"
                       sx={{ color: '#9333ea', fontWeight: 'bold' }}
-                      aria-label={`활성 작전 ${attackStats.active}개`}
+                      aria-label={`현재 트래픽 수 ${attacks.length}개`}
                     >
-                      {attackStats.active}
+                      {attacks.length}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      활성 작전
+                      현재 트래픽
                     </Typography>
                   </Box>
                 </Grid>
@@ -1559,7 +1543,7 @@ const EarthGlobe = () => {
                 }}
               />
               <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#888', fontSize: '10px' }}>
-                표시된 작전: {attacks.length}개 / 전체: {allAttacks.length}개 (하루당 최대 20개)
+                현재 트래픽: {attacks.length}개 / 전체: {allAttacks.length}개
               </Typography>
             </CardContent>
           </Card>
@@ -1597,7 +1581,7 @@ const EarthGlobe = () => {
                     aria-hidden="true"
                     sx={{ width: 20, height: 2, bgcolor: '#FF0000', borderRadius: 1, boxShadow: '0 0 4px #FF0000' }} 
                   />
-                  <Typography variant="caption" sx={{ color: '#222' }}>🔴 사이버 작전</Typography>
+                  <Typography variant="caption" sx={{ color: '#222' }}>트래픽 경로</Typography>
                 </Box>
               </Box>
             </CardContent>

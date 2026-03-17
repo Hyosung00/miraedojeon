@@ -1083,7 +1083,7 @@ const TwoDPage = () => {
             followSurface: false,
             granularity: Cesium.Math.RADIANS_PER_DEGREE
           },
-          description: `🔴 사이버 작전: ${attack.source.name} → ${attack.target.name}`,
+          description: `🔴 트래픽: ${attack.source.name} → ${attack.target.name}`,
           attackData: attack
         });
 
@@ -1750,7 +1750,7 @@ const TwoDPage = () => {
                 }}
               />
               <Typography variant="caption" sx={{ display: 'block', mt: 1, color: '#888', fontSize: '10px' }}>
-                표시된 작전: {attacks.length}개 / 전체: {allAttacks.length}개 (하루당 최대 20개)
+                현재 트래픽: {attacks.length}개 / 전체: {allAttacks.length}개
               </Typography>
             </CardContent>
           </Card>
