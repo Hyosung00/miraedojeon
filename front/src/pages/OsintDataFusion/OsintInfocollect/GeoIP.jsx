@@ -60,6 +60,64 @@ Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN || 
 // 수정 된 토큰
 // Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiYmM5NTM1NC05YjlkLTQ3NmItOTRhYi0zOWFlNmRkOTU4OWEiLCJpZCI6MzUzNTE4LCJpYXQiOjE3NjEyNjk2OTh9.0pxPJQdwLFl9wTzqp60Zr1rbgPJLdhT00OaBhS84ORs';
 
+// 국가명 한국어 변환
+const COUNTRY_KO = {
+  'United States': '미국', 'USA': '미국', 'US': '미국',
+  'China': '중국', 'CN': '중국',
+  'Russia': '러시아', 'RU': '러시아',
+  'North Korea': '북한', 'DPRK': '북한',
+  'South Korea': '대한민국', 'Korea': '대한민국', 'KR': '대한민국',
+  'Japan': '일본', 'JP': '일본',
+  'Germany': '독일', 'DE': '독일',
+  'United Kingdom': '영국', 'UK': '영국', 'GB': '영국',
+  'France': '프랑스', 'FR': '프랑스',
+  'Iran': '이란', 'IR': '이란',
+  'India': '인도', 'IN': '인도',
+  'Taiwan': '대만', 'TW': '대만',
+  'Australia': '호주', 'AU': '호주',
+  'Canada': '캐나다', 'CA': '캐나다',
+  'Brazil': '브라질', 'BR': '브라질',
+  'Netherlands': '네덜란드', 'NL': '네덜란드',
+  'Singapore': '싱가포르', 'SG': '싱가포르',
+  'Hong Kong': '홍콩', 'HK': '홍콩',
+  'Ukraine': '우크라이나', 'UA': '우크라이나',
+  'Vietnam': '베트남', 'VN': '베트남',
+  'Thailand': '태국', 'TH': '태국',
+  'Indonesia': '인도네시아', 'ID': '인도네시아',
+  'Malaysia': '말레이시아', 'MY': '말레이시아',
+  'Pakistan': '파키스탄', 'PK': '파키스탄',
+  'Turkey': '터키', 'TR': '터키',
+  'Israel': '이스라엘', 'IL': '이스라엘',
+  'Saudi Arabia': '사우디아라비아', 'SA': '사우디아라비아',
+  'Burundi': '부룬디', 'BI': '부룬디',
+  'Mexico': '멕시코', 'MX': '멕시코',
+  'Italy': '이탈리아', 'IT': '이탈리아',
+  'Spain': '스페인', 'ES': '스페인',
+  'Poland': '폴란드', 'PL': '폴란드',
+  'Sweden': '스웨덴', 'SE': '스웨덴',
+  'Switzerland': '스위스', 'CH': '스위스',
+  'Norway': '노르웨이', 'NO': '노르웨이',
+  'Finland': '핀란드', 'FI': '핀란드',
+  'Denmark': '덴마크', 'DK': '덴마크',
+  'Belgium': '벨기에', 'BE': '벨기에',
+  'Czech Republic': '체코', 'CZ': '체코',
+  'Romania': '루마니아', 'RO': '루마니아',
+  'Hungary': '헝가리', 'HU': '헝가리',
+  'Philippines': '필리핀', 'PH': '필리핀',
+  'Myanmar': '미얀마', 'MM': '미얀마',
+  'Bangladesh': '방글라데시', 'BD': '방글라데시',
+  'Egypt': '이집트', 'EG': '이집트',
+  'South Africa': '남아프리카', 'ZA': '남아프리카',
+  'Nigeria': '나이지리아', 'NG': '나이지리아',
+  'Kenya': '케냐', 'KE': '케냐',
+  'Ethiopia': '에티오피아', 'ET': '에티오피아',
+  'Argentina': '아르헨티나', 'AR': '아르헨티나',
+  'Colombia': '콜롬비아', 'CO': '콜롬비아',
+  'Chile': '칠레', 'CL': '칠레',
+  'New Zealand': '뉴질랜드', 'NZ': '뉴질랜드',
+};
+const toKo = (name) => COUNTRY_KO[name] || name;
+
 // AS 정보 생성 함수
 const generateAS = (country) => {
   const asNumbers = {
@@ -1329,6 +1387,37 @@ const TwoDPage = () => {
               </Box>
             )}
 
+            {/* 범례 - 지도 내부 우하단 */}
+            {isLoaded && (
+              <Box sx={{
+                position: 'absolute',
+                bottom: 16,
+                left: 12,
+                zIndex: 1000,
+                bgcolor: 'rgba(0,0,0,0.65)',
+                backdropFilter: 'blur(4px)',
+                borderRadius: 1.5,
+                px: 1.5,
+                py: 1,
+                border: '1px solid rgba(255,255,255,0.15)'
+              }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#FFFF00', border: '2px solid #FF0000', flexShrink: 0 }} />
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '10px' }}>공격 출발지</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#00FFFF', border: '2px solid #0000FF', flexShrink: 0 }} />
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '10px' }}>공격 목표지</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 16, height: 2, bgcolor: '#FF0000', borderRadius: 1, boxShadow: '0 0 4px #FF0000', flexShrink: 0 }} />
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '10px' }}>사이버 트래픽</Typography>
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
             {/* FusionDB 팝업 버튼 */}
             {isLoaded && (
               <IconButton
@@ -1400,29 +1489,29 @@ const TwoDPage = () => {
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography 
-                      variant="h4" 
+                    <Typography
+                      variant="h4"
                       sx={{ color: '#7c3aed', fontWeight: 'bold' }}
-                      aria-label={`총 작전 수 ${attackStats.total}개`}
+                      aria-label={`전체 트래픽 수 ${allAttacks.length}개`}
                     >
-                      {attackStats.total}
+                      {allAttacks.length}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      총 작전 수
+                      전체 트래픽
                     </Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6}>
                   <Box sx={{ textAlign: 'center' }}>
-                    <Typography 
-                      variant="h4" 
+                    <Typography
+                      variant="h4"
                       sx={{ color: '#9333ea', fontWeight: 'bold' }}
-                      aria-label={`활성 작전 ${attackStats.active}개`}
+                      aria-label={`현재 트래픽 수 ${attacks.length}개`}
                     >
-                      {attackStats.active}
+                      {attacks.length}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
-                      활성 작전
+                      현재 트래픽
                     </Typography>
                   </Box>
                 </Grid>
@@ -1506,26 +1595,26 @@ const TwoDPage = () => {
                     );
                   }}
                 >
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#333' }}>
-                    🔴 {attack.type} - 진행중
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#666' }}>
-                    {attack.source.name} → {attack.target.name}
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#333', mb: 0.3 }}>
+                    🔴 {toKo(attack.source.name)} → {toKo(attack.target.name)} ({attack.count})
                   </Typography>
                   <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
-                    출발지 IP: {attack.source.ip}:{attack.source.port}
+                    출발지 IP: {attack.source.ip}
                   </Typography>
                   <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
-                    대상 IP: {attack.target.ip}:{attack.target.port}
+                    목적지 IP: {attack.target.ip}
                   </Typography>
                   <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
-                    Subnet: {attack.target.subnet} | Gateway: {attack.target.gateway}
+                    네트워크: {attack.target.subnet}
                   </Typography>
                   <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
-                    DNS: {attack.target.dns} | Count: {attack.count}
+                    게이트웨이: {attack.target.gateway}
                   </Typography>
                   <Typography variant="caption" sx={{ display: 'block', color: '#888', fontSize: '10px' }}>
-                    {attack.timestamp.toLocaleString('ko-KR', {
+                    DNS: {attack.target.dns}
+                  </Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: '#7c3aed', fontSize: '10px' }}>
+                    트래픽 시간: {attack.timestamp.toLocaleString('ko-KR', {
                       timeZone: 'Asia/Seoul',
                       year: 'numeric',
                       month: '2-digit',
@@ -1666,45 +1755,6 @@ const TwoDPage = () => {
             </CardContent>
           </Card>
 
-          {/* 범례 */}
-          <Card 
-            component="section"
-            aria-label="지도 범례"
-            sx={{
-              bgcolor: '#f0edfd',
-              color: '#333',
-              border: '1px solid #d0c9f0',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              flexShrink: 0,
-              minHeight: 0
-            }}
-          >
-            <CardContent>
-              <Box component="ul" role="list" sx={{ display: 'flex', flexDirection: 'column', gap: 1, listStyle: 'none', p: 0, m: 0 }}>
-                <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box 
-                    aria-hidden="true"
-                    sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#FFFF00', border: '2px solid #FF0000' }} 
-                  />
-                  <Typography variant="caption" sx={{ color: '#666' }}>공격 출발지</Typography>
-                </Box>
-                <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box 
-                    aria-hidden="true"
-                    sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#00FFFF', border: '2px solid #0000FF' }} 
-                  />
-                  <Typography variant="caption" sx={{ color: '#666' }}>공격 목표지</Typography>
-                </Box>
-                <Box component="li" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box 
-                    aria-hidden="true"
-                    sx={{ width: 20, height: 2, bgcolor: '#FF0000', borderRadius: 1, boxShadow: '0 0 4px #FF0000' }} 
-                  />
-                  <Typography variant="caption" sx={{ color: '#666' }}>🔴 사이버 작전</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
         </Box>
       </CardContent>
 
