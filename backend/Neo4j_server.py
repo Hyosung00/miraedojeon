@@ -12,6 +12,7 @@ URI = config.neo4j['uri']
 USERNAME = config.neo4j['username']
 PASSWORD = config.neo4j['password']
 DBNAME = config.neo4j['dbname']
+ALLOW_SELF_SIGNED = bool(config.neo4j.get('allow_self_signed', False))
 
 # MongoDB 접속 정보 (필요시 사용)
 MONGO_URI = config.mongodb['uri']
@@ -42,6 +43,36 @@ def _suggest_bolt(uri: str) -> str:
     return uri
 
 
+def _suggest_self_signed_scheme(uri: str) -> str:
+    """+s 계열 스킴을 +ssc 계열로 치환 (인증서 체인 검증 완화)"""
+    if uri.startswith("neo4j+s://"):
+        return "neo4j+ssc://" + uri[len("neo4j+s://"):]
+    if uri.startswith("bolt+s://"):
+        return "bolt+ssc://" + uri[len("bolt+s://"):]
+    return uri
+
+
+def _build_candidate_uris(uri: str, allow_self_signed: bool):
+    candidates = []
+    seen = set()
+
+    def add(u: str):
+        if not u or u in seen:
+            return
+        seen.add(u)
+        candidates.append(u)
+
+    add(uri)
+    add(_suggest_bolt(uri))
+
+    if allow_self_signed:
+        base = list(candidates)
+        for u in base:
+            add(_suggest_self_signed_scheme(u))
+
+    return candidates
+
+
 class Neo4jConnector:
     def __init__(self, uri: str, user: str, password: str):
         self.uri = uri
@@ -50,20 +81,23 @@ class Neo4jConnector:
         self.driver = self._connect_driver()
 
     def _connect_driver(self):
-        try:
-            drv = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
-            drv.verify_connectivity()
-            return drv
-        except ServiceUnavailable:
-            if self.uri.startswith(("neo4j://", "neo4j+s://", "neo4j+ssc://")):
-                alt = _suggest_bolt(self.uri)
-                drv = GraphDatabase.driver(alt, auth=(self.user, self.password))
+        last_error = None
+        candidates = _build_candidate_uris(self.uri, ALLOW_SELF_SIGNED)
+
+        for candidate_uri in candidates:
+            try:
+                drv = GraphDatabase.driver(candidate_uri, auth=(self.user, self.password))
                 drv.verify_connectivity()
-                self.uri = alt
+                self.uri = candidate_uri
                 return drv
-            raise
-        except AuthError:
-            raise
+            except AuthError:
+                raise
+            except Exception as e:
+                last_error = e
+
+        if last_error:
+            raise last_error
+        raise ServiceUnavailable("No Neo4j URI candidates available")
 
     def close(self):
         try:
@@ -394,15 +428,31 @@ def get_nodes(activeView: str = "default", project: Optional[str] = None, includ
 
 @app.get("/neo4j/ping")
 def neo4j_ping():
+    connector = None
     try:
-        tmp = GraphDatabase.driver(URI, auth=(USERNAME, PASSWORD))
-        tmp.verify_connectivity()
-        with tmp.session(database=DBNAME) as s:
+        connector = Neo4jConnector(URI, USERNAME, PASSWORD)
+        with connector.driver.session(database=DBNAME) as s:
             s.run("RETURN 1 AS ok").single()
-        tmp.close()
-        return {"ok": True, "uri": URI, "db": DBNAME}
+        return {
+            "ok": True,
+            "uri": connector.uri,
+            "db": DBNAME,
+            "allow_self_signed": ALLOW_SELF_SIGNED
+        }
     except Exception as e:
-        return JSONResponse(status_code=503, content={"ok": False, "uri": URI, "db": DBNAME, "error": str(e)})
+        return JSONResponse(
+            status_code=503,
+            content={
+                "ok": False,
+                "uri": URI,
+                "db": DBNAME,
+                "allow_self_signed": ALLOW_SELF_SIGNED,
+                "error": str(e)
+            }
+        )
+    finally:
+        if connector:
+            connector.close()
 
 
 @app.get("/health")
