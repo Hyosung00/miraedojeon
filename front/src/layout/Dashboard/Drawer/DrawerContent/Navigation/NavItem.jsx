@@ -73,8 +73,7 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
   const noSelectIds = [
     'ThreatAnalysis',
     'TargetIdentification',
-    'TargetPriorityVisualization',
-    'FusionDB'
+    'TargetPriorityVisualization'
   ];
   
   const isSelected = noSelectIds.includes(item.id)

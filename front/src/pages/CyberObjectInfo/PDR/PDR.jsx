@@ -23,21 +23,14 @@ const FACILITY_COLORS = {
   default: Cesium.Color.GRAY
 };
 
-const BLUEPRINT_IMAGES = [
-  '/image/BluePrint1.png',
-  '/image/BluePrint2.png',
-  '/image/BluePrint3 worst case.png'
-];
 
 const PDR = () => {
   const cesiumContainer = useRef(null);
   const viewerRef = useRef(null);
-  
+
   const [selectedSite, setSelectedSite] = useState(null);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
-  const [currentFloor, setCurrentFloor] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [blueprintImage, setBlueprintImage] = useState(null);
 
   // 컴포넌트 마운트/언마운트 추적
   useEffect(() => {
@@ -253,11 +246,6 @@ const PDR = () => {
       'Select Building',
       () => {
         setSelectedBuilding(building);
-        const firstFloor = building.structure_info ? Object.keys(building.structure_info)[0] : null;
-        setCurrentFloor(firstFloor);
-        // 랜덤 blueprint 이미지 선택
-        const randomIndex = Math.floor(Math.random() * BLUEPRINT_IMAGES.length);
-        setBlueprintImage(BLUEPRINT_IMAGES[randomIndex]);
       },
       {
         buildingName: building.name,
@@ -282,25 +270,118 @@ const PDR = () => {
     );
   };
 
-  const FloorPlanViewer = ({ rooms }) => {
-    if (!rooms || rooms.length === 0) return <Typography variant="caption" sx={{p:2}}>데이터 없음</Typography>;
+  const FloorPlanViewer = ({ building }) => {
+    if (!building || !building.structure_info) return null;
+
+    // 층별 방이 같은 좌표를 공유하므로 가장 많은 방을 가진 층 하나만 표시
+    const floors = Object.values(building.structure_info);
+    const allRooms = floors.reduce((a, b) => (b.length > a.length ? b : a), floors[0] || []);
+
+    // 건물 전체 bounding box
+    const pad = 4;
+    const bminX = Math.min(...allRooms.map(r => r.x)) - pad;
+    const bminY = Math.min(...allRooms.map(r => r.y)) - pad;
+    const bmaxX = Math.max(...allRooms.map(r => r.x + r.w)) + pad;
+    const bmaxY = Math.max(...allRooms.map(r => r.y + r.h)) + pad;
+    const bw = bmaxX - bminX;
+    const bh = bmaxY - bminY;
+
+    // 정사각형 viewBox
+    const size = Math.max(bw, bh) * 1.1;
+    const cx = (bminX + bmaxX) / 2;
+    const cy = (bminY + bmaxY) / 2;
+    const vbX = cx - size / 2;
+    const vbY = cy - size / 2;
+
+    const WALL = 2.2;
+    const dashLen = size / 25;
+    const gapLen = size / 35;
+    const lineW = size / 160;
 
     return (
-      <Box sx={{ position: 'relative', width: '100%', height: '100%', bgcolor: '#eceff1', borderRadius: 2, border: '1px solid #cfd8dc', overflow: 'hidden' }}>
-        {blueprintImage && (
-          <Box
-            component="img"
-            src={blueprintImage}
-            alt="Floor Plan Blueprint"
-            sx={{
-              position: 'absolute',
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              objectPosition: 'center'
-            }}
-          />
-        )}
+      <Box sx={{ width: '100%', aspectRatio: '1/1', bgcolor: '#080808', border: '1px solid #1a1a1a', borderRadius: 1.5, overflow: 'hidden' }}>
+        <svg
+          viewBox={`${vbX} ${vbY} ${size} ${size}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ width: '100%', height: '100%', display: 'block' }}
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {/* 외부 배경 */}
+          <rect x={vbX} y={vbY} width={size} height={size} fill="#080808" />
+
+          {/* 십자 기준선 */}
+          <line x1={cx} y1={vbY} x2={cx} y2={vbY + size}
+            stroke="rgba(255,255,255,0.22)" strokeWidth={lineW}
+            strokeDasharray={`${dashLen} ${gapLen}`} />
+          <line x1={vbX} y1={cy} x2={vbX + size} y2={cy}
+            stroke="rgba(255,255,255,0.22)" strokeWidth={lineW}
+            strokeDasharray={`${dashLen} ${gapLen}`} />
+
+          {/* 건물 외벽 — 흰색으로 채움 (벽 전체가 흰색) */}
+          <rect x={bminX} y={bminY} width={bw} height={bh} fill="white" />
+
+          {/* 각 공간을 검정으로 파냄 (방 내부 = 빈 공간) */}
+          {allRooms.map(room => {
+            const isCritical = room.status === 'critical';
+            const isCorridor = room.type === 'corridor';
+            const ix = room.x + WALL;
+            const iy = room.y + WALL;
+            const iw = room.w - WALL * 2;
+            const ih = room.h - WALL * 2;
+            if (iw <= 0 || ih <= 0) return null;
+
+            const innerFill = isCritical ? '#1c0000' : '#080808';
+            const labelColor = isCritical ? '#ff8888' : !isCorridor ? '#aaffbb' : 'rgba(255,255,255,0.6)';
+
+            return (
+              <g key={room.id}>
+                {/* 방 내부 공간 (검정) */}
+                <rect x={ix} y={iy} width={iw} height={ih} fill={innerFill} />
+
+                {/* 복도: 평행선 질감 */}
+                {isCorridor && ih > iw
+                  ? Array.from({ length: Math.floor(ih / 3.5) }).map((_, i) => (
+                      <line key={i}
+                        x1={ix + 0.5} y1={iy + i * 3.5 + 1.5}
+                        x2={ix + iw - 0.5} y2={iy + i * 3.5 + 1.5}
+                        stroke="rgba(255,255,255,0.13)" strokeWidth="0.5" />
+                    ))
+                  : isCorridor
+                  ? Array.from({ length: Math.floor(iw / 3.5) }).map((_, i) => (
+                      <line key={i}
+                        x1={ix + i * 3.5 + 1.5} y1={iy + 0.5}
+                        x2={ix + i * 3.5 + 1.5} y2={iy + ih - 0.5}
+                        stroke="rgba(255,255,255,0.13)" strokeWidth="0.5" />
+                    ))
+                  : null
+                }
+
+                {/* 정상: 초록 테두리 / 이상: 빨간 테두리 */}
+                {!isCorridor && (
+                  <rect x={ix} y={iy} width={iw} height={ih}
+                    fill="none"
+                    stroke={isCritical ? '#cc2222' : '#22aa44'}
+                    strokeWidth="1.2" />
+                )}
+
+                {/* 방 이름 — 공간에 맞게 폰트 자동 조절 */}
+                {iw > 4 && ih > 4 && (
+                  <text
+                    x={ix + iw / 2} y={iy + ih / 2}
+                    textAnchor="middle" dominantBaseline="middle"
+                    fill={labelColor}
+                    fontSize={Math.max(1.2, Math.min(iw / (room.name.length * 0.75), ih / 4, size / 28))}
+                    fontFamily="'Courier New', monospace"
+                    fontWeight="700"
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {room.name}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
       </Box>
     );
   };
@@ -332,7 +413,7 @@ const PDR = () => {
         )}
       </Box>
 
-      <Card sx={{ width: 420, height: '100%', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #ddd', bgcolor: '#f8f9fa' }}>
+      <Card sx={{ width: 520, height: '100%', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #ddd', bgcolor: '#f8f9fa' }}>
         <Box sx={{ p: 2, bgcolor: '#263238', color: 'white' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', display:'flex', alignItems:'center', gap:1 }}>
                 <DomainIcon /> 시설 상세 모니터링
@@ -391,35 +472,8 @@ const PDR = () => {
                         }} variant="outlined">목록</Button>
                     </Box>
 
-                    <Box sx={{ mb: 2 }}>
-                        <Typography variant="caption" sx={{ display:'block', mb: 1, color: '#666', fontWeight:'bold' }}>층/구역 (Zone)</Typography>
-                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-                            {selectedBuilding.structure_info && Object.keys(selectedBuilding.structure_info).map(floor => (
-                                <Button key={floor} variant={currentFloor === floor ? "contained" : "outlined"} size="small"
-                                    onClick={() => {
-                                      interactionTracker.measureResponseSync(
-                                        'PDR',
-                                        'Floor Selection',
-                                        () => {
-                                          setCurrentFloor(floor);
-                                          // 랜덤 blueprint 이미지 선택
-                                          const randomIndex = Math.floor(Math.random() * BLUEPRINT_IMAGES.length);
-                                          setBlueprintImage(BLUEPRINT_IMAGES[randomIndex]);
-                                        },
-                                        { floor, buildingName: selectedBuilding.name }
-                                      );
-                                    }}
-                                    sx={{ fontSize: '11px', px: 1, minWidth: 'auto', bgcolor: currentFloor === floor ? '#1a237e' : 'white', color: currentFloor === floor ? 'white' : '#546e7a' }}>
-                                    {floor}
-                                </Button>
-                            ))}
-                        </Box>
-                    </Box>
-
-                    <Box sx={{ flex: 1, minHeight: 300 }}>
-                        {selectedBuilding.structure_info ? (
-                             <FloorPlanViewer rooms={selectedBuilding.structure_info[currentFloor]} />
-                        ) : <Typography variant="caption">정보 없음</Typography>}
+                    <Box sx={{ flex: 1, minHeight: 400 }}>
+                        <FloorPlanViewer building={selectedBuilding} />
                     </Box>
 
                     <Box sx={{ mt: 'auto', p: 2, bgcolor: 'white', borderTop: '1px solid #eee' }}>
