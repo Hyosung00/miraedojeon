@@ -71,8 +71,6 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
   const { pathname } = useLocation();
   // 클릭해도 색 변화 없는 메뉴 id 목록
   const noSelectIds = [
-    'ThreatAnalysis',
-    'TargetIdentification',
     'TargetPriorityVisualization'
   ];
   

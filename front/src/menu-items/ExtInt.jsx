@@ -25,7 +25,7 @@ const internalNetwork = {
       id: 'TimeSeriesAnomalyDetection',
       title: '네트워크 데이터 융합',
       type: 'item',
-      url: '/ExtInt/TimeSeriesVisualization',
+      url: '/ExtInt/NetworkDataFusion',
       icon: icons.AlertOutlined
     },
     {

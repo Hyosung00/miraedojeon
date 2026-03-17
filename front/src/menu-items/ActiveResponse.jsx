@@ -22,8 +22,7 @@ const internalNetwork = {
       title: '위험 노출도 및 공격 가능도 측정',
       type: 'item',
       icon: icons.FileExclamationOutlined,
-      url: '/ActiveResponse/responseeffectvisualization',
-      onClick: 'openTreatAnalysisPopup'
+      url: '/ActiveResponse/ThreatAnalysis'
     },
     {
       id: 'ResponseEffectvisualization',

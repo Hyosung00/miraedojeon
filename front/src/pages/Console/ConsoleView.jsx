@@ -28,6 +28,12 @@ const CONFIG = {
     ariaLabel: '융합 데이터베이스 구축',
     file: 'network_traffic.nodes.json',
     animationSpeed: 100
+  },
+  networkDataFusion: {
+    title: '네트워크 데이터 융합',
+    ariaLabel: '네트워크 데이터 융합',
+    file: 'network_traffic.nodes.json',
+    animationSpeed: 100
   }
 };
 

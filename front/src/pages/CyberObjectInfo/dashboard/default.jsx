@@ -9,9 +9,10 @@ import Box from '@mui/material/Box';
 import { Card, CardContent } from '@mui/material';
 
 // project imports
-import { GlobeMini, Zone7Mini, OffensiveStrategyMini, TargetGraph2DMini } from './CardDisplay';
+import { GeoIPMini, PDRMini, Zone7Mini, OffensiveStrategyMini, TargetGraph2DMini } from './CardDisplay';
 import bottomCardsByView from './inputData';
 import { dashboardSettings } from './dashboardSettings';
+import { CHART_MAP } from './MiniCharts';
 
 // ==============================|| DASHBOARD - DEFAULT ||============================== //
 
@@ -68,9 +69,9 @@ export default function DashboardDefault() {
   const handleTimeSeries = () => {
     interactionTracker.measureResponseSync(
       'DashboardDefault',
-      'Navigate to Time Series',
-      () => navigate('/ExtInt/TimeSeriesVisualization'),
-      { destination: '/ExtInt/TimeSeriesVisualization' }
+      'Navigate to GeoIP',
+      () => navigate('/OsintDataFusion/GeoIP'),
+      { destination: '/OsintDataFusion/GeoIP' }
     );
   };
   const handleTargetDashboard = () => {
@@ -79,6 +80,14 @@ export default function DashboardDefault() {
       'Navigate to Target Dashboard',
       () => navigate('/target/targetDashboard'),
       { destination: '/target/targetDashboard' }
+    );
+  };
+  const handlePDR = () => {
+    interactionTracker.measureResponseSync(
+      'DashboardDefault',
+      'Navigate to PDR',
+      () => navigate('/CyberObjectInfo/PDR'),
+      { destination: '/CyberObjectInfo/PDR' }
     );
   };
   const handleInternalTopology = () => {
@@ -131,28 +140,32 @@ export default function DashboardDefault() {
     {
       id: 'osint',
       title: '🌍 BGP 트래픽 수집 및 글로벌 위협 가시화',
-      component: <GlobeMini />,
+      component: <GeoIPMini />,
       action: handleTimeSeries,
       mainTitle: 'OSINT 및 수집 데이터 융합기',
       description: [
-        'BGP 아카이브 데이터를 실시간으로 수집하여 출발지·목적지 국가 간 트래픽 흐름을 세계 지도 위에 가시화합니다.',
-        '수집된 트래픽은 출발지 IP, 목적지 IP, 네트워크(서브넷), 게이트웨이, DNS 정보와 함께 로그로 기록됩니다.',
-        '수집 데이터는 MongoDB에 저장되고, Neo4j 그래프 데이터베이스로 융합되어 위협 관계망 분석에 활용됩니다.'
+        'BGP 아카이브(RouteViews, RIPE RIS) 데이터를 주기적으로 수집·파싱하며, 날짜 범위 슬라이더로 특정 기간의 트래픽을 필터링하고 전체 수집 건수와 현재 표시 건수를 별도 집계·표시합니다.',
+        '수집된 트래픽은 세계 지도 위에 출발지(노란 마커)·목적지(청색 마커) 좌표로 표시되고, 두 지점을 연결하는 붉은 아크 라인으로 경로를 시각화하며 국가별 트래픽 통계를 한국어로 제공합니다.',
+        '각 트래픽 레코드는 출발지→목적지(건수) / 출발지 IP / 목적지 IP / CIDR 기반 서브넷 / 게이트웨이 / DNS 서버 / KST 기준 발생 시각 순으로 실시간 로그에 기록됩니다.',
+        '수집 완료된 데이터는 1차 저장소인 MongoDB에 적재되고, 이후 Neo4j 그래프 DB로 자동 변환되어 위협 노드(IP → 국가 → ASN) 간 연결 관계망을 구성하고 경로 분석에 활용합니다.',
+        'Start·Stop·Restart 버튼으로 수집·융합 프로세스를 실시간 제어하며, 처리 결과를 콘솔 로그로 즉시 확인할 수 있습니다.'
       ],
-      flowSteps: ['BGP 트래픽 수집 · 저장', '글로벌 위협 흐름 가시화', '융합 데이터베이스 구축']
+      flowSteps: ['BGP 아카이브 수집·파싱', '글로벌 트래픽 경로 가시화', 'IP·서브넷 로그 기록', 'MongoDB 1차 저장', 'Neo4j 위협 관계망 구축']
     },
     {
       id: 'cyberObject',
-      title: '🎯 사이버 객체 정보 가시화 -> 추가 예정임',
-      component: <Zone7Mini/>,
-      action: handleTargetDashboard,
+      title: '🏗️ 사이버 객체 정보 가시화',
+      component: <PDRMini/>,
+      action: handlePDR,
       mainTitle: '사이버 객체 정보 가시화',
       description: [
-        '위협 데이터를 분석하여 공격자가 노릴 가능성이 높은 잠재적 후보 표적들을 식별합니다.',
-        '각 노드의 취약성, 파급력, 접근성을 종합적으로 평가하여 핵심 표적의 우선순위를 결정합니다.',
-        '시각화 그래프를 통해 타겟을 중심으로 한 의존성 관계와 잠재적 공격 벡터를 심층 분석할 수 있습니다.'
+        '북한 6개 핵심 군사·전략 시설(영변 핵시설, 신포 조선소, 국방과학원 미사일 연구소, 평양 공군 기지, 무수단리 발사 기지, 동창리 미사일 발사대)의 정확한 위경도 좌표를 위성 지도 위에 마커로 표시하고 시설 간 거리 및 관계를 분석합니다.',
+        '각 시설 선택 시 건물 내부 구조를 SVG 블루프린트 스타일로 가시화하며, 정상 구역(초록 테두리)과 이상 감지 구역(빨간 테두리)으로 색상 구분하여 구조적 취약 지점을 즉시 파악할 수 있습니다.',
+        '물리 자산·논리 자산·행위자·취약점·위협 지표를 5개 계층으로 분류하고, 객체 간 의존성과 영향 관계를 네트워크 그래프로 연결하여 사이버-물리 연계 구조를 입체적으로 파악합니다.',
+        '객체별 속성(ID·유형·소유 조직·신뢰도·갱신 시각)과 상태 변화 이력을 통합 관리하며, 비정상 관계 발생 또는 급격한 상태 변동 시 즉시 알림을 제공합니다.',
+        '분석 결과 기반으로 정비·보강 작업 계획을 수립하고 담당자 할당·마감일 관리·처리 상태 추적을 통해 고위험 객체의 우선 조치를 지원합니다.'
       ],
-      flowSteps: ['잠재 위협 노드 스캐닝', '다차원 가치 및 취약성 평가', '핵심 후보 표적 우선순위화']
+      flowSteps: ['시설 위치 좌표 매핑', '건물 구조 블루프린트 가시화', '사이버 객체 계층 분류', '의존성·관계망 구성', '이상 감지 및 정비 관리']
     },
     {
       id: 'network',
@@ -428,52 +441,85 @@ export default function DashboardDefault() {
               </Card>
             </Grid>
             
-            {displayedBottomCards.map((card) => (
-              <Grid size={6} key={card.logCard}>
-                <Card
-                  onClick={() => interactionTracker.log('DashboardDefault', 'Card Interaction', { card: card.logCard })}
-                  sx={{
-                    bgcolor: '#F0EDFD',
-                    boxShadow: 1,
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    height: '20vh',
-                    display: 'flex',
-                    overflow: 'hidden',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1.5, overflow: 'hidden', height: '100%' }}>
-                    {/* 헤더 */}
-                    <Box sx={{ mb: 0.8, flexShrink: 0 }}>
-                      <Typography fontWeight="bold" color="#000" sx={{ fontSize: responsiveFont.cardTitle, lineHeight: 1.3 }}>
-                        {card.title}
-                      </Typography>
-                      <Typography color="#000" sx={{ fontSize: responsiveFont.cardSubtitle, lineHeight: 1.4, mt: 0.3 }}>
-                        {card.subtitle}
-                      </Typography>
-                    </Box>
-                    {/* 내용 */}
-                    <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.4 }}>
-                      {card.modules.map((module) => (
-                        <Typography key={`${card.logCard}-${module.label}`} color="#000" sx={{ fontSize: responsiveFont.cardBody, lineHeight: 1.5 }}>
-                          <strong>{module.label}:</strong> {module.content}
+            {displayedBottomCards.map((card) => {
+              const ChartComponent = CHART_MAP[card.logCard];
+              return (
+                <Grid size={6} key={card.logCard}>
+                  <Card
+                    onClick={() => interactionTracker.log('DashboardDefault', 'Card Interaction', { card: card.logCard })}
+                    sx={{
+                      bgcolor: '#F0EDFD',
+                      boxShadow: 1,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      height: '20vh',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      overflow: 'hidden',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {/* 좌측: 텍스트 */}
+                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1.5, overflow: 'hidden', height: '100%', minWidth: 0 }}>
+                      {/* 헤더 */}
+                      <Box sx={{ mb: 0.5, flexShrink: 0 }}>
+                        <Typography noWrap fontWeight="bold" color="#000" sx={{ fontSize: responsiveFont.cardTitle, lineHeight: 1.3 }}>
+                          {card.title}
                         </Typography>
-                      ))}
-                    </Box>
-                    {/* 태그 */}
-                    <Box sx={{ display: 'flex', gap: 0.6, flexWrap: 'wrap', mt: 0.6, flexShrink: 0 }}>
-                      {card.tags.map((tag) => (
-                        <Typography key={tag} sx={{ bgcolor: 'rgba(0,0,0,0.06)', px: 0.8, py: 0.3, borderRadius: 1, fontSize: responsiveFont.chipText }}>
-                          {tag}
+                        <Typography noWrap color="#000" sx={{ fontSize: responsiveFont.cardSubtitle, lineHeight: 1.3, mt: 0.2 }}>
+                          {card.subtitle}
                         </Typography>
-                      ))}
+                      </Box>
+                      {/* 내용 */}
+                      <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.25 }}>
+                        {card.modules.map((module) => (
+                          <Typography
+                            key={`${card.logCard}-${module.label}`}
+                            color="#000"
+                            sx={{
+                              fontSize: responsiveFont.cardBody,
+                              lineHeight: 1.35,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <strong>{module.label}:</strong> {module.content}
+                          </Typography>
+                        ))}
+                      </Box>
+                      {/* 태그 */}
+                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', mt: 0.4, flexShrink: 0, overflow: 'hidden' }}>
+                        {card.tags.map((tag) => (
+                          <Typography key={tag} noWrap sx={{ bgcolor: 'rgba(0,0,0,0.06)', px: 0.7, py: 0.2, borderRadius: 1, fontSize: responsiveFont.chipText, flexShrink: 0 }}>
+                            {tag}
+                          </Typography>
+                        ))}
+                      </Box>
                     </Box>
-                  </Box>
-                </Card>
-              </Grid>
-            ))}
+
+                    {/* 우측: 미니 차트 */}
+                    {ChartComponent && (
+                      <Box sx={{
+                        width: '38%',
+                        flexShrink: 0,
+                        alignSelf: 'stretch',
+                        position: 'relative',
+                        bgcolor: 'rgba(255,255,255,0.55)',
+                        borderLeft: '1px solid',
+                        borderColor: '#E4DFFA',
+                        overflow: 'hidden',
+                      }}>
+                        <Box sx={{ position: 'absolute', top: 6, left: 6, right: 6, bottom: 6 }}>
+                          <ChartComponent />
+                        </Box>
+                      </Box>
+                    )}
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         </CardContent>
       </Card>

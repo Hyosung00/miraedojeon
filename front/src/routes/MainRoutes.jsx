@@ -18,14 +18,17 @@ const CyberMultilayer = Loadable(lazy(() => import('pages/CyberObjectInfo/Multil
 
 // External & Internal
 const TimeSeriesVisualization = Loadable(lazy(() => import('pages/ExtInt/TimeSeriesVisualization')));
+const NetworkDataFusion = Loadable(lazy(() => import('pages/ExtInt/NetworkDataFusion')));
 const InternalNetwork = Loadable(lazy(() => import('pages/ExtInt/Internal/internaltopology')));
 const ExternalTopology = Loadable(lazy(() => import('pages/ExtInt/Internal/externaltopology')));
 
 // IntelligentCyberTargets
 const TargetDashboard = Loadable(lazy(() => import('pages/IntelligentCyberTargets/target')));
+const TargetIdentification = Loadable(lazy(() => import('pages/IntelligentCyberTargets/TargetIdentification')));
 
 // ActiveResponse
 const ResponseEffectVisualization = Loadable(lazy(() => import('pages/ActiveResponse/ResponseEffectVisualization')));
+const ThreatAnalysis = Loadable(lazy(() => import('pages/ActiveResponse/ThreatAnalysis')));
 
 
 const MainRoutes = {
@@ -50,13 +53,15 @@ const MainRoutes = {
     {
       path: 'ActiveResponse',
       children: [
-        { path: 'responseeffectvisualization', element: <ResponseEffectVisualization /> }
+        { path: 'responseeffectvisualization', element: <ResponseEffectVisualization /> },
+        { path: 'ThreatAnalysis', element: <ThreatAnalysis /> }
       ]
     },
     {
       path: 'ExtInt',
       children: [
         { path: 'TimeSeriesVisualization', element: <TimeSeriesVisualization /> },
+        { path: 'NetworkDataFusion', element: <NetworkDataFusion /> },
         { path: 'internaltopology', element: <InternalNetwork /> },
         { path: 'externaltopology', element: <ExternalTopology /> }
       ]
@@ -64,7 +69,8 @@ const MainRoutes = {
     {
       path: 'target',
       children: [
-        { path: 'targetDashboard', element: <TargetDashboard /> }
+        { path: 'targetDashboard', element: <TargetDashboard /> },
+        { path: 'TargetIdentification', element: <TargetIdentification /> }
       ]
     },
     {

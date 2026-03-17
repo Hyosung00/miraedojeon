@@ -23,9 +23,8 @@ const externalNetwork = {
       id: 'TargetIdentification',
       title: '네트워크 구조 분석 모듈',
       type: 'item',
-      url: '/target/targetDashboard',
-      icon: icons.PushpinOutlined,
-      onClick: 'openTargetIdentificationPopup'
+      url: '/target/TargetIdentification',
+      icon: icons.PushpinOutlined
     },
     // {
     //   id: 'TargetPriorityVisualization',
