@@ -30,9 +30,8 @@ const externalNetwork = {
       id: 'FusionDB',
       title: '융합 데이터베이스 구축',
       type: 'item',
-      url: '/OsintDataFusion/GeoIP',
-      icon: icons.DatabaseOutlined,
-      onClick: 'openFusionDBPopup'
+      url: '/OsintDataFusion/FusionDB',
+      icon: icons.DatabaseOutlined
     }
   ]
 };

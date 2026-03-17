@@ -243,5 +243,223 @@
         }
       }
     ]
+  },
+  {
+    "id": "site_yongbyon",
+    "name": "영변 핵시설",
+    "geo_info": {
+      "lat": 39.793600,
+      "lng": 125.753900,
+      "addr": "평안북도 영변군 영변읍"
+    },
+    "detail": {
+      "용도": "핵연료 생산 및 플루토늄 추출",
+      "type": "nuclear",
+      "건물수": 5,
+      "건물년수": "1965~현재"
+    },
+    "buildings": [
+      {
+        "id": "y_b1",
+        "name": "5MWe 흑연감속로",
+        "lat": 39.794800,
+        "lng": 125.754200,
+        "structure_info": {
+          "원자로 구역": [
+            { "id": "YR-c", "name": "주 통로", "type": "corridor", "status": "critical", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "YR-1", "name": "원자로 본체", "type": "room", "status": "critical", "x": 5, "y": 10, "w": 30, "h": 60 },
+            { "id": "YR-2", "name": "냉각수 펌프실", "type": "room", "status": "normal", "x": 65, "y": 10, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "y_b2",
+        "name": "방사화학 실험실",
+        "lat": 39.792300,
+        "lng": 125.752500,
+        "structure_info": {
+          "처리 구역": [
+            { "id": "YC-c", "name": "이송 통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "YC-1", "name": "플루토늄 추출실", "type": "room", "status": "critical", "x": 5, "y": 10, "w": 30, "h": 50 },
+            { "id": "YC-2", "name": "폐기물 저장고", "type": "room", "status": "normal", "x": 65, "y": 20, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "y_b3",
+        "name": "우라늄 농축시설",
+        "lat": 39.795600,
+        "lng": 125.756000,
+        "structure_info": {
+          "농축 구역": [
+            { "id": "YU-c", "name": "통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "YU-1", "name": "원심분리기 홀", "type": "room", "status": "critical", "x": 5, "y": 5, "w": 80, "h": 50 }
+          ]
+        }
+      },
+      {
+        "id": "y_b4",
+        "name": "핵연료봉 제조동",
+        "lat": 39.793000,
+        "lng": 125.750500,
+        "structure_info": {
+          "제조 구역": [
+            { "id": "YF-c", "name": "작업 통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "YF-1", "name": "연료봉 가공실", "type": "room", "status": "normal", "x": 5, "y": 10, "w": 30, "h": 50 }
+          ]
+        }
+      },
+      {
+        "id": "y_b5",
+        "name": "방사선 방호 통제소",
+        "lat": 39.791500,
+        "lng": 125.755200,
+        "structure_info": {
+          "통제 구역": [
+            { "id": "YP-c", "name": "복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "YP-1", "name": "방사선 감시실", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 30, "h": 40 },
+            { "id": "YP-2", "name": "비상대응실", "type": "room", "status": "critical", "x": 65, "y": 5, "w": 30, "h": 40 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "site_sinpo",
+    "name": "신포 조선소",
+    "geo_info": {
+      "lat": 40.005000,
+      "lng": 128.187000,
+      "addr": "함경남도 신포시 마양도"
+    },
+    "detail": {
+      "용도": "SLBM 탑재 잠수함 건조 및 시험",
+      "type": "rocket",
+      "건물수": 4,
+      "건물년수": "1990~현재"
+    },
+    "buildings": [
+      {
+        "id": "sp_b1",
+        "name": "잠수함 건조 드라이독",
+        "lat": 40.006200,
+        "lng": 128.188500,
+        "structure_info": {
+          "도크 구역": [
+            { "id": "SP1-c", "name": "이동 레일", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "SP1-1", "name": "건조 베이", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 30, "h": 80 },
+            { "id": "SP1-2", "name": "용접 작업장", "type": "room", "status": "normal", "x": 65, "y": 5, "w": 30, "h": 50 }
+          ]
+        }
+      },
+      {
+        "id": "sp_b2",
+        "name": "SLBM 발사관 조립동",
+        "lat": 40.004500,
+        "lng": 128.186000,
+        "structure_info": {
+          "조립 구역": [
+            { "id": "SP2-c", "name": "통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "SP2-1", "name": "발사관 조립실", "type": "room", "status": "critical", "x": 5, "y": 10, "w": 30, "h": 60 },
+            { "id": "SP2-2", "name": "부품 창고", "type": "room", "status": "normal", "x": 65, "y": 10, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "sp_b3",
+        "name": "수중 발사 시험장",
+        "lat": 40.007800,
+        "lng": 128.190000,
+        "structure_info": {
+          "시험 구역": [
+            { "id": "SP3-c", "name": "관측 통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "SP3-1", "name": "발사 제어실", "type": "room", "status": "critical", "x": 5, "y": 10, "w": 30, "h": 50 },
+            { "id": "SP3-2", "name": "데이터 수집실", "type": "room", "status": "normal", "x": 65, "y": 10, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "sp_b4",
+        "name": "항만 지원 시설",
+        "lat": 40.003000,
+        "lng": 128.185500,
+        "structure_info": {
+          "지원 구역": [
+            { "id": "SP4-c", "name": "복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "SP4-1", "name": "연료 저장소", "type": "room", "status": "normal", "x": 5, "y": 5, "w": 30, "h": 50 },
+            { "id": "SP4-2", "name": "통신실", "type": "room", "status": "critical", "x": 65, "y": 5, "w": 30, "h": 30 }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "site_mfar",
+    "name": "국방과학원 미사일 연구소",
+    "geo_info": {
+      "lat": 39.150000,
+      "lng": 125.680000,
+      "addr": "평양시 은정구역 강동군"
+    },
+    "detail": {
+      "용도": "탄도미사일 설계 및 연구개발",
+      "type": "law_facility",
+      "건물수": 4,
+      "건물년수": "1980~현재"
+    },
+    "buildings": [
+      {
+        "id": "mf_b1",
+        "name": "미사일 설계동",
+        "lat": 39.151200,
+        "lng": 125.681500,
+        "structure_info": {
+          "설계 구역": [
+            { "id": "MF1-c", "name": "복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "MF1-1", "name": "탄두 설계실", "type": "room", "status": "critical", "x": 5, "y": 5, "w": 30, "h": 50 },
+            { "id": "MF1-2", "name": "유도제어 연구실", "type": "room", "status": "normal", "x": 65, "y": 5, "w": 30, "h": 50 }
+          ]
+        }
+      },
+      {
+        "id": "mf_b2",
+        "name": "전산 모의 시험동",
+        "lat": 39.149500,
+        "lng": 125.679000,
+        "structure_info": {
+          "전산 구역": [
+            { "id": "MF2-c", "name": "통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "MF2-1", "name": "슈퍼컴퓨터실", "type": "room", "status": "critical", "x": 5, "y": 10, "w": 30, "h": 60 },
+            { "id": "MF2-2", "name": "네트워크 서버실", "type": "room", "status": "normal", "x": 65, "y": 10, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "mf_b3",
+        "name": "추진체 실험동",
+        "lat": 39.152500,
+        "lng": 125.683000,
+        "structure_info": {
+          "실험 구역": [
+            { "id": "MF3-c", "name": "작업 통로", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "MF3-1", "name": "연소 시험실", "type": "room", "status": "critical", "x": 5, "y": 5, "w": 30, "h": 60 },
+            { "id": "MF3-2", "name": "압력 계측실", "type": "room", "status": "normal", "x": 65, "y": 5, "w": 30, "h": 40 }
+          ]
+        }
+      },
+      {
+        "id": "mf_b4",
+        "name": "보안 통제소",
+        "lat": 39.148000,
+        "lng": 125.678500,
+        "structure_info": {
+          "보안 구역": [
+            { "id": "MF4-c", "name": "복도", "type": "corridor", "status": "normal", "x": 40, "y": 5, "w": 20, "h": 90 },
+            { "id": "MF4-1", "name": "출입 통제실", "type": "room", "status": "critical", "x": 5, "y": 5, "w": 30, "h": 40 },
+            { "id": "MF4-2", "name": "감시 센터", "type": "room", "status": "normal", "x": 65, "y": 5, "w": 30, "h": 30 }
+          ]
+        }
+      }
+    ]
   }
 ]

@@ -130,16 +130,16 @@ export default function DashboardDefault() {
   const visualizations = [
     {
       id: 'osint',
-      title: '🌍 Osint & 시계열 기반 이상 탐지 가시화',
+      title: '🌍 BGP 트래픽 수집 및 글로벌 위협 가시화',
       component: <GlobeMini />,
       action: handleTimeSeries,
       mainTitle: 'OSINT 및 수집 데이터 융합기',
       description: [
-        '대규모 인터넷 상에서 자율 시스템(AS) 간 방대한 통신 경로를 설정하는 핵심 정밀 라우팅 프로토콜입니다.',
-        '데이터는 공격 경로 우회 또는 위협 트래픽을 선제적으로 차단하고 방어하기 위해 아카이빙 됩니다.',
-        '우측 시각화 뷰어를 통하여 이상 징후 및 하이재킹 공격 데이터의 흐름을 한 화면에서 모니터링할 수 있습니다.'
+        'BGP 아카이브 데이터를 실시간으로 수집하여 출발지·목적지 국가 간 트래픽 흐름을 세계 지도 위에 가시화합니다.',
+        '수집된 트래픽은 출발지 IP, 목적지 IP, 네트워크(서브넷), 게이트웨이, DNS 정보와 함께 로그로 기록됩니다.',
+        '수집 데이터는 MongoDB에 저장되고, Neo4j 그래프 데이터베이스로 융합되어 위협 관계망 분석에 활용됩니다.'
       ],
-      flowSteps: ['BGP 라우팅 데이터 수집', '시계열 기반 이상 징후 분석', '글로벌 위협 흐름 가시화']
+      flowSteps: ['BGP 트래픽 수집 · 저장', '글로벌 위협 흐름 가시화', '융합 데이터베이스 구축']
     },
     {
       id: 'cyberObject',
@@ -248,54 +248,52 @@ export default function DashboardDefault() {
                   cursor: 'pointer'
                 }}
               >
-                {/* 좌측: BGP 설명 영역 (시각화 뷰에 따라 변경됨) */}
-                <Box sx={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', pr: 2, py: 1.5 }}>
-                  <Typography variant="h2" color="#000" fontWeight="bold" sx={{ mb: 2, fontSize: responsiveFont.heroTitle }}>
+                {/* 좌측: 설명 영역 */}
+                <Box sx={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', pr: 2, py: 1, overflow: 'hidden' }}>
+                  <Typography fontWeight="bold" color="#000" sx={{ mb: 1, fontSize: responsiveFont.heroTitle, lineHeight: 1.3, flexShrink: 0 }}>
                     {visualizations[currentView].mainTitle}
                   </Typography>
 
-                  {visualizations[currentView].description.map((desc, index) => (
-                    <Typography key={index} variant="h6" color="#000" sx={{ mb: 2, lineHeight: 1.8, fontSize: responsiveFont.heroDescription }}>
-                      • {desc}
-                    </Typography>
-                  ))}
+                  <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.8, mb: 1 }}>
+                    {visualizations[currentView].description.map((desc, index) => (
+                      <Typography key={index} color="#000" sx={{ lineHeight: 1.6, fontSize: responsiveFont.heroDescription }}>
+                        • {desc}
+                      </Typography>
+                    ))}
+                  </Box>
 
-                  {/*  컴포넌트 흐름도  */}
-                  <Box sx={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    flexWrap: 'wrap', 
-                    gap: 1.2, 
-                    mt: 3, 
-                    mb: 2, 
-                    p: 2, 
-                    bgcolor: '#F0EDFD', 
+                  {/* 흐름도 */}
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    p: 1.5,
+                    bgcolor: '#E4DFFA',
                     borderRadius: 2,
-                    alignSelf: 'flex-start',
-                    width: 'fit-content'
+                    flexShrink: 0
                   }}>
-                    <Typography variant="subtitle1" color="#000" fontWeight="bold" sx={{ mr: 1, fontSize: responsiveFont.flowLabel }}>
+                    <Typography fontWeight="bold" color="#000" sx={{ mr: 0.5, fontSize: responsiveFont.flowLabel, whiteSpace: 'nowrap' }}>
                       진행 흐름:
                     </Typography>
                     {visualizations[currentView].flowSteps.map((step, index) => (
                       <React.Fragment key={index}>
-                        <Box sx={{ 
-                          bgcolor: '#E4DFFA', 
-                          px: 2, 
-                          py: 0.8, 
-                          borderRadius: 2, 
-                          border: '1px solid', 
-                          borderColor: '#C9C2F0', 
+                        <Box sx={{
+                          bgcolor: '#fff',
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: 1.5,
+                          border: '1px solid',
+                          borderColor: '#C9C2F0',
                           fontSize: responsiveFont.flowLabel,
-                          fontWeight: 'bold', 
-                          color: '#000', 
+                          fontWeight: 'bold',
+                          color: '#000',
+                          whiteSpace: 'nowrap'
                         }}>
-                          {index + 1} {step}
+                          {index + 1}. {step}
                         </Box>
                         {index < visualizations[currentView].flowSteps.length - 1 && (
-                          <Typography variant="h6" color="#000" sx={{ mx: 0.5, fontWeight: 'bold', fontSize: responsiveFont.flowArrow }}>
-                            ➔
-                          </Typography>
+                          <Typography color="#7c3aed" sx={{ fontWeight: 'bold', fontSize: responsiveFont.flowArrow }}>➔</Typography>
                         )}
                       </React.Fragment>
                     ))}
@@ -446,48 +444,28 @@ export default function DashboardDefault() {
                     cursor: 'pointer'
                   }}
                 >
-                  <Box sx={{ flex: 1, position: 'relative' }}>
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        top: 12,
-                        left: 16,
-                        zIndex: 10,
-                        ...(card.overlay ? { bgcolor: 'rgba(240,237,253,0.85)', px: 0.5, borderRadius: 1 } : {})
-                      }}
-                    >
-                      <Typography variant="h3" color="#000" fontWeight="bold" sx={{ fontSize: responsiveFont.cardTitle }}>
+                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1.5, overflow: 'hidden', height: '100%' }}>
+                    {/* 헤더 */}
+                    <Box sx={{ mb: 0.8, flexShrink: 0 }}>
+                      <Typography fontWeight="bold" color="#000" sx={{ fontSize: responsiveFont.cardTitle, lineHeight: 1.3 }}>
                         {card.title}
                       </Typography>
-                      <Typography variant="subtitle1" color="#000" sx={{ mt: 0.5, fontWeight: 'medium', fontSize: responsiveFont.cardSubtitle }}>
+                      <Typography color="#000" sx={{ fontSize: responsiveFont.cardSubtitle, lineHeight: 1.4, mt: 0.3 }}>
                         {card.subtitle}
                       </Typography>
                     </Box>
-                    <Button
-                      size="medium"
-                      variant="outlined"
-                      onClick={currentViewConfig.action}
-                      sx={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 8,
-                        zIndex: 10,
-                        ...(card.overlay ? { bgcolor: 'rgba(255,255,255,0.85)' } : {}),
-                        fontSize: responsiveFont.actionButton
-                      }}
-                    >
-                      이동하기
-                    </Button>
-                    <Box sx={{ p: 3, pt: 8, pb: 6, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    {/* 내용 */}
+                    <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.4 }}>
                       {card.modules.map((module) => (
-                        <Typography key={`${card.logCard}-${module.label}`} variant="body1" color="#000" sx={{ lineHeight: 1.7, mb: 1, fontSize: responsiveFont.cardBody }}>
+                        <Typography key={`${card.logCard}-${module.label}`} color="#000" sx={{ fontSize: responsiveFont.cardBody, lineHeight: 1.5 }}>
                           <strong>{module.label}:</strong> {module.content}
                         </Typography>
                       ))}
                     </Box>
-                    <Box sx={{ position: 'absolute', bottom: 8, left: 16, right: 16, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {/* 태그 */}
+                    <Box sx={{ display: 'flex', gap: 0.6, flexWrap: 'wrap', mt: 0.6, flexShrink: 0 }}>
                       {card.tags.map((tag) => (
-                        <Typography key={tag} variant="body2" sx={{ bgcolor: 'rgba(0,0,0,0.06)', px: 1, py: 0.5, borderRadius: 1, fontSize: responsiveFont.chipText }}>
+                        <Typography key={tag} sx={{ bgcolor: 'rgba(0,0,0,0.06)', px: 0.8, py: 0.3, borderRadius: 1, fontSize: responsiveFont.chipText }}>
                           {tag}
                         </Typography>
                       ))}
