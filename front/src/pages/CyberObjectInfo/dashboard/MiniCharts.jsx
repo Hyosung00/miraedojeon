@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
-  PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer
+  PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ScatterChart, Scatter, ZAxis
 } from 'recharts';
 import northInfo from '../PDR/north_information.json';
 
@@ -52,6 +53,27 @@ const fetchNodes = () => {
     .then(d => { _nodesCache = Array.isArray(d) ? d : []; return _nodesCache; })
     .catch(() => []);
   return _nodesPromise;
+};
+
+let _targetNodesCache = null;
+let _targetNodesPromise = null;
+const fetchTargetNodes = () => {
+  if (_targetNodesCache) return Promise.resolve(_targetNodesCache);
+  if (_targetNodesPromise) return _targetNodesPromise;
+  _targetNodesPromise = fetch('http://localhost:8000/neo4j/nodes?activeView=target&includeIsolated=true')
+    .then(r => r.json())
+    .then(d => { _targetNodesCache = Array.isArray(d) ? d : []; return _targetNodesCache; })
+    .catch(() => []);
+  return _targetNodesPromise;
+};
+
+const getSelectedTargetNode = () => {
+  try {
+    const raw = localStorage.getItem('selected-target-node');
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
 };
 
 // ── OSINT 카드 1: BGP 수집 현황 ──────────────────────────────────
@@ -443,6 +465,510 @@ export function OperationChart() {
   );
 }
 
+export function TargetCandidateChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchTargetNodes().then(raw => {
+      const nodeMap = new Map();
+      raw.forEach(item => {
+        if (item.src_IP?.ip) nodeMap.set(item.src_IP.ip, item.src_IP);
+        if (item.dst_IP?.ip) nodeMap.set(item.dst_IP.ip, item.dst_IP);
+      });
+
+      let direct = 0;
+      let indirect = 0;
+      let unclassified = 0;
+      [...nodeMap.values()].forEach(node => {
+        const degree = typeof node.degree_score === 'number' ? node.degree_score : 0;
+        if (degree > 0.5) direct += 1;
+        else if (degree > 0) indirect += 1;
+        else unclassified += 1;
+      });
+
+      if (!nodeMap.size) {
+        setData([]);
+        return;
+      }
+
+      setData([
+        { name: '직접', value: direct },
+        { name: '간접', value: indirect },
+        { name: '미분류', value: unclassified }
+      ]);
+    });
+  }, []);
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="28%" outerRadius="54%" paddingAngle={2}>
+          <Cell fill={PURPLE} />
+          <Cell fill={LIGHT_PURPLE} />
+          <Cell fill="#94a3b8" />
+        </Pie>
+        <Tooltip formatter={(v, n) => [`${v}개`, n]} contentStyle={{ fontSize: 10 }} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function TargetDependencyChart() {
+  const [graph, setGraph] = useState({ nodes: [], edges: [] });
+  const [selectedNodeToken, setSelectedNodeToken] = useState(0);
+
+  useEffect(() => {
+    const handleSelectedNodeChanged = () => {
+      setSelectedNodeToken(prev => prev + 1);
+    };
+
+    window.addEventListener('selected-target-node-updated', handleSelectedNodeChanged);
+    window.addEventListener('storage', handleSelectedNodeChanged);
+
+    return () => {
+      window.removeEventListener('selected-target-node-updated', handleSelectedNodeChanged);
+      window.removeEventListener('storage', handleSelectedNodeChanged);
+    };
+  }, []);
+
+  useEffect(() => {
+    fetchTargetNodes().then(raw => {
+      const nodeMap = new Map();
+      const degreeMap = new Map();
+      const adjacency = new Map();
+
+      const ensureAdj = (id) => {
+        if (!adjacency.has(id)) adjacency.set(id, new Set());
+      };
+
+      raw.forEach(item => {
+        const src = item.src_IP?.id ? String(item.src_IP.id) : null;
+        const dst = item.dst_IP?.id ? String(item.dst_IP.id) : null;
+
+        if (src && item.src_IP) nodeMap.set(src, item.src_IP);
+        if (dst && item.dst_IP) nodeMap.set(dst, item.dst_IP);
+
+        if (src) degreeMap.set(src, (degreeMap.get(src) || 0) + 1);
+        if (dst) degreeMap.set(dst, (degreeMap.get(dst) || 0) + 1);
+
+        if (src && dst && src !== dst) {
+          ensureAdj(src);
+          ensureAdj(dst);
+          adjacency.get(src).add(dst);
+          adjacency.get(dst).add(src);
+        }
+      });
+
+      const selectedNode = getSelectedTargetNode();
+      const selectedIdById = selectedNode?.id ? String(selectedNode.id) : null;
+      const selectedIdByIp = selectedNode?.ip
+        ? [...nodeMap.entries()].find(([, n]) => n?.ip === selectedNode.ip)?.[0]
+        : null;
+      const selectedId = selectedIdById && nodeMap.has(selectedIdById)
+        ? selectedIdById
+        : selectedIdByIp || null;
+
+      let selectedIds = [];
+      if (selectedId) {
+        const neighbors = [...(adjacency.get(selectedId) || [])]
+          .sort((a, b) => (degreeMap.get(b) || 0) - (degreeMap.get(a) || 0))
+          .slice(0, 4);
+        selectedIds = [selectedId, ...neighbors];
+      } else {
+        selectedIds = [...degreeMap.entries()]
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([id]) => id);
+      }
+
+      const pool = selectedIds.map(id => ({ id, ...nodeMap.get(id) })).filter(Boolean);
+
+      if (!pool.length) {
+        setGraph({ nodes: [], edges: [] });
+        return;
+      }
+
+      const base = [
+        { x: 100, y: 65 },
+        { x: 48, y: 34 },
+        { x: 152, y: 34 },
+        { x: 48, y: 98 },
+        { x: 152, y: 98 }
+      ];
+      const palette = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+
+      const nodes = base.map((pos, i) => ({
+        ...pos,
+        r: i === 0 ? 12 : 8,
+        label: i === 0
+          ? (pool[i]?.ip || pool[i]?.label || 'TGT').toString().split('.').slice(-1)[0]
+          : (pool[i]?.ip || pool[i]?.label || `N${i}`).toString().slice(0, 6),
+        color: palette[i],
+        id: pool[i]?.id ? String(pool[i].id) : null
+      })).filter(node => node.id);
+
+      const idToIndex = new Map(nodes.map((n, i) => [n.id, i]));
+      const edges = [];
+      const edgeSet = new Set();
+
+      raw.forEach(item => {
+        const s = item.edge?.sourceIP ? String(item.edge.sourceIP) : null;
+        const t = item.edge?.targetIP ? String(item.edge.targetIP) : null;
+        if (!s || !t) return;
+        const a = idToIndex.get(s);
+        const b = idToIndex.get(t);
+        if (a === undefined || b === undefined || a === b) return;
+        const key = `${Math.min(a, b)}-${Math.max(a, b)}`;
+        if (edgeSet.has(key)) return;
+        edgeSet.add(key);
+        edges.push([a, b]);
+      });
+
+      setGraph({ nodes, edges: edges.slice(0, 7) });
+    });
+  }, [selectedNodeToken]);
+
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 200 130" style={{ background: '#f5f3ff', borderRadius: 4 }}>
+      {graph.edges.map(([a, b], i) => graph.nodes[a] && graph.nodes[b] && (
+        <line key={i} x1={graph.nodes[a].x} y1={graph.nodes[a].y} x2={graph.nodes[b].x} y2={graph.nodes[b].y} stroke="#c4b5fd" strokeWidth="1.5" />
+      ))}
+      {graph.nodes.map((node, i) => (
+        <g key={i}>
+          <circle cx={node.x} cy={node.y} r={node.r} fill={node.color} opacity={0.92} />
+          <text x={node.x} y={node.y + 3.5} textAnchor="middle" fontSize={node.r > 10 ? 7 : 6} fill="#fff" fontWeight="bold">
+            {node.label}
+          </text>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+export function TargetRiskTrendChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchTargetNodes().then(raw => {
+      const seen = new Map();
+      raw.forEach(item => {
+        [item.src_IP, item.dst_IP].forEach(node => {
+          if (!node?.ip) return;
+          if (!seen.has(node.ip)) {
+            seen.set(node.ip, {
+              x: parseFloat((typeof node.degree_score === 'number' ? node.degree_score : 0).toFixed(3)),
+              y: parseFloat((typeof node.con_score === 'number' ? node.con_score : 0).toFixed(3)),
+              ip: node.ip
+            });
+          }
+        });
+      });
+      setData([...seen.values()]);
+    });
+  }, []);
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <ScatterChart margin={{ top: 6, right: 8, left: -10, bottom: 0 }}>
+        <XAxis type="number" dataKey="x" name="degree" domain={[0, 1]} tick={{ fontSize: 7 }} label={{ value: 'degree', position: 'insideBottom', offset: -2, fontSize: 7 }} />
+        <YAxis type="number" dataKey="y" name="con" domain={[0, 1]} tick={{ fontSize: 7 }} label={{ value: 'con', angle: -90, position: 'insideLeft', offset: 8, fontSize: 7 }} />
+        <ZAxis range={[18, 18]} />
+        <Tooltip
+          cursor={{ strokeDasharray: '3 3' }}
+          content={({ payload }) => {
+            if (!payload?.length) return null;
+            const d = payload[0].payload;
+            return (
+              <div style={{ background: '#fff', border: '1px solid #ccc', padding: '4px 8px', fontSize: 9 }}>
+                <div>{d.ip}</div>
+                <div>degree: {d.x} / con: {d.y}</div>
+              </div>
+            );
+          }}
+        />
+        <Scatter data={data} fill={PURPLE} fillOpacity={0.7} />
+      </ScatterChart>
+    </ResponsiveContainer>
+  );
+}
+
+export function TargetTaskChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchTargetNodes().then(raw => {
+      // 각 IP가 레코드에 등장하는 횟수(연결 수) 집계
+      const connCount = new Map();
+      raw.forEach(item => {
+        [item.src_IP?.ip, item.dst_IP?.ip].forEach(ip => {
+          if (ip) connCount.set(ip, (connCount.get(ip) || 0) + 1);
+        });
+      });
+
+      // 연결 수 구간별 노드 수 집계
+      const buckets = { '1': 0, '2-5': 0, '6-10': 0, '11-20': 0, '21+': 0 };
+      connCount.forEach(count => {
+        if (count === 1) buckets['1'] += 1;
+        else if (count <= 5) buckets['2-5'] += 1;
+        else if (count <= 10) buckets['6-10'] += 1;
+        else if (count <= 20) buckets['11-20'] += 1;
+        else buckets['21+'] += 1;
+      });
+
+      setData(Object.entries(buckets).map(([name, value]) => ({ name, value })));
+    });
+  }, []);
+
+  const COLORS = ['#c4b5fd', '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9'];
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 4, right: 8, left: 2, bottom: 4 }}>
+        <XAxis dataKey="name" tick={{ fontSize: 8 }} />
+        <YAxis tick={{ fontSize: 8 }} allowDecimals={false} />
+        <Tooltip formatter={v => [`${v}개 노드`, '연결 수 구간']} contentStyle={{ fontSize: 10 }} />
+        <Bar dataKey="value" radius={[2, 2, 0, 0]}>
+          {data.map((entry, i) => (
+            <Cell key={entry.name} fill={COLORS[i] || '#8b5cf6'} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── 능동 대응 카드 1: 시나리오 표 ──────────────────────────────
+// 물리 네트워크 장치 유형별 분포 (OffensiveStrategy 물리 토폴로지 기반)
+export function ActiveResponseScenarioChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchNodes().then(raw => {
+      const typeMap = {};
+      raw.forEach(item => {
+        [item.src_IP, item.dst_IP].forEach(node => {
+          if (!node) return;
+          const t = (node.type || node.kind || 'host').toLowerCase();
+          typeMap[t] = (typeMap[t] || 0) + 1;
+        });
+      });
+      const result = Object.entries(typeMap)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([name, value]) => ({ name, value }));
+      setData(result.length ? result : [
+        { name: 'switch', value: 6 }, { name: 'router', value: 4 },
+        { name: 'server', value: 8 }, { name: 'firewall', value: 2 }, { name: 'workstation', value: 5 },
+      ]);
+    });
+  }, []);
+
+  const SCENARIO_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie data={data} cx="50%" cy="50%" innerRadius="28%" outerRadius="54%"
+          dataKey="value" paddingAngle={2} labelLine={false} label={CustomLabel}>
+          {data.map((_, i) => <Cell key={i} fill={SCENARIO_COLORS[i % SCENARIO_COLORS.length]} />)}
+        </Pie>
+        <Tooltip formatter={(v, n) => [`${v}개`, n]} contentStyle={{ fontSize: 10 }} />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── 능동 대응 카드 2: 차단 효과 그래프 ─────────────────────────
+// RS(Risk Score) 기반 위험도 레벨별 차단 전/후 비교 (OffensiveStrategy의 computeNodeRS 지표 기반)
+export function ActiveResponseBlockChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchTargetNodes().then(raw => {
+      const nodeMap = new Map();
+      raw.forEach(item => {
+        if (item.src_IP?.ip) nodeMap.set(item.src_IP.ip, item.src_IP);
+        if (item.dst_IP?.ip) nodeMap.set(item.dst_IP.ip, item.dst_IP);
+      });
+
+      let high = 0, mid = 0, low = 0;
+      [...nodeMap.values()].forEach(node => {
+        const degree = typeof node.degree_score === 'number' ? node.degree_score : 0;
+        const con = typeof node.con_score === 'number' ? node.con_score : 0;
+        const rs = degree * 0.6 + con * 0.4;
+        if (rs >= 0.7) high++;
+        else if (rs >= 0.3) mid++;
+        else low++;
+      });
+
+      setData([
+        { level: '고위험', before: high, after: Math.round(high * 0.3) },
+        { level: '중위험', before: mid,  after: Math.round(mid  * 0.5) },
+        { level: '저위험', before: low,  after: Math.round(low  * 0.75) },
+      ]);
+    });
+  }, []);
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 4, right: 8, left: -18, bottom: 4 }}>
+        <XAxis dataKey="level" tick={{ fontSize: 8 }} />
+        <YAxis tick={{ fontSize: 8 }} allowDecimals={false} />
+        <Tooltip formatter={(v, name) => [`${v}개`, name === 'before' ? '차단 전' : '차단 후']} contentStyle={{ fontSize: 10 }} />
+        <Bar dataKey="before" fill="#ef4444" name="before" radius={[2, 2, 0, 0]} />
+        <Bar dataKey="after"  fill="#10b981" name="after"  radius={[2, 2, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ─── 능동 대응 카드 3: 우회/방어 전략 ───────────────────────────
+// 물리 네트워크 토폴로지 + 공격 경로 강조 (OffensiveStrategy 공격 그래프 기반)
+export function ActiveResponseDefenseChart() {
+  const [nodes, setNodes] = useState([]);
+  const [edges, setEdges] = useState([]);
+
+  useEffect(() => {
+    fetchNodes().then(raw => {
+      // 고유 노드 최대 6개 추출
+      const nodeMap = new Map();
+      raw.forEach(item => {
+        if (item.src_IP?.id) nodeMap.set(String(item.src_IP.id), item.src_IP);
+        if (item.dst_IP?.id) nodeMap.set(String(item.dst_IP.id), item.dst_IP);
+      });
+      const nodeArr = [...nodeMap.values()].slice(0, 6);
+      const idToIdx = new Map(nodeArr.map((n, i) => [String(n.id), i]));
+
+      const cx = 100, cy = 65, radius = 50;
+      const builtNodes = nodeArr.map((n, i) => {
+        const angle = (2 * Math.PI * i) / nodeArr.length - Math.PI / 2;
+        const t = (n.type || n.kind || 'host').toLowerCase();
+        const isCentral = i === 0;
+        return {
+          id: i,
+          x: isCentral ? cx : cx + radius * Math.cos(angle),
+          y: isCentral ? cy : cy + radius * Math.sin(angle),
+          label: (n.ip || String(n.id)).slice(-5),
+          r: isCentral ? 13 : 8,
+          color: TYPE_COLORS[t] || TYPE_COLORS.default,
+          isHighRisk: t === 'server' || t === 'firewall',
+        };
+      });
+
+      const builtEdges = [];
+      const edgeSet = new Set();
+      let attackCount = 0;
+      for (const item of raw) {
+        if (!item.edge) continue;
+        const a = idToIdx.get(String(item.edge.sourceIP));
+        const b = idToIdx.get(String(item.edge.targetIP));
+        if (a === undefined || b === undefined || a === b) continue;
+        const key = `${Math.min(a, b)}-${Math.max(a, b)}`;
+        if (edgeSet.has(key)) continue;
+        edgeSet.add(key);
+        builtEdges.push({ a, b, isAttack: attackCount < 2 });
+        attackCount++;
+        if (builtEdges.length >= 8) break;
+      }
+
+      if (!nodeArr.length) {
+        setNodes([
+          { id: 0, x: 100, y: 65,  label: 'Core',   r: 13, color: '#7c3aed', isHighRisk: false },
+          { id: 1, x: 36,  y: 30,  label: 'FW',     r: 9,  color: '#ef4444', isHighRisk: true  },
+          { id: 2, x: 164, y: 30,  label: 'Router',  r: 9,  color: '#f59e0b', isHighRisk: false },
+          { id: 3, x: 36,  y: 100, label: 'SW',     r: 8,  color: '#10b981', isHighRisk: false },
+          { id: 4, x: 100, y: 110, label: 'Srv',    r: 9,  color: '#3b82f6', isHighRisk: true  },
+          { id: 5, x: 164, y: 100, label: 'Host',   r: 8,  color: '#6aa7ff', isHighRisk: false },
+        ]);
+        setEdges([
+          { a: 0, b: 1, isAttack: false }, { a: 0, b: 2, isAttack: true  },
+          { a: 0, b: 4, isAttack: false }, { a: 1, b: 3, isAttack: false },
+          { a: 2, b: 5, isAttack: true  }, { a: 0, b: 3, isAttack: false },
+          { a: 4, b: 5, isAttack: false },
+        ]);
+        return;
+      }
+      setNodes(builtNodes);
+      setEdges(builtEdges);
+    });
+  }, []);
+
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 200 130" style={{ background: '#f5f3ff', borderRadius: 4 }}>
+      <ellipse cx={100} cy={65} rx={72} ry={52} fill="none" stroke="#10b981" strokeWidth="1" strokeDasharray="4,3" opacity={0.45} />
+      {edges.map((e, i) => nodes[e.a] && nodes[e.b] && (
+        <line key={i}
+          x1={nodes[e.a].x} y1={nodes[e.a].y}
+          x2={nodes[e.b].x} y2={nodes[e.b].y}
+          stroke={e.isAttack ? '#ef4444' : '#c4b5fd'}
+          strokeWidth={e.isAttack ? 2 : 1.5}
+          strokeDasharray={e.isAttack ? '4,2' : 'none'}
+          opacity={e.isAttack ? 0.85 : 0.65}
+        />
+      ))}
+      {nodes.map(n => (
+        <g key={n.id}>
+          {n.isHighRisk && <circle cx={n.x} cy={n.y} r={n.r + 4} fill="none" stroke="#ef4444" strokeWidth="1.2" opacity={0.5} strokeDasharray="2,2" />}
+          <circle cx={n.x} cy={n.y} r={n.r} fill={n.color} opacity={0.92} />
+          <text x={n.x} y={n.y + 3.5} textAnchor="middle" fontSize={n.r > 10 ? 7 : 6} fill="#fff" fontWeight="bold">{n.label}</text>
+        </g>
+      ))}
+      <line x1={4}  y1={10} x2={16} y2={10} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4,2" />
+      <text x={19} y={13} fontSize={6.5} fill="#374151">공격경로</text>
+      <line x1={62} y1={10} x2={74} y2={10} stroke="#c4b5fd" strokeWidth={1.5} />
+      <text x={77} y={13} fontSize={6.5} fill="#374151">정상연결</text>
+    </svg>
+  );
+}
+
+// ─── 능동 대응 카드 4: 운영 과업 ────────────────────────────────
+// RS 점수 구간별 노드 분포 Area 차트 (OffensiveStrategy의 pathMetrics·overallScore 기반)
+export function ActiveResponseOpsChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchTargetNodes().then(raw => {
+      const nodeMap = new Map();
+      raw.forEach(item => {
+        if (item.src_IP?.ip) nodeMap.set(item.src_IP.ip, item.src_IP);
+        if (item.dst_IP?.ip) nodeMap.set(item.dst_IP.ip, item.dst_IP);
+      });
+
+      // RS = degree*0.6 + con*0.4 → 10% 구간으로 분포 집계
+      const buckets = Array.from({ length: 10 }, (_, i) => ({
+        range: `${(i + 1) * 10}%`,
+        count: 0,
+      }));
+      [...nodeMap.values()].forEach(node => {
+        const degree = typeof node.degree_score === 'number' ? node.degree_score : 0;
+        const con    = typeof node.con_score    === 'number' ? node.con_score    : 0;
+        const rs = degree * 0.6 + con * 0.4;
+        const idx = Math.min(9, Math.floor(rs * 10));
+        buckets[idx].count++;
+      });
+
+      setData(buckets);
+    });
+  }, []);
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
+        <defs>
+          <linearGradient id="opsAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.7} />
+            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+        <XAxis dataKey="range" tick={{ fontSize: 7 }} />
+        <YAxis tick={{ fontSize: 7 }} allowDecimals={false} />
+        <Tooltip formatter={v => [`${v}개 노드`, 'RS 구간']} contentStyle={{ fontSize: 10 }} />
+        <Area type="monotone" dataKey="count" stroke="#ef4444" strokeWidth={2} fill="url(#opsAreaGrad)" dot={{ r: 2, fill: '#ef4444' }} />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
 // ── 공통 차트 맵 ─────────────────────────────────────────────────
 export const CHART_MAP = {
   'BGP 트래픽 수집 현황':        BgpCollectionChart,
@@ -453,4 +979,12 @@ export const CHART_MAP = {
   '다층 사이버 객체 분류':       ObjectDistChart,
   '객체 관계망 및 취약점 분석':  NetworkGraphChart,
   '객체 상태 변화 및 운영 관리': OperationChart,
+  '표적 후보 표':                TargetCandidateChart,
+  '표적 의존성 그래프':          TargetDependencyChart,
+  '표적 위험 추세':              TargetRiskTrendChart,
+  '표적 대응 과업':              TargetTaskChart,
+  '능동 대응 시나리오 표':       ActiveResponseScenarioChart,
+  '차단 효과 그래프':            ActiveResponseBlockChart,
+  '우회/방어 전략':              ActiveResponseDefenseChart,
+  '능동 대응 운영 과업':         ActiveResponseOpsChart,
 };

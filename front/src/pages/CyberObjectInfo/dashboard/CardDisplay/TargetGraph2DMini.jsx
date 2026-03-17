@@ -93,6 +93,7 @@ const TargetGraph2DMini = memo(({ dbNodes = [] }) => {
           nodes.push({
             id: nid,
             label: node.label || node.ip || nid,
+            ip: node.ip || null,
             shape: 'image',
             image: imageSrc,
             size: dynamicSize
@@ -192,13 +193,24 @@ const TargetGraph2DMini = memo(({ dbNodes = [] }) => {
     networkRef.current.on('selectNode', (params) => {
       const nodeId = params.nodes && params.nodes[0];
       if (!nodeId) return;
-      
+
       const selectedNode = nodes.find(n => n.id === nodeId);
       interactionTracker.measureResponseSync(
         'TargetGraph2DMini',
         'Node Click',
         () => {
-          console.log('Target node clicked:', selectedNode);
+          try {
+            const selectedForMini = {
+              id: selectedNode?.id ?? null,
+              ip: selectedNode?.ip ?? null,
+              label: selectedNode?.label ?? null,
+              timestamp: Date.now()
+            };
+            localStorage.setItem('selected-target-node', JSON.stringify(selectedForMini));
+            window.dispatchEvent(new CustomEvent('selected-target-node-updated', { detail: selectedForMini }));
+          } catch (_) {
+            // ignore storage errors
+          }
         },
         { nodeId, label: selectedNode?.label }
       );

@@ -1,3 +1,3 @@
 export const dashboardSettings = {
-  autoPlayIntervalMs: 10000
+  autoPlayIntervalMs: 15000
 };
