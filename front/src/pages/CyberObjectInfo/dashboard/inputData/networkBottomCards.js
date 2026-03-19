@@ -1,8 +1,8 @@
 const networkBottomCards = [
   {
     logCard: '네트워크 자산 표',
-    title: '자산 표 - 내부/외부 노드 현황',
-    subtitle: '노드 유형과 연결 상태를 표 기반으로 표시',
+    title: '장비 유형 분포 - 내부/외부 자산',
+    subtitle: '장비 종류 원형 분포',
     modules: [
       { label: '표', content: '노드명, IP, 존, 연결 수, 위험 점수를 표로 제공함.' },
       { label: '그래프', content: '존별 노드 수와 연결 밀도를 막대 그래프로 비교함.' },
@@ -12,8 +12,8 @@ const networkBottomCards = [
   },
   {
     logCard: '네트워크 토폴로지 그래프',
-    title: '토폴로지 그래프 - 경로/거점 분석',
-    subtitle: '주요 거점과 병목 구간을 시각적으로 확인',
+    title: '토폴로지 이벤트',
+    subtitle: '분당 이벤트 추이',
     modules: [
       { label: '표', content: '거점 노드, 연결 경로, 병목 지표를 요약 표로 제공함.' },
       { label: '그래프', content: '중요 경로와 병목 링크를 네트워크 토폴로지로 강조함.' },
@@ -23,8 +23,8 @@ const networkBottomCards = [
   },
   {
     logCard: '내부 확산 시뮬레이션',
-    title: '확산 시뮬레이션 - Lateral Movement',
-    subtitle: '침해 확산 가능 경로를 사전 검증',
+    title: '망 구간별 자산',
+    subtitle: '망 구간별 자산 분포',
     modules: [
       { label: '표', content: '확산 단계, 예상 도달 시간, 영향 자산 수를 시나리오 표로 제공함.' },
       { label: '그래프', content: '시나리오별 확산 속도와 도달 범위를 비교 그래프로 표시함.' },
@@ -34,8 +34,8 @@ const networkBottomCards = [
   },
   {
     logCard: '네트워크 운영 과업',
-    title: '운영 과업 - 구조 개선 계획',
-    subtitle: '분석 결과를 운영 개선 일정으로 관리',
+    title: '링크 유형 분포',
+    subtitle: '링크 유형 분포 게이지',
     modules: [
       { label: '표', content: '개선 항목, 우선순위, 담당팀, 완료 예정일을 작업 표로 제공함.' },
       { label: '그래프', content: '개선 진행률과 잔여 리스크를 대시보드 그래프로 제공함.' },

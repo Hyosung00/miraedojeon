@@ -143,6 +143,8 @@ export default function DashboardDefault() {
       component: <GeoIPMini />,
       action: handleTimeSeries,
       mainTitle: 'OSINT 및 수집 데이터 융합기',
+      viewerDescription: `• BGP 아카이브 수집 데이터를 기간별로 필터링해 국가·경로 단위 트래픽을 즉시 비교함.
+    • 출발지/목적지 좌표와 아크 경로, 실시간 로그를 함께 제공해 위협 흐름을 빠르게 파악함.`,
       description: [
         'BGP 아카이브(RouteViews, RIPE RIS) 데이터를 주기적으로 수집·파싱하며, 날짜 범위 슬라이더로 특정 기간의 트래픽을 필터링하고 전체 수집 건수와 현재 표시 건수를 별도 집계·표시함.',
         '수집된 트래픽은 세계 지도 위에 출발지(노란 마커)·목적지(청색 마커) 좌표로 표시되고, 두 지점을 연결하는 붉은 아크 라인으로 경로를 시각화하며 국가별 트래픽 통계를 한국어로 제공함.',
@@ -158,6 +160,8 @@ export default function DashboardDefault() {
       component: <PDRMini/>,
       action: handlePDR,
       mainTitle: '사이버 객체 정보 가시화기',
+      viewerDescription: `• 북한 6개 핵심 군사·전략 시설의 위경도 좌표를 위성 지도에 매핑해 시설 간 거리·연계를 분석함.
+    • 시설 선택 시 SVG 블루프린트로 내부 구조를 표시하고, 정상/이상 구역 색상 구분으로 취약 지점을 직관적으로 확인함.`,
       description: [
         '북한 6개 핵심 군사·전략 시설(영변 핵시설, 신포 조선소, 국방과학원 미사일 연구소, 평양 공군 기지, 무수단리 발사 기지, 동창리 미사일 발사대)의 정확한 위경도 좌표를 위성 지도 위에 마커로 표시하고 시설 간 거리 및 관계를 분석함.',
         '각 시설 선택 시 건물 내부 구조를 SVG 블루프린트 스타일로 가시화하며, 정상 구역(초록 테두리)과 이상 감지 구역(빨간 테두리)으로 색상 구분하여 구조적 취약 지점을 즉시 파악할 수 있음.',
@@ -173,12 +177,16 @@ export default function DashboardDefault() {
       component: <Zone7Mini />,
       action: handleInternalTopology,
       mainTitle: '내외부 네트워크 가시화기',
+      viewerDescription: `내부망 토폴로지를 구성해 핵심 자산의 연결 구조를 가시화`,
       description: [
-        '수집된 네트워크 데이터를 기반으로 내부망의 실제 물리적/논리적 연결 상태를 토폴로지로 구성함.',
-        '자산 간의 연결 관계, 통신 흐름, 그리고 중요 거점 노드를 시각적으로 파악할 수 있음.',
-        '구축된 기본맵을 바탕으로 향후 발생할 수 있는 내부 확산 이동(Lateral Movement) 경로를 예측함.'
+        '패킷·플로우·자산 메타데이터를 통합 수집해 내부망과 외부 연계 구간의 물리/논리 토폴로지를 자동 구성하고, 망 구간별 연결 상태를 계층적으로 시각화함.',
+        '노드 유형은 시각 기호로 구분되며, 방화벽(빨간 원뿔), 라우터/레이어3 장비(주황), 스위치(녹색), 서버·호스트/워크스테이션(파랑), 허브(청록)로 표현됨.',
+        '링크는 물리 연결(실선)과 논리 연결(점선)로 구분해 경로 성격을 직관적으로 파악할 수 있고, 상태 LED로 정상/이상 노드를 함께 식별할 수 있음.',
+        '내부망↔외부망 경계 구간에서 허용·차단·우회 흐름을 비교 분석해 비인가 통신 징후와 정책 예외 구간을 탐지하고, 위험 세션을 우선 추적할 수 있음.',
+        '시간축 기반 변화 추적으로 정상 베이스라인 대비 급격한 통신 패턴 변동을 탐지하며, 이상 노드 발생 시 연관 자산·연결 링크를 함께 강조해 원인 분석을 지원함.',
+        '분석 결과를 기반으로 세그먼트 분리, 접근제어 강화, 경로 재설계 등 개선안을 도출해 내부 확산(Lateral Movement) 가능 경로를 사전에 최소화함.'
       ],
-      flowSteps: ['네트워크 트래픽 스니핑', '물리/논리 자산 맵 구성', '침해 확산(Lateral.M) 경로 분석']
+      flowSteps: ['트래픽·자산 데이터 수집', '물리·논리 토폴로지 구성', '경계 구간 통신 흐름 분석', '이상 징후·핵심 노드 탐지', '확산 경로 예측 및 대응 우선순위 도출']
     },
     {
       id: 'target',
@@ -186,6 +194,8 @@ export default function DashboardDefault() {
       component: <TargetGraph2DMini dbNodes={dbNodes} />,
       action: handleTargetDashboard,
       mainTitle: '지능형 사이버 표적 식별기',
+      viewerDescription: `• 후보 표적을 degree/con 기반으로 분류해 핵심 타겟의 우선순위를 정량적으로 산출함.
+    • 의존성 그래프와 위험 분포를 동시에 비교해 우선 차단 대상 노드·링크를 빠르게 식별함.`,
       description: [
         'target 데이터의 degree_score·con_score를 기반으로 후보 노드를 직접/간접/미분류로 분류하고, 도넛·산점·히스토그램으로 위험 분포를 입체적으로 확인함.',
         '선택 노드 클릭 시 중심-인접 노드 의존성 그래프가 즉시 갱신되어 파급 경로, 허브 연결 밀도, 우선 차단 링크 후보를 빠르게 식별함.',
@@ -201,6 +211,8 @@ export default function DashboardDefault() {
       component: <OffensiveStrategyMini />,
       action: handleActiveResponse,
       mainTitle: '사이버 능동 대응 방책 분석기',
+      viewerDescription: `• 공격 경로(점선)와 정상 연결(실선)을 분리 표시해 우회 가능 지점과 병목 구간을 신속히 식별함.
+    • 차단 전·후 위험 지표(RS) 변화를 비교해 대응 시나리오의 효과를 정량적으로 검증함.`,
       description: [
         'zone7 물리 토폴로지와 공격 경로를 결합해 공격경로(빨간 점선)·정상연결(보라 실선)을 분리 시각화하고, 고위험 노드 링 강조로 우회 가능 지점을 식별함.',
         'RS( degree*0.6 + con*0.4 ) 기반 고/중/저 위험군을 차단 전·후로 비교해 정책별 완화 효과와 잔존 위험 편차를 정량적으로 확인함.',
@@ -426,9 +438,14 @@ export default function DashboardDefault() {
                     alignItems: 'center',
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                   }}>
-                    <Typography variant="subtitle1" color="#000" fontWeight="bold" sx={{ fontSize: responsiveFont.viewerTitle }}>
-                      {visualizations[currentView].title}
-                    </Typography>
+                    <Box sx={{ minWidth: 0, pr: 1 }}>
+                      <Typography noWrap variant="subtitle1" color="#000" fontWeight="bold" sx={{ fontSize: responsiveFont.viewerTitle, lineHeight: 1.2 }}>
+                        {visualizations[currentView].title}
+                      </Typography>
+                      <Typography sx={{ fontSize: responsiveFont.cardSubtitle, lineHeight: 1.25, mt: 0.3, color: 'rgba(0, 0, 0, 0.68)', whiteSpace: 'pre-line' }}>
+                        {visualizations[currentView].viewerDescription}
+                      </Typography>
+                    </Box>
                     <Button
                       size="medium"
                       variant="text"
@@ -448,9 +465,7 @@ export default function DashboardDefault() {
             {displayedBottomCards.map((card) => {
               const ChartComponent = CHART_MAP[card.logCard];
               const isActiveResponseView = currentViewConfig.id === 'activeResponse';
-              const mdSize = isActiveResponseView
-                ? (card.logCard === '대응 방책' ? 6 : 3)
-                : 3;
+              const mdSize = isActiveResponseView ? (card.logCard === '대응 방책' ? 6 : 3) : 3;
               const cardHeight = '38vh';
 
               return (

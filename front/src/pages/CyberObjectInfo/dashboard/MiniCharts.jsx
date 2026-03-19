@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
-  PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   ScatterChart, Scatter, ZAxis
 } from 'recharts';
 import northInfo from '../PDR/north_information.json';
@@ -65,6 +65,101 @@ const fetchTargetNodes = () => {
     .then(d => { _targetNodesCache = Array.isArray(d) ? d : []; return _targetNodesCache; })
     .catch(() => []);
   return _targetNodesPromise;
+};
+
+let _internalTopologyGraphCache = null;
+let _internalTopologyGraphPromise = null;
+
+const getNodeKey = (node, prefix = 'node') => {
+  if (!node) return null;
+  if (node.id) return String(node.id);
+  if (node.ip) return `${prefix}:${node.ip}`;
+  return null;
+};
+
+const fetchInternalTopologyGraph = () => {
+  if (_internalTopologyGraphCache) return Promise.resolve(_internalTopologyGraphCache);
+  if (_internalTopologyGraphPromise) return _internalTopologyGraphPromise;
+
+  _internalTopologyGraphPromise = fetch('http://localhost:8000/neo4j/nodes?activeView=internaltopology')
+    .then((r) => r.json())
+    .then((rows) => {
+      if (!Array.isArray(rows)) {
+        _internalTopologyGraphCache = { nodes: [], links: [] };
+        return _internalTopologyGraphCache;
+      }
+
+      const nodesMap = new Map();
+      const linksMap = new Map();
+
+      rows.forEach((item) => {
+        const src = item?.src_IP;
+        const dst = item?.dst_IP;
+        const srcId = getNodeKey(src, 'src');
+        const dstId = getNodeKey(dst, 'dst');
+
+        if (srcId && src) nodesMap.set(srcId, { ...src, id: srcId });
+        if (dstId && dst) nodesMap.set(dstId, { ...dst, id: dstId });
+
+        const edgeSrc = item?.edge?.sourceIP ? String(item.edge.sourceIP) : srcId;
+        const edgeDst = item?.edge?.targetIP ? String(item.edge.targetIP) : dstId;
+        const edgeType = String(item?.edge?.type || item?.edge?.relation || item?.edge?.kind || 'unknown').toLowerCase();
+
+        if (edgeSrc && edgeDst && edgeSrc !== edgeDst) {
+          const key = edgeSrc < edgeDst ? `${edgeSrc}__${edgeDst}__${edgeType}` : `${edgeDst}__${edgeSrc}__${edgeType}`;
+          if (!linksMap.has(key)) linksMap.set(key, { source: edgeSrc, target: edgeDst, type: edgeType });
+        }
+      });
+
+      _internalTopologyGraphCache = {
+        nodes: Array.from(nodesMap.values()),
+        links: Array.from(linksMap.values())
+      };
+
+      return _internalTopologyGraphCache;
+    })
+    .catch(() => {
+      _internalTopologyGraphCache = { nodes: [], links: [] };
+      return _internalTopologyGraphCache;
+    });
+
+  return _internalTopologyGraphPromise;
+};
+
+const fetchInternalTopologyNodes = () => fetchInternalTopologyGraph().then((graph) => graph.nodes || []);
+
+const DEVICE_KIND_LABELS = {
+  core: '코어',
+  firewall: '방화벽',
+  router: '라우터',
+  l3switch: 'L3 스위치',
+  switchrouter: '스위치 라우터',
+  layer3: '레이어3 장비',
+  switch: '스위치',
+  l2switch: 'L2 스위치',
+  hub: '허브',
+  server: '서버',
+  workstation: '워크스테이션',
+  asset: '자산',
+  default: '자산',
+};
+
+const normalizeDeviceKind = (rawKind) => {
+  const key = String(rawKind || '').trim().toLowerCase();
+  if (!key) return 'asset';
+
+  if (['core'].includes(key)) return 'core';
+  if (['firewall', 'fw'].includes(key)) return 'firewall';
+  if (['router', 'rt'].includes(key)) return 'router';
+  if (['l3switch'].includes(key)) return 'l3switch';
+  if (['switchrouter'].includes(key)) return 'switchrouter';
+  if (['layer3', 'l3'].includes(key)) return 'layer3';
+  if (['switch', 'sw'].includes(key)) return 'switch';
+  if (['l2switch', 'l2'].includes(key)) return 'l2switch';
+  if (['hub'].includes(key)) return 'hub';
+  if (['server', 'srv'].includes(key)) return 'server';
+  if (['host', 'endpoint', 'pc', 'client', 'workstation', 'ws'].includes(key)) return 'workstation';
+  return 'asset';
 };
 
 const getSelectedTargetNode = () => {
@@ -457,6 +552,414 @@ export function OperationChart() {
         <Bar dataKey="done" fill={PURPLE} radius={[0, 2, 2, 0]} background={{ fill: '#ede9fe', radius: 2 }} />
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+// ── network 카드 1: 내부/외부 노드 현황 ──────────────────────────
+export function NodeStatusChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchInternalTopologyNodes().then((nodes) => {
+      const counts = {};
+      nodes.forEach((node) => {
+        const kind = normalizeDeviceKind(node?.kind || node?.type);
+        counts[kind] = (counts[kind] || 0) + 1;
+      });
+
+      const result = Object.entries(counts)
+        .sort(([, a], [, b]) => b - a)
+        .map(([kind, value]) => {
+          const total = nodes.length || 1;
+          const pct = Number(((value / total) * 100).toFixed(1));
+          return {
+            kind,
+            name: DEVICE_KIND_LABELS[kind] || DEVICE_KIND_LABELS.default,
+            value,
+            pct,
+          };
+        });
+
+      setData(result.length ? result : [{ kind: 'asset', name: '자산', value: 1, pct: 100 }]);
+    });
+  }, []);
+
+  const totalDevices = data.reduce((sum, item) => sum + (item.value || 0), 0);
+  const chartData = data.map((item, index) => ({ ...item, color: COLORS[index % COLORS.length] }));
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', gap: 6 }}>
+      <div style={{ flex: '0 0 56%', minWidth: 0, height: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="48%"
+              innerRadius="40%"
+              outerRadius="74%"
+              paddingAngle={2}
+              minAngle={6}
+              labelLine={false}
+              label={false}
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`${entry.kind}-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <text x="50%" y="45%" textAnchor="middle" fill="#334155" fontSize="9" fontWeight="bold">
+              총 장비
+            </text>
+            <text x="50%" y="53%" textAnchor="middle" fill="#111827" fontSize="12" fontWeight="bold">
+              {`${totalDevices}대`}
+            </text>
+            <Tooltip
+              formatter={(value, _, payload) => [`${value}대 (${payload?.payload?.pct ?? 0}%)`, payload?.payload?.name || '장비 유형']}
+              contentStyle={{ fontSize: 10 }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, paddingRight: 4 }}>
+        {chartData.map((item) => (
+          <div key={item.kind} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 10, color: '#1f2937' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+            </div>
+            <span style={{ fontWeight: 700, flexShrink: 0 }}>{item.pct}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── network 카드 2: 토폴로지 거점/경로 ─────────────────────────
+const TOPOLOGY_EVENT_TIMESTAMPS = [
+  '2025-09-02T15:02:31.229Z',
+  '2025-09-02T15:03:09.229Z',
+  '2025-09-02T15:03:31.229Z',
+  '2025-09-02T15:04:30.229Z',
+  '2025-09-02T15:06:03.229Z',
+  '2025-09-02T15:06:24.229Z',
+  '2025-09-02T15:06:46.229Z',
+  '2025-09-02T15:07:01.229Z',
+  '2025-09-02T15:07:22.229Z',
+  '2025-09-02T15:07:50.229Z',
+  '2025-09-02T15:08:12.229Z',
+  '2025-09-02T15:09:04.229Z',
+  '2025-09-02T15:09:19.229Z',
+  '2025-09-02T15:09:39.229Z',
+  '2025-09-02T15:10:07.229Z',
+  '2025-09-02T15:10:32.229Z',
+  '2025-09-02T15:10:55.229Z',
+  '2025-09-02T15:11:14.229Z',
+  '2025-09-02T15:12:00.229Z',
+  '2025-09-02T15:12:18.229Z'
+];
+
+const ZONE_NAME_MAP = {
+  0: '운영망',
+  1: '관리망',
+  2: '업무망',
+  3: '테스트망',
+  4: '서버망',
+  5: '개발망',
+  6: '백업망',
+  7: '내부망'
+};
+
+export function TopologyRouteChart() {
+  const minuteMap = {};
+
+  TOPOLOGY_EVENT_TIMESTAMPS.forEach((timestamp) => {
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return;
+    const hh = String(date.getUTCHours()).padStart(2, '0');
+    const mm = String(date.getUTCMinutes()).padStart(2, '0');
+    const minute = `${hh}:${mm}`;
+    minuteMap[minute] = (minuteMap[minute] || 0) + 1;
+  });
+
+  const data = Object.entries(minuteMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([minute, count]) => ({
+      minute,
+      count
+    }));
+
+  const counts = data.map((item) => item.count);
+  const maxCount = counts.length ? Math.max(...counts) : 0;
+  const minCount = counts.length ? Math.min(...counts) : 0;
+  const avgCount = counts.length ? Number((counts.reduce((sum, value) => sum + value, 0) / counts.length).toFixed(1)) : 0;
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: '0 0 70%', minHeight: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+            <defs>
+              <linearGradient id="topologyEventGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.55} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.08} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" vertical={false} />
+            <XAxis dataKey="minute" tick={{ fontSize: 6 }} height={18} minTickGap={6} />
+            <YAxis
+              domain={[0, 10]}
+              ticks={[0, 2, 4, 6, 8, 10]}
+              tick={{ fontSize: 7 }}
+              width={24}
+              tickMargin={2}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              formatter={(value) => [`${value}건`, '이벤트 건수']}
+              labelFormatter={(label) => `${label} (UTC)`}
+              contentStyle={{ fontSize: 10 }}
+            />
+            <Area
+              type="monotone"
+              dataKey="count"
+              name="이벤트 건수"
+              stroke="#3b82f6"
+              fill="url(#topologyEventGrad)"
+              strokeWidth={2}
+              dot={{ r: 2.5, fill: '#3b82f6', stroke: '#3b82f6' }}
+              activeDot={{ r: 3.5 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ flexShrink: 0, padding: '2px 6px 2px 6px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, fontSize: 9, color: '#334155' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 9, height: 2, background: '#3b82f6', display: 'inline-block' }} />
+            이벤트 건수
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 9, height: 2, background: '#60a5fa', display: 'inline-block' }} />
+            주요 활성화 시간대
+          </span>
+        </div>
+        <div style={{ fontSize: 9, color: '#475569', textAlign: 'center' }}>
+          최대 {maxCount}건 · 최소 {minCount}건 · 평균 {avgCount}건
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── network 카드 3: 내부 확산 시뮬레이션 ────────────────────────
+export function LateralMovementChart() {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    fetchInternalTopologyNodes().then((nodes) => {
+      const zoneCounts = {};
+
+      nodes.forEach((node) => {
+        const zoneValue = node?.zone;
+        const numericZone = Number(zoneValue);
+        const zoneLabel = Number.isFinite(numericZone)
+          ? (ZONE_NAME_MAP[numericZone] || `영역 ${numericZone}`)
+          : '미지정';
+        zoneCounts[zoneLabel] = (zoneCounts[zoneLabel] || 0) + 1;
+      });
+
+      const result = Object.entries(zoneCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 8)
+        .map(([zone, count]) => ({ zone, count }));
+
+      const total = result.reduce((sum, item) => sum + (item.count || 0), 0) || 1;
+      const pieData = result.map((item) => ({
+        ...item,
+        pct: Number(((item.count / total) * 100).toFixed(1))
+      }));
+
+      setData(pieData.length ? pieData : [{ zone: '데이터없음', count: 1, pct: 100 }]);
+    });
+  }, []);
+
+  const palette = ['#10b981', '#34d399', '#6ee7b7', '#93c5fd', '#60a5fa', '#3b82f6', '#7c3aed', '#a78bfa'];
+  const chartData = data.map((item, index) => ({ ...item, color: palette[index % palette.length] }));
+  const totalAssets = chartData.reduce((sum, item) => sum + (item.count || 0), 0);
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', gap: 6 }}>
+      <div style={{ flex: '0 0 56%', minWidth: 0, height: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+            <Pie
+              data={chartData}
+              dataKey="count"
+              nameKey="zone"
+              cx="50%"
+              cy="48%"
+              innerRadius="35%"
+              outerRadius="74%"
+              paddingAngle={2}
+              minAngle={6}
+              labelLine={false}
+              label={false}
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`${entry.zone}-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <text x="50%" y="45%" textAnchor="middle" fill="#334155" fontSize="9" fontWeight="bold">
+              총 자산
+            </text>
+            <text x="50%" y="53%" textAnchor="middle" fill="#111827" fontSize="12" fontWeight="bold">
+              {`${totalAssets}대`}
+            </text>
+            <Tooltip
+              formatter={(value, _name, payload) => [`${value}대 (${payload?.payload?.pct ?? 0}%)`, payload?.payload?.zone || '망 구간']}
+              contentStyle={{ fontSize: 10 }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, paddingRight: 4 }}>
+        {chartData.map((item) => (
+          <div key={item.zone} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 10, color: '#1f2937' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.zone}</span>
+            </div>
+            <span style={{ fontWeight: 700, flexShrink: 0 }}>{item.pct}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── network 카드 4: 링크 유형 분포 ─────────────────────────────
+export function NetworkTaskProgressChart() {
+  const [data, setData] = useState([
+    { name: '물리 링크', value: 0, count: 0, color: '#3b82f6' },
+    { name: '논리 링크', value: 0, count: 0, color: '#7c3aed' },
+    { name: '미확인 링크', value: 0, count: 0, color: '#94a3b8' },
+    { name: '기타 링크', value: 100, count: 0, color: '#f59e0b' }
+  ]);
+  const [totalLinks, setTotalLinks] = useState(0);
+
+  const LINK_TYPE_KEYS = ['물리 링크', '논리 링크', '미확인 링크', '기타 링크'];
+  const LINK_TYPE_COLORS = {
+    '물리 링크': '#3b82f6',
+    '논리 링크': '#7c3aed',
+    '미확인 링크': '#94a3b8',
+    '기타 링크': '#f59e0b'
+  };
+
+  useEffect(() => {
+    fetchInternalTopologyGraph().then((graph) => {
+      const linkTypeCounts = {};
+
+      graph.links.forEach((link) => {
+        const rawType = String(link?.type || 'unknown').toLowerCase();
+        const normalizedType =
+          rawType.includes('phy') ? '물리 링크' :
+          rawType.includes('logic') ? '논리 링크' :
+          rawType === 'unknown' ? '미확인 링크' : '기타 링크';
+
+        linkTypeCounts[normalizedType] = (linkTypeCounts[normalizedType] || 0) + 1;
+      });
+
+      const total = Object.values(linkTypeCounts).reduce((sum, count) => sum + count, 0);
+
+      if (total === 0) {
+        setTotalLinks(0);
+        setData([
+          { name: '물리 링크', value: 0, count: 0, color: '#3b82f6' },
+          { name: '논리 링크', value: 0, count: 0, color: '#7c3aed' },
+          { name: '미확인 링크', value: 0, count: 0, color: '#94a3b8' },
+          { name: '기타 링크', value: 100, count: 0, color: '#f59e0b' }
+        ]);
+        return;
+      }
+
+      const gaugeData = LINK_TYPE_KEYS
+        .map((key) => {
+          const count = linkTypeCounts[key] || 0;
+          const value = Number(((count / total) * 100).toFixed(1));
+          return {
+            name: key,
+            value,
+            count,
+            color: LINK_TYPE_COLORS[key]
+          };
+        })
+        .filter((item) => item.value > 0);
+
+      const adjustedData = gaugeData.length ? gaugeData : [{ name: '미확인 링크', value: 100, count: 0, color: '#94a3b8' }];
+
+      setTotalLinks(total);
+      setData(adjustedData);
+    });
+  }, []);
+
+  const topType = data.reduce((maxItem, current) => (current.value > maxItem.value ? current : maxItem), data[0] || { name: '-', value: 0 });
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', gap: 6 }}>
+      <div style={{ flex: '0 0 56%', minWidth: 0, height: '100%' }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart margin={{ top: 4, right: 4, left: 4, bottom: 2 }}>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="74%"
+              startAngle={180}
+              endAngle={0}
+              innerRadius="52%"
+              outerRadius="76%"
+              paddingAngle={1}
+              stroke="none"
+            >
+              {data.map((entry, index) => (
+                <Cell key={`${entry.name}-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+
+            <text x="50%" y="66%" textAnchor="middle" fill="#111827" fontSize="11" fontWeight="bold">
+              {`${topType?.name || '-'} ${topType?.value ?? 0}%`}
+            </text>
+            <text x="50%" y="75%" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="600">
+              {`총 ${totalLinks}개 링크`}
+            </text>
+            <Tooltip
+              formatter={(value, _name, item) => [`${value}% (${item?.payload?.count || 0}개)`, item?.payload?.name || '링크 유형']}
+              contentStyle={{ fontSize: 10 }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4, paddingRight: 4 }}>
+        {data.map((item) => (
+          <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 10, color: '#1f2937' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+            </div>
+            <span style={{ fontWeight: 700, flexShrink: 0 }}>{item.value}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1199,6 +1702,10 @@ export const CHART_MAP = {
   '다층 사이버 객체 분류':       ObjectDistChart,
   '객체 관계망 및 취약점 분석':  NetworkGraphChart,
   '객체 상태 변화 및 운영 관리': OperationChart,
+  '네트워크 자산 표':            NodeStatusChart,
+  '네트워크 토폴로지 그래프':    TopologyRouteChart,
+  '내부 확산 시뮬레이션':        LateralMovementChart,
+  '네트워크 운영 과업':          NetworkTaskProgressChart,
   '표적 후보 표':                TargetCandidateChart,
   '표적 의존성 그래프':          TargetDependencyChart,
   '표적 위험 추세':              TargetRiskTrendChart,
