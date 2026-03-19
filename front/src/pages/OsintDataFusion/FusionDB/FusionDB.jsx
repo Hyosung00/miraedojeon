@@ -33,7 +33,7 @@ const FusionDB = ({ open = true, isPopup = false }) => {
   return (
     <Box sx={{ 
       width: '100%', 
-      height: isPopup ? '100%' : 'calc(100vh - 120px)',
+      height: isPopup ? '100%' : 'calc(100vh - 132px)',
       display: 'flex',
       flexDirection: 'column',
       gap: 2
@@ -60,7 +60,7 @@ const FusionDB = ({ open = true, isPopup = false }) => {
             color: '#39306b',
             padding: '20px',
             fontFamily: "'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', Arial, Helvetica, sans-serif",
-            height: '100%',
+            height: 'calc(100vh - 132px)',
             fontSize: '14px',
             lineHeight: '1.5',
             overflow: 'hidden',

@@ -2,6 +2,8 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const config = require('./config');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const readInfoApi = require('./readInfoApi');
@@ -138,6 +140,48 @@ app.get('/api/north-korea-attacks', async (req, res) => {
 
   } catch (error) {
     console.error('API 에러:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// API: CVE 데이터 조회 (CVSS-V3 7.0~9.6, 최대 20개)
+app.get('/api/cve-info', async (req, res) => {
+  try {
+    const filePath = path.join(__dirname, 'Console', 'CVE_2025.json');
+    const raw = fs.readFileSync(filePath, 'utf-8');
+    const rows = JSON.parse(raw);
+
+    const minScore = Number.isFinite(parseFloat(req.query.minScore)) ? parseFloat(req.query.minScore) : 7.0;
+    const maxScore = Number.isFinite(parseFloat(req.query.maxScore)) ? parseFloat(req.query.maxScore) : 9.6;
+    const limit = Number.isFinite(parseInt(req.query.limit, 10)) ? parseInt(req.query.limit, 10) : 20;
+
+    const cves = (Array.isArray(rows) ? rows : [])
+      .map((item) => {
+        const scoreRaw = item['CVSS-V3'];
+        const score = parseFloat(scoreRaw);
+        return {
+          id: item['CVE-ID'] || 'UNKNOWN-CVE',
+          score,
+          severity: item['SEVERITY'] || 'UNKNOWN',
+          description: item['DESCRIPTION'] || '',
+          cweId: item['CWE-ID'] || 'N/A'
+        };
+      })
+      .filter((item) => Number.isFinite(item.score) && item.score >= minScore && item.score <= maxScore)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.max(1, limit));
+
+    res.json({
+      success: true,
+      count: cves.length,
+      range: { minScore, maxScore },
+      cves
+    });
+  } catch (error) {
+    console.error('CVE API 에러:', error);
     res.status(500).json({
       success: false,
       error: error.message

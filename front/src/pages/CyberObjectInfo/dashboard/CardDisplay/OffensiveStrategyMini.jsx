@@ -286,6 +286,62 @@ const OffensiveStrategyMini = () => {
     );
   };
 
+  const applyAttackNodeSelection = (nid, node, source = 'internal') => {
+    if (!nid || !node || !nodesDataSetRef.current) return;
+
+    interactionTracker.measureResponseSync(
+      'OffensiveStrategyMini',
+      source === 'external' ? 'External Node Selection' : 'Node Selection',
+      () => {
+        setSelectionStep(prev => {
+          if (prev === 0) {
+            setTargetNode(node);
+            nodesDataSetRef.current.update({
+              id: nid,
+              color: { border: '#FF0000' },
+              borderWidth: 3,
+              size: 16
+            });
+            return 1;
+          } else if (prev === 1) {
+            const currentTarget = targetNodeRef.current;
+            if (!currentTarget || nid === currentTarget.id) return prev;
+
+            setStartNode(node);
+            nodesDataSetRef.current.update({
+              id: nid,
+              color: { border: '#00CC00' },
+              borderWidth: 3,
+              size: 16
+            });
+
+            (async () => {
+              const startPhysId = await resolvePhysicalIdByName(node.name);
+              if (startPhysId != null) {
+                loadAttackPaths(startPhysId, currentTarget.name);
+              }
+            })();
+
+            return 2;
+          } else {
+            resetStyles();
+            setTargetNode(node);
+            setStartNode(null);
+            setPathList([]);
+            nodesDataSetRef.current.update({
+              id: nid,
+              color: { border: '#FF0000' },
+              borderWidth: 3,
+              size: 16
+            });
+            return 1;
+          }
+        });
+      },
+      { nodeId: nid, nodeName: node.name, selectionStep, source }
+    );
+  };
+
   // 경로 하이라이트 (2~3개 경로를 순위별 색상으로 표시)
   const highlightPaths = useMemo(() => {
     return () => {
@@ -417,6 +473,77 @@ const OffensiveStrategyMini = () => {
     }
   }, [pathList, highlightPaths]);
 
+  // 하단 대응 방책 리스트 클릭 연동
+  useEffect(() => {
+    const normalize = (v) => String(v || '').trim().toLowerCase();
+
+    const findMatchingTopologyNodeId = (payload) => {
+      if (!payload || !topologyData.nodes.length) return null;
+
+      const candidateIds = [payload.id, payload.key]
+        .filter((v) => v !== undefined && v !== null)
+        .map((v) => String(v));
+      if (candidateIds.length) {
+        const directById = topologyData.nodes.find((n) => candidateIds.includes(String(n.id)));
+        if (directById) return directById.id;
+      }
+
+      const candidateNames = [payload.ip, payload.label, payload.name]
+        .filter(Boolean)
+        .map(normalize);
+      if (!candidateNames.length) return null;
+
+      const byName = topologyData.nodes.find((n) => {
+        const nodeNames = [n.name, n.label, n.elementId]
+          .filter(Boolean)
+          .map(normalize);
+        return candidateNames.some((c) => nodeNames.includes(c));
+      });
+
+      return byName?.id ?? null;
+    };
+
+    const handleResponseNodeSelected = (event) => {
+      const payload = event?.detail;
+      const matchedId = findMatchingTopologyNodeId(payload);
+      if (matchedId == null) return;
+
+      const matchedNode = nodesDataSetRef.current?.get(matchedId);
+      if (!matchedNode) return;
+
+      topologyNetRef.current?.selectNodes([matchedId]);
+      topologyNetRef.current?.focus(matchedId, {
+        scale: 1.03,
+        animation: { duration: 250, easingFunction: 'easeInOutQuad' }
+      });
+
+      applyAttackNodeSelection(matchedId, matchedNode, 'external');
+
+      interactionTracker.log('OffensiveStrategyMini', 'External Node Selection Routed', {
+        nodeId: matchedId,
+        source: 'response-strategy-list'
+      });
+    };
+
+    window.addEventListener('response-strategy-node-selected', handleResponseNodeSelected);
+
+    try {
+      const raw = localStorage.getItem('selected-response-node');
+      if (raw) {
+        const payload = JSON.parse(raw);
+        const matchedId = findMatchingTopologyNodeId(payload);
+        if (matchedId != null) {
+          const matchedNode = nodesDataSetRef.current?.get(matchedId);
+          if (matchedNode) applyAttackNodeSelection(matchedId, matchedNode, 'external');
+        }
+      }
+    } catch (_) {}
+
+    return () => {
+      window.removeEventListener('response-strategy-node-selected', handleResponseNodeSelected);
+    };
+  }, [topologyData]);
+
   // 토폴로지 렌더링
   useEffect(() => {
     if (!topologyRef.current || topologyData.nodes.length === 0) return;
@@ -494,62 +621,8 @@ const OffensiveStrategyMini = () => {
       const nid = params.nodes && params.nodes[0];
       if (!nid || !nodesDataSetRef.current) return;
       const node = nodesDataSetRef.current.get(nid);
-      
-      interactionTracker.measureResponseSync(
-        'OffensiveStrategyMini',
-        'Node Selection',
-        () => {
-          setSelectionStep(prev => {
-            if (prev === 0) {
-              // 목적지 선택
-              setTargetNode(node);
-              nodesDataSetRef.current.update({
-                id: nid,
-                color: { border: '#FF0000' },
-                borderWidth: 3,
-                size: 16
-              });
-              return 1;
-            } else if (prev === 1) {
-              // 출발지 선택
-              const currentTarget = targetNodeRef.current;
-              if (!currentTarget || nid === currentTarget.id) return prev;
-              
-              setStartNode(node);
-              nodesDataSetRef.current.update({
-                id: nid,
-                color: { border: '#00CC00' },
-                borderWidth: 3,
-                size: 16
-              });
-              
-              // 공격 경로 로드
-              (async () => {
-                const startPhysId = await resolvePhysicalIdByName(node.name);
-                if (startPhysId != null) {
-                  loadAttackPaths(startPhysId, currentTarget.name);
-                }
-              })();
-              
-              return 2;
-            } else {
-              // 이미 선택 완료 - 초기화 후 새 목적지 선택
-              resetStyles();
-              setTargetNode(node);
-              setStartNode(null);
-              setPathList([]);
-              nodesDataSetRef.current.update({
-                id: nid,
-                color: { border: '#FF0000' },
-                borderWidth: 3,
-                size: 16
-              });
-              return 1;
-            }
-          });
-        },
-        { nodeId: nid, nodeName: node.name, selectionStep: selectionStep }
-      );
+
+      applyAttackNodeSelection(nid, node, 'internal');
     });
 
     return () => {

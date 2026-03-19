@@ -1405,8 +1405,8 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
 
   return (
     <Card ref={containerRef} sx={{
-      width: '100%',
-      height: 'calc(100vh - 120px)',
+      width: '99%',
+      height: 'calc(100vh - 132px)',
       bgcolor: 'background.paper',
       borderRadius: 2,
       boxShadow: 3,

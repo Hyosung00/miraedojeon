@@ -675,7 +675,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
   const resume = useCallback(() => fgRef.current?.resumeAnimation(), []);
 
   return (
-    <Card sx={{ width: '100%', height: 'calc(100vh - 120px)', bgcolor: 'background.paper', borderRadius: 2, boxShadow: 3, overflow: 'hidden' }}>
+    <Card sx={{ width: '100%', height: 'calc(100vh - 132px)', bgcolor: 'background.paper', borderRadius: 2, boxShadow: 3, overflow: 'hidden' }}>
       <CardContent sx={{ p: 2, height: '100%', display: 'flex', gap: 2 }}>
         {/* 왼쪽 툴바 (UI 변경 없음) */}
         <Card sx={{ width: 280, flex: 'none', bgcolor: '#f0edfd', color: '#000', border: '1px solid #d0c9f0', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: '20px', height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -828,6 +828,7 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                 rendererConfig={{ antialias: false, alpha: false, powerPreference: 'high-performance' }}
                 graphData={filtered}
                 backgroundColor="#F0EDFD"
+                // backgroundColor="#F0EDFD"
                 width={containerSize.width}
                 height={containerSize.height}
                 nodeThreeObject={nodeThreeObject}

@@ -233,7 +233,7 @@ export default function TargetDashboard({ onNodeClick, data, logs = [], activeVi
       aria-label="타겟 대시보드"
       sx={{
         width: '100%',
-        height: 'calc(100vh - 120px)',
+        height: 'calc(100vh - 132px)',
         bgcolor: 'background.paper',
         boxShadow: 3,
         m: 0

@@ -82,26 +82,21 @@ export function BgpCollectionChart() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    // BGP 페이지와 동일: 2025-09-02~09-08 7일간 날짜별 병렬 fetch
-    const promises = [];
-    const labels = [];
-    for (let day = 0; day < 7; day++) {
-      const dayStart = new Date(Date.UTC(2025, 8, 2 + day, 0, 0, 0, 0));
-      const dayEnd   = new Date(Date.UTC(2025, 8, 2 + day, 23, 59, 59, 999));
-      labels.push(`9/${2 + day}`);
-      const url = `http://localhost:5000/api/north-korea-attacks?limit=20&startDate=${dayStart.toISOString()}&endDate=${dayEnd.toISOString()}`;
-      promises.push(
-        fetch(url).then(r => r.json())
-          .then(d => d.success ? (d.attacks || []) : [])
-          .catch(() => [])
-      );
-    }
-    Promise.all(promises).then(dayResults => {
-      const result = labels.map((day, i) => ({
-        day,
-        count: dayResults[i].reduce((sum, a) => sum + (a.count || 1), 0),
-      }));
-      setData(result);
+    // 기존 7회 병렬 API 호출 대신, 캐시되는 단일 공격 데이터 fetch 후 로컬 집계
+    fetchAttacks().then(attacks => {
+      const start = new Date(Date.UTC(2025, 8, 2, 0, 0, 0, 0));
+      const dayMap = new Map(Array.from({ length: 7 }, (_, i) => [`9/${2 + i}`, 0]));
+
+      attacks.forEach(a => {
+        const ts = new Date(a.timestamp);
+        if (isNaN(ts)) return;
+        const diff = Math.floor((ts.getTime() - start.getTime()) / 86400000);
+        if (diff < 0 || diff > 6) return;
+        const key = `9/${2 + diff}`;
+        dayMap.set(key, (dayMap.get(key) || 0) + (a.count || 1));
+      });
+
+      setData([...dayMap.entries()].map(([day, count]) => ({ day, count })));
     });
   }, []);
 
@@ -737,100 +732,138 @@ export function TargetTaskChart() {
   );
 }
 
-// ─── 능동 대응 카드 1: 시나리오 표 ──────────────────────────────
-// 물리 네트워크 장치 유형별 분포 (OffensiveStrategy 물리 토폴로지 기반)
-export function ActiveResponseScenarioChart() {
-  const [data, setData] = useState([]);
-
-  useEffect(() => {
-    fetchNodes().then(raw => {
-      const typeMap = {};
-      raw.forEach(item => {
-        [item.src_IP, item.dst_IP].forEach(node => {
-          if (!node) return;
-          const t = (node.type || node.kind || 'host').toLowerCase();
-          typeMap[t] = (typeMap[t] || 0) + 1;
-        });
-      });
-      const result = Object.entries(typeMap)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 5)
-        .map(([name, value]) => ({ name, value }));
-      setData(result.length ? result : [
-        { name: 'switch', value: 6 }, { name: 'router', value: 4 },
-        { name: 'server', value: 8 }, { name: 'firewall', value: 2 }, { name: 'workstation', value: 5 },
-      ]);
-    });
-  }, []);
-
-  const SCENARIO_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie data={data} cx="50%" cy="50%" innerRadius="28%" outerRadius="54%"
-          dataKey="value" paddingAngle={2} labelLine={false} label={CustomLabel}>
-          {data.map((_, i) => <Cell key={i} fill={SCENARIO_COLORS[i % SCENARIO_COLORS.length]} />)}
-        </Pie>
-        <Tooltip formatter={(v, n) => [`${v}개`, n]} contentStyle={{ fontSize: 10 }} />
-      </PieChart>
-    </ResponsiveContainer>
-  );
-}
-
-// ─── 능동 대응 카드 2: 차단 효과 그래프 ─────────────────────────
-// RS(Risk Score) 기반 위험도 레벨별 차단 전/후 비교 (OffensiveStrategy의 computeNodeRS 지표 기반)
-export function ActiveResponseBlockChart() {
-  const [data, setData] = useState([]);
-
-  useEffect(() => {
-    fetchTargetNodes().then(raw => {
-      const nodeMap = new Map();
-      raw.forEach(item => {
-        if (item.src_IP?.ip) nodeMap.set(item.src_IP.ip, item.src_IP);
-        if (item.dst_IP?.ip) nodeMap.set(item.dst_IP.ip, item.dst_IP);
-      });
-
-      let high = 0, mid = 0, low = 0;
-      [...nodeMap.values()].forEach(node => {
-        const degree = typeof node.degree_score === 'number' ? node.degree_score : 0;
-        const con = typeof node.con_score === 'number' ? node.con_score : 0;
-        const rs = degree * 0.6 + con * 0.4;
-        if (rs >= 0.7) high++;
-        else if (rs >= 0.3) mid++;
-        else low++;
-      });
-
-      setData([
-        { level: '고위험', before: high, after: Math.round(high * 0.3) },
-        { level: '중위험', before: mid,  after: Math.round(mid  * 0.5) },
-        { level: '저위험', before: low,  after: Math.round(low  * 0.75) },
-      ]);
-    });
-  }, []);
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 4, right: 8, left: -18, bottom: 4 }}>
-        <XAxis dataKey="level" tick={{ fontSize: 8 }} />
-        <YAxis tick={{ fontSize: 8 }} allowDecimals={false} />
-        <Tooltip formatter={(v, name) => [`${v}개`, name === 'before' ? '차단 전' : '차단 후']} contentStyle={{ fontSize: 10 }} />
-        <Bar dataKey="before" fill="#ef4444" name="before" radius={[2, 2, 0, 0]} />
-        <Bar dataKey="after"  fill="#10b981" name="after"  radius={[2, 2, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-// ─── 능동 대응 카드 3: 우회/방어 전략 ───────────────────────────
+// ─── 능동 대응 카드: 우회/방어 전략 ────────────────────────────
 // 물리 네트워크 토폴로지 + 공격 경로 강조 (OffensiveStrategy 공격 그래프 기반)
-export function ActiveResponseDefenseChart() {
+export function ActiveResponseDefenseChart({ nodes: inputNodes = [] }) {
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
+  const [selectedNodeKey, setSelectedNodeKey] = useState(null);
+  const [selectedTargetKey, setSelectedTargetKey] = useState(null);
+  const [selectedStartKey, setSelectedStartKey] = useState(null);
+  const [firstPriorityEdgeKeys, setFirstPriorityEdgeKeys] = useState([]);
+  const [firstPriorityNodeIds, setFirstPriorityNodeIds] = useState([]);
+
+  const edgeKeyOf = (a, b) => `${Math.min(a, b)}-${Math.max(a, b)}`;
+
+  const findShortestPathIndices = (startIndex, targetIndex, graphEdges) => {
+    if (startIndex === undefined || targetIndex === undefined) return [];
+    if (startIndex === targetIndex) return [startIndex];
+
+    const adjacency = new Map();
+    graphEdges.forEach((e) => {
+      if (!adjacency.has(e.a)) adjacency.set(e.a, []);
+      if (!adjacency.has(e.b)) adjacency.set(e.b, []);
+      adjacency.get(e.a).push(e.b);
+      adjacency.get(e.b).push(e.a);
+    });
+
+    const queue = [startIndex];
+    const visited = new Set([startIndex]);
+    const parent = new Map();
+
+    while (queue.length) {
+      const current = queue.shift();
+      const neighbors = adjacency.get(current) || [];
+      for (const next of neighbors) {
+        if (visited.has(next)) continue;
+        visited.add(next);
+        parent.set(next, current);
+        if (next === targetIndex) {
+          const path = [targetIndex];
+          let p = targetIndex;
+          while (parent.has(p)) {
+            p = parent.get(p);
+            path.push(p);
+          }
+          return path.reverse();
+        }
+        queue.push(next);
+      }
+    }
+
+    return [];
+  };
+
+  const applyPriorityPathByKeys = (targetKey, startKey, graphNodes, graphEdges) => {
+    if (!targetKey || !startKey || !graphNodes.length || !graphEdges.length) {
+      setFirstPriorityEdgeKeys([]);
+      setFirstPriorityNodeIds([]);
+      return;
+    }
+
+    const targetIndex = graphNodes.findIndex((n) => (n.key || String(n.id)) === targetKey);
+    const startIndex = graphNodes.findIndex((n) => (n.key || String(n.id)) === startKey);
+    if (targetIndex < 0 || startIndex < 0) {
+      setFirstPriorityEdgeKeys([]);
+      setFirstPriorityNodeIds([]);
+      return;
+    }
+
+    const pathIndices = findShortestPathIndices(startIndex, targetIndex, graphEdges);
+    if (!pathIndices.length) {
+      setFirstPriorityEdgeKeys([]);
+      setFirstPriorityNodeIds([]);
+      return;
+    }
+
+    const pathEdgeKeys = [];
+    for (let i = 0; i < pathIndices.length - 1; i++) {
+      pathEdgeKeys.push(edgeKeyOf(pathIndices[i], pathIndices[i + 1]));
+    }
+
+    setFirstPriorityEdgeKeys(pathEdgeKeys);
+    setFirstPriorityNodeIds(pathIndices);
+  };
+
+  const applyNodePickFlow = (node, graphNodes, graphEdges) => {
+    if (!node) return;
+    const pickedKey = node.key || String(node.id);
+    setSelectedNodeKey(pickedKey);
+
+    if (!selectedTargetKey) {
+      setSelectedTargetKey(pickedKey);
+      setSelectedStartKey(null);
+      setFirstPriorityEdgeKeys([]);
+      setFirstPriorityNodeIds([]);
+      return;
+    }
+
+    if (!selectedStartKey) {
+      if (pickedKey === selectedTargetKey) return;
+      setSelectedStartKey(pickedKey);
+      applyPriorityPathByKeys(selectedTargetKey, pickedKey, graphNodes, graphEdges);
+      return;
+    }
+
+    setSelectedTargetKey(pickedKey);
+    setSelectedStartKey(null);
+    setFirstPriorityEdgeKeys([]);
+    setFirstPriorityNodeIds([]);
+  };
+
+  const emitSelectedNode = (node) => {
+    if (!node) return;
+    const payload = {
+      key: node.key || String(node.id),
+      id: node.rawId || node.key || String(node.id),
+      ip: node.ip || '-',
+      label: node.fullLabel || node.label || '-',
+      name: node.fullLabel || node.label || '-',
+      type: node.type || '-',
+      degree: typeof node.degree === 'number' ? node.degree : null,
+      con: typeof node.con === 'number' ? node.con : null
+    };
+
+    setSelectedNodeKey(payload.key);
+    applyNodePickFlow(node, nodes, edges);
+    try {
+      localStorage.setItem('selected-response-node', JSON.stringify(payload));
+    } catch (_) {}
+    window.dispatchEvent(new CustomEvent('response-strategy-node-selected', { detail: payload }));
+  };
 
   useEffect(() => {
-    fetchNodes().then(raw => {
-      // 고유 노드 최대 6개 추출
+    const buildGraph = (raw = []) => {
       const nodeMap = new Map();
       raw.forEach(item => {
         if (item.src_IP?.id) nodeMap.set(String(item.src_IP.id), item.src_IP);
@@ -846,6 +879,13 @@ export function ActiveResponseDefenseChart() {
         const isCentral = i === 0;
         return {
           id: i,
+          key: n.id != null ? String(n.id) : (n.ip || n.label || String(i)),
+          rawId: n.id != null ? String(n.id) : null,
+          ip: n.ip || null,
+          fullLabel: n.label || n.name || n.ip || String(n.id),
+          type: t,
+          degree: typeof n.degree_score === 'number' ? n.degree_score : null,
+          con: typeof n.con_score === 'number' ? n.con_score : null,
           x: isCentral ? cx : cx + radius * Math.cos(angle),
           y: isCentral ? cy : cy + radius * Math.sin(angle),
           label: (n.ip || String(n.id)).slice(-5),
@@ -866,32 +906,83 @@ export function ActiveResponseDefenseChart() {
         const key = `${Math.min(a, b)}-${Math.max(a, b)}`;
         if (edgeSet.has(key)) continue;
         edgeSet.add(key);
-        builtEdges.push({ a, b, isAttack: attackCount < 2 });
+        builtEdges.push({ a, b, key, isAttack: attackCount < 2 });
         attackCount++;
         if (builtEdges.length >= 8) break;
       }
 
       if (!nodeArr.length) {
         setNodes([
-          { id: 0, x: 100, y: 65,  label: 'Core',   r: 13, color: '#7c3aed', isHighRisk: false },
-          { id: 1, x: 36,  y: 30,  label: 'FW',     r: 9,  color: '#ef4444', isHighRisk: true  },
-          { id: 2, x: 164, y: 30,  label: 'Router',  r: 9,  color: '#f59e0b', isHighRisk: false },
-          { id: 3, x: 36,  y: 100, label: 'SW',     r: 8,  color: '#10b981', isHighRisk: false },
-          { id: 4, x: 100, y: 110, label: 'Srv',    r: 9,  color: '#3b82f6', isHighRisk: true  },
-          { id: 5, x: 164, y: 100, label: 'Host',   r: 8,  color: '#6aa7ff', isHighRisk: false },
+          { id: 0, key: 'core', x: 100, y: 65,  label: 'Core',   fullLabel: 'Core',   type: 'core',    degree: null, con: null, r: 13, color: '#7c3aed', isHighRisk: false },
+          { id: 1, key: 'fw',   x: 36,  y: 30,  label: 'FW',     fullLabel: 'FW',     type: 'firewall',degree: null, con: null, r: 9,  color: '#ef4444', isHighRisk: true  },
+          { id: 2, key: 'rt',   x: 164, y: 30,  label: 'Router', fullLabel: 'Router', type: 'router',  degree: null, con: null, r: 9,  color: '#f59e0b', isHighRisk: false },
+          { id: 3, key: 'sw',   x: 36,  y: 100, label: 'SW',     fullLabel: 'SW',     type: 'switch',  degree: null, con: null, r: 8,  color: '#10b981', isHighRisk: false },
+          { id: 4, key: 'srv',  x: 100, y: 110, label: 'Srv',    fullLabel: 'Srv',    type: 'server',  degree: null, con: null, r: 9,  color: '#3b82f6', isHighRisk: true  },
+          { id: 5, key: 'host', x: 164, y: 100, label: 'Host',   fullLabel: 'Host',   type: 'host',    degree: null, con: null, r: 8,  color: '#6aa7ff', isHighRisk: false },
         ]);
         setEdges([
-          { a: 0, b: 1, isAttack: false }, { a: 0, b: 2, isAttack: true  },
-          { a: 0, b: 4, isAttack: false }, { a: 1, b: 3, isAttack: false },
-          { a: 2, b: 5, isAttack: true  }, { a: 0, b: 3, isAttack: false },
-          { a: 4, b: 5, isAttack: false },
+          { a: 0, b: 1, key: edgeKeyOf(0, 1), isAttack: false }, { a: 0, b: 2, key: edgeKeyOf(0, 2), isAttack: true  },
+          { a: 0, b: 4, key: edgeKeyOf(0, 4), isAttack: false }, { a: 1, b: 3, key: edgeKeyOf(1, 3), isAttack: false },
+          { a: 2, b: 5, key: edgeKeyOf(2, 5), isAttack: true  }, { a: 0, b: 3, key: edgeKeyOf(0, 3), isAttack: false },
+          { a: 4, b: 5, key: edgeKeyOf(4, 5), isAttack: false },
         ]);
         return;
       }
       setNodes(builtNodes);
       setEdges(builtEdges);
+    };
+
+    if (Array.isArray(inputNodes) && inputNodes.length > 0) {
+      buildGraph(inputNodes);
+      return;
+    }
+
+    fetchNodes().then((raw) => {
+      buildGraph(raw);
     });
-  }, []);
+  }, [inputNodes]);
+
+  useEffect(() => {
+    const normalize = (v) => String(v || '').trim().toLowerCase();
+    const handleResponseNodeSelected = (event) => {
+      const payload = event?.detail || {};
+      const keys = [payload.key, payload.id, payload.ip, payload.label, payload.name]
+        .filter(Boolean)
+        .map(normalize);
+      if (!keys.length) return;
+
+      const matched = nodes.find((n) => {
+        const candidates = [n.key, n.rawId, n.ip, n.fullLabel, n.label]
+          .filter(Boolean)
+          .map(normalize);
+        return keys.some((k) => candidates.includes(k));
+      });
+      if (matched) {
+        setSelectedNodeKey(matched.key || String(matched.id));
+        applyNodePickFlow(matched, nodes, edges);
+      }
+    };
+
+    window.addEventListener('response-strategy-node-selected', handleResponseNodeSelected);
+    return () => window.removeEventListener('response-strategy-node-selected', handleResponseNodeSelected);
+  }, [nodes, edges, selectedTargetKey, selectedStartKey]);
+
+  useEffect(() => {
+    if (!selectedTargetKey || !selectedStartKey) {
+      setFirstPriorityEdgeKeys([]);
+      setFirstPriorityNodeIds([]);
+      return;
+    }
+    applyPriorityPathByKeys(selectedTargetKey, selectedStartKey, nodes, edges);
+  }, [nodes, edges, selectedTargetKey, selectedStartKey]);
+
+  const firstPriorityPathLabel = (() => {
+    if (!selectedTargetKey || !selectedStartKey || !firstPriorityNodeIds.length) return null;
+    const labels = firstPriorityNodeIds
+      .map((nodeIndex) => nodes[nodeIndex]?.label)
+      .filter(Boolean);
+    return labels.length ? labels.join(' → ') : null;
+  })();
 
   return (
     <svg width="100%" height="100%" viewBox="0 0 200 130" style={{ background: '#f5f3ff', borderRadius: 4 }}>
@@ -900,72 +991,201 @@ export function ActiveResponseDefenseChart() {
         <line key={i}
           x1={nodes[e.a].x} y1={nodes[e.a].y}
           x2={nodes[e.b].x} y2={nodes[e.b].y}
-          stroke={e.isAttack ? '#ef4444' : '#c4b5fd'}
-          strokeWidth={e.isAttack ? 2 : 1.5}
-          strokeDasharray={e.isAttack ? '4,2' : 'none'}
-          opacity={e.isAttack ? 0.85 : 0.65}
+          stroke={firstPriorityEdgeKeys.includes(e.key) ? '#dc2626' : (e.isAttack ? '#ef4444' : '#c4b5fd')}
+          strokeWidth={firstPriorityEdgeKeys.includes(e.key) ? 2.6 : (e.isAttack ? 2 : 1.5)}
+          strokeDasharray={firstPriorityEdgeKeys.includes(e.key) ? '5,2' : (e.isAttack ? '4,2' : 'none')}
+          opacity={firstPriorityEdgeKeys.includes(e.key) ? 1 : (e.isAttack ? 0.85 : 0.65)}
         />
       ))}
-      {nodes.map(n => (
-        <g key={n.id}>
+      {nodes.map(n => {
+        const isSelected = selectedNodeKey != null && selectedNodeKey === (n.key || String(n.id));
+        const isPriorityNode = firstPriorityNodeIds.includes(n.id);
+        return (
+        <g key={n.id} onClick={() => emitSelectedNode(n)} style={{ cursor: 'pointer' }}>
+          {isPriorityNode && <circle cx={n.x} cy={n.y} r={n.r + 6} fill="none" stroke="#dc2626" strokeWidth="1.4" opacity={0.78} strokeDasharray="4,2" />}
+          {isSelected && <circle cx={n.x} cy={n.y} r={n.r + 8} fill="none" stroke="#2563eb" strokeWidth="1.2" opacity={0.75} strokeDasharray="3,2" />}
           {n.isHighRisk && <circle cx={n.x} cy={n.y} r={n.r + 4} fill="none" stroke="#ef4444" strokeWidth="1.2" opacity={0.5} strokeDasharray="2,2" />}
           <circle cx={n.x} cy={n.y} r={n.r} fill={n.color} opacity={0.92} />
           <text x={n.x} y={n.y + 3.5} textAnchor="middle" fontSize={n.r > 10 ? 7 : 6} fill="#fff" fontWeight="bold">{n.label}</text>
         </g>
-      ))}
+      );})}
       <line x1={4}  y1={10} x2={16} y2={10} stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4,2" />
       <text x={19} y={13} fontSize={6.5} fill="#374151">공격경로</text>
+      <line x1={4}  y1={20} x2={16} y2={20} stroke="#dc2626" strokeWidth={1.8} strokeDasharray="5,2" />
+      <text x={19} y={23} fontSize={6.5} fill="#374151">1순위 경로</text>
       <line x1={62} y1={10} x2={74} y2={10} stroke="#c4b5fd" strokeWidth={1.5} />
       <text x={77} y={13} fontSize={6.5} fill="#374151">정상연결</text>
+      {firstPriorityPathLabel && (
+        <>
+          <rect x={4} y={114} width={192} height={12} rx={2} fill="rgba(255,255,255,0.82)" />
+          <text x={8} y={122} fontSize={6.2} fill="#7f1d1d">1순위: {firstPriorityPathLabel}</text>
+        </>
+      )}
     </svg>
   );
 }
 
-// ─── 능동 대응 카드 4: 운영 과업 ────────────────────────────────
-// RS 점수 구간별 노드 분포 Area 차트 (OffensiveStrategy의 pathMetrics·overallScore 기반)
-export function ActiveResponseOpsChart() {
-  const [data, setData] = useState([]);
+const HARD_CODED_CVE_LIST = [
+  { id: 'CVE-2025-26974', score: 9.3, severity: 'CRITICAL', description: 'WP Multi Store Locator SQL Injection 취약점.', cweId: 'CWE-89' },
+  { id: 'CVE-2025-23468', score: 7.1, severity: 'HIGH', description: 'Essay Wizard(wpCRES) Reflected XSS 취약점.', cweId: 'CWE-79' },
+  { id: 'CVE-2025-23698', score: 7.1, severity: 'HIGH', description: 'WP Custom Google Search CSRF 기반 Stored XSS 취약점.', cweId: 'CWE-352' },
+  { id: 'CVE-2025-3034', score: 8.1, severity: 'HIGH', description: 'Firefox/Thunderbird 메모리 손상 기반 임의 코드 실행 가능성.', cweId: 'CWE-787' },
+  { id: 'CVE-2025-21650', score: 7.8, severity: 'HIGH', description: 'Linux kernel hns3 드라이버 OOB 접근 취약점.', cweId: 'CWE-787' },
+  { id: 'CVE-2025-31344', score: 7.3, severity: 'HIGH', description: 'openEuler giflib heap-based buffer overflow 취약점.', cweId: 'CWE-122' },
+  { id: 'CVE-2025-23251', score: 7.6, severity: 'HIGH', description: 'NVIDIA NeMo Framework 원격 코드 실행 취약점.', cweId: 'CWE-94' },
+  { id: 'CVE-2025-43859', score: 9.1, severity: 'CRITICAL', description: 'h11 request smuggling 취약점.', cweId: 'CWE-444' },
+  { id: 'CVE-2025-22352', score: 7.6, severity: 'HIGH', description: 'ELEX WooCommerce Blind SQL Injection 취약점.', cweId: 'CWE-89' },
+  { id: 'CVE-2025-32615', score: 7.1, severity: 'HIGH', description: 'Clinked Client Portal Reflected XSS 취약점.', cweId: 'CWE-79' },
+  { id: 'CVE-2025-22513', score: 7.1, severity: 'HIGH', description: 'Simple Locator Reflected XSS 취약점.', cweId: 'CWE-79' },
+  { id: 'CVE-2025-0014', score: 7.3, severity: 'HIGH', description: 'AMD Ryzen AI 권한 상승 취약점.', cweId: 'CWE-276' },
+  { id: 'CVE-2025-31238', score: 7.3, severity: 'HIGH', description: 'Apple WebContent 메모리 손상 취약점.', cweId: 'CWE-119' },
+  { id: 'CVE-2025-21966', score: 7.8, severity: 'HIGH', description: 'Linux kernel dm-flakey 메모리 손상 취약점.', cweId: 'CWE-787' },
+  { id: 'CVE-2025-3698', score: 7.5, severity: 'HIGH', description: '모바일 앱 정보 유출 취약점.', cweId: 'CWE-200' },
+  { id: 'CVE-2025-2359', score: 7.3, severity: 'MEDIUM', description: 'D-Link DDNS 권한 검증 취약점.', cweId: 'CWE-266' },
+  { id: 'CVE-2025-23638', score: 7.1, severity: 'HIGH', description: 'Frontend Post Submission Reflected XSS 취약점.', cweId: 'CWE-79' },
+  { id: 'CVE-2025-3945', score: 7.2, severity: 'HIGH', description: 'Tridium Niagara Argument Injection 취약점.', cweId: 'CWE-88' },
+  { id: 'CVE-2025-23781', score: 7.5, severity: 'HIGH', description: '민감정보 노출 취약점.', cweId: 'CWE-201' },
+  { id: 'CVE-2025-24688', score: 7.1, severity: 'HIGH', description: 'WP Mailster Reflected XSS 취약점.', cweId: 'CWE-79' }
+];
+
+export function NewDiscoveredCveChart() {
+  return (
+    <div style={{ width: '100%', height: '100%', overflowY: 'auto', padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {HARD_CODED_CVE_LIST.map((cve) => {
+        const severityColor =
+          cve.severity === 'CRITICAL' ? '#ef4444' :
+          cve.severity === 'HIGH' ? '#f59e0b' :
+          cve.severity === 'MEDIUM' ? '#3b82f6' : '#10b981';
+        const scoreTimes10 = Math.round(cve.score * 10);
+
+        return (
+          <div key={cve.id} style={{ background: 'rgba(255,255,255,0.9)', border: `1px solid ${severityColor}`, borderLeft: `3px solid ${severityColor}`, borderRadius: '6px', padding: '6px', display: 'flex', gap: '6px' }}>
+            <div style={{ width: '42px', minWidth: '42px', borderRadius: '6px', background: severityColor, color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4px 0' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, lineHeight: 1 }}>{scoreTimes10}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: severityColor }}>{cve.id}</div>
+                <div style={{ fontSize: '10px', color: '#fff', background: severityColor, borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}>{cve.severity}</div>
+              </div>
+              <div style={{ fontSize: '10px', color: '#333', marginTop: '2px', lineHeight: 1.25 }}>{cve.description}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px', fontSize: '10px', color: '#666' }}>
+                <span>CVSS-V3: {cve.score.toFixed(1)}</span>
+                <span>{cve.cweId}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const buildNodeListFromRecords = (records = []) => {
+  const nodeMap = new Map();
+
+  records.forEach((item) => {
+    [item?.src_IP, item?.dst_IP].forEach((node) => {
+      if (!node) return;
+      const key = node.id != null ? String(node.id) : (node.ip || node.label || node.name || null);
+      if (!key || nodeMap.has(key)) return;
+      nodeMap.set(key, {
+        key,
+        ip: node.ip || '-',
+        label: node.label || node.name || '-',
+        type: node.kind || node.type || '-',
+        degree: typeof node.degree_score === 'number' ? node.degree_score : null,
+        con: typeof node.con_score === 'number' ? node.con_score : null
+      });
+    });
+  });
+
+  return [...nodeMap.values()]
+    .filter((node) => node.degree != 0 && node.con != 0)
+    .sort((a, b) => {
+      const aScore = (a.degree || 0) + (a.con || 0);
+      const bScore = (b.degree || 0) + (b.con || 0);
+      return bScore - aScore;
+    })
+    .slice(0, 30);
+};
+
+export function ResponseStrategyListChart({ nodes = [] }) {
+  const [nodeList, setNodeList] = useState([]);
+  const [selectedKey, setSelectedKey] = useState(null);
 
   useEffect(() => {
-    fetchTargetNodes().then(raw => {
-      const nodeMap = new Map();
-      raw.forEach(item => {
-        if (item.src_IP?.ip) nodeMap.set(item.src_IP.ip, item.src_IP);
-        if (item.dst_IP?.ip) nodeMap.set(item.dst_IP.ip, item.dst_IP);
-      });
+    if (Array.isArray(nodes) && nodes.length > 0) {
+      setNodeList(buildNodeListFromRecords(nodes));
+      return;
+    }
 
-      // RS = degree*0.6 + con*0.4 → 10% 구간으로 분포 집계
-      const buckets = Array.from({ length: 10 }, (_, i) => ({
-        range: `${(i + 1) * 10}%`,
-        count: 0,
-      }));
-      [...nodeMap.values()].forEach(node => {
-        const degree = typeof node.degree_score === 'number' ? node.degree_score : 0;
-        const con    = typeof node.con_score    === 'number' ? node.con_score    : 0;
-        const rs = degree * 0.6 + con * 0.4;
-        const idx = Math.min(9, Math.floor(rs * 10));
-        buckets[idx].count++;
-      });
-
-      setData(buckets);
+    fetchTargetNodes().then((raw) => {
+      setNodeList(buildNodeListFromRecords(raw));
     });
-  }, []);
+  }, [nodes]);
+
+  const handleSelectNode = (node) => {
+    setSelectedKey(node.key);
+    const payload = {
+      key: node.key,
+      id: node.key,
+      ip: node.ip,
+      label: node.label,
+      name: node.label,
+      type: node.type,
+      degree: node.degree,
+      con: node.con
+    };
+
+    try {
+      localStorage.setItem('selected-response-node', JSON.stringify(payload));
+    } catch (_) {}
+
+    window.dispatchEvent(new CustomEvent('response-strategy-node-selected', { detail: payload }));
+  };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 6, right: 8, left: -18, bottom: 0 }}>
-        <defs>
-          <linearGradient id="opsAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.7} />
-            <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05} />
-          </linearGradient>
-        </defs>
-        <XAxis dataKey="range" tick={{ fontSize: 7 }} />
-        <YAxis tick={{ fontSize: 7 }} allowDecimals={false} />
-        <Tooltip formatter={v => [`${v}개 노드`, 'RS 구간']} contentStyle={{ fontSize: 10 }} />
-        <Area type="monotone" dataKey="count" stroke="#ef4444" strokeWidth={2} fill="url(#opsAreaGrad)" dot={{ r: 2, fill: '#ef4444' }} />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div style={{ width: '100%', height: '100%', overflowY: 'auto', padding: '10px' }}>
+      {!nodeList.length ? (
+        <div style={{ background: 'rgba(255,255,255,0.9)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: '6px', padding: '10px', fontSize: '11px', color: '#666' }}>
+          표시할 노드 정보가 없습니다.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {nodeList.map((node, idx) => (
+            <div
+              key={node.key}
+              onClick={() => handleSelectNode(node)}
+              style={{
+                background: 'rgba(255,255,255,0.92)',
+                border: selectedKey === node.key ? '1px solid rgba(29, 78, 216, 0.45)' : '1px solid rgba(124,58,237,0.2)',
+                borderLeft: selectedKey === node.key ? '3px solid #2563eb' : '3px solid #7c3aed',
+                borderRadius: '6px',
+                padding: '6px 8px',
+                cursor: 'pointer'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'center' }}>
+                <div style={{ fontSize: '11px', fontWeight: 700, color: '#4c1d95' }}>
+                  #{idx + 1} {node.ip}
+                </div>
+                <div style={{ fontSize: '10px', color: '#6b7280', fontWeight: 700 }}>
+                  {node.type}
+                </div>
+              </div>
+              <div style={{ marginTop: '2px', fontSize: '10px', color: '#374151' }}>
+                {node.label}
+              </div>
+              <div style={{ marginTop: '3px', fontSize: '10px', color: '#6b7280', display: 'flex', gap: '8px' }}>
+                <span>degree: {node.degree != null ? node.degree.toFixed(3) : '-'}</span>
+                <span>con: {node.con != null ? node.con.toFixed(3) : '-'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -983,8 +1203,7 @@ export const CHART_MAP = {
   '표적 의존성 그래프':          TargetDependencyChart,
   '표적 위험 추세':              TargetRiskTrendChart,
   '표적 대응 과업':              TargetTaskChart,
-  '능동 대응 시나리오 표':       ActiveResponseScenarioChart,
-  '차단 효과 그래프':            ActiveResponseBlockChart,
   '우회/방어 전략':              ActiveResponseDefenseChart,
-  '능동 대응 운영 과업':         ActiveResponseOpsChart,
+  '새로 발견된 CVE':             NewDiscoveredCveChart,
+  '대응 방책':                   ResponseStrategyListChart,
 };

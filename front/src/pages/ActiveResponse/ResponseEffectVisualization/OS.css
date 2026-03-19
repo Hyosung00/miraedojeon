@@ -15,7 +15,7 @@
 /* 메인 컨테이너 */
 .offensive-strategy-container {
   width: 100%;
-  height: calc(100vh - 120px);
+  height: calc(97vh - 93px);
   margin: 0;
   padding: 0;
 }
@@ -26,8 +26,10 @@
   position: relative;
   overflow: hidden;
   height: 100%;
-  background-color: #f0edfd;
-  border: 1px solid #f0edfd;
+  background-color: #fff;
+  border: 1px solid #fff;
+  /* background-color: #f0edfd; */
+  /* border: 1px solid #f0edfd; */
   box-shadow: 0 4px 12px #cdccd2;
 }
 
@@ -41,7 +43,8 @@
   justify-content: space-between;
   align-items: center;
   z-index: 10;
-  background: #f0edfd;
+  background: #fff;
+  /* background: #f0edfd; */
   color: rgb(0, 0, 0);
   padding: 8px 12px;
   border-radius: 4px;

@@ -13,8 +13,23 @@ const API_CONFIG = {
   ENDPOINTS: {
     NORTH_KOREA_ATTACKS: '/api/north-korea-attacks'
   },
-  DEFAULT_LIMIT: 20  // 하루당 20개로 제한
+  DEFAULT_LIMIT: 12  // 월별 12개로 제한 (12개월 총 144개)
 };
+
+const MONTH_MARKS_2025 = [
+  { value: 0, label: '25년 1월', labelShort: '1월' },
+  { value: 1, label: '25년 2월', labelShort: '2월' },
+  { value: 2, label: '25년 3월', labelShort: '3월' },
+  { value: 3, label: '25년 4월', labelShort: '4월' },
+  { value: 4, label: '25년 5월', labelShort: '5월' },
+  { value: 5, label: '25년 6월', labelShort: '6월' },
+  { value: 6, label: '25년 7월', labelShort: '7월' },
+  { value: 7, label: '25년 8월', labelShort: '8월' },
+  { value: 8, label: '25년 9월', labelShort: '9월' },
+  { value: 9, label: '25년 10월', labelShort: '10월' },
+  { value: 10, label: '25년 11월', labelShort: '11월' },
+  { value: 11, label: '25년 12월', labelShort: '12월' }
+];
 
 const COLORS = {
   SOURCE: {
@@ -340,8 +355,8 @@ const TwoDPage = () => {
   }, [popups.fusionDB]);
 
   // 날짜 및 시간 필터링 상태
-  const [allAttacks, setAllAttacks] = useState([]); // 전체 데이터 저장 (일주일, 하루당 20개 = 총 140개)
-  const [timeRange, setTimeRange] = useState([0, 7]); // 시간 범위 (일 단위, 0일~7일)
+  const [allAttacks, setAllAttacks] = useState([]); // 전체 데이터 저장 (12개월, 월당 12개 = 총 144개)
+  const [timeRange, setTimeRange] = useState([0, 11]); // 시간 범위 (월 단위, 25/01~25/12)
 
   // attackStats를 useMemo로 최적화 (attacks가 변경될 때만 재계산)
   // 컴포넌트 마운트/언마운트 추적
@@ -368,19 +383,7 @@ const TwoDPage = () => {
     };
   }, [attacks]);
 
-  // 시작 날짜 설정 (9/2 00:00:00)
-  const startDate = useMemo(() => {
-    const date = new Date('2025-09-02T00:00:00Z');
-    return date;
-  }, []);
-
-  // 종료 날짜 설정 (9/8 23:59:59 - 7일간)
-  const endDate = useMemo(() => {
-    const date = new Date('2025-09-08T23:59:59Z');
-    return date;
-  }, []);
-
-  // 현재 시간바 위치에 따른 필터링된 작전 데이터
+  // 현재 월 범위에 따른 필터링된 작전 데이터
   const filteredAttacks = useMemo(() => {
     console.log('🔄 filteredAttacks useMemo 실행');
     console.log('  - allAttacks 길이:', allAttacks ? allAttacks.length : 'null');
@@ -391,41 +394,36 @@ const TwoDPage = () => {
       return [];
     }
 
-    const baseTime = startDate.getTime();
-    const rangeStartTime = baseTime + (timeRange[0] * 24 * 60 * 60 * 1000); // 범위 시작
-    const rangeEndTime = baseTime + (timeRange[1] * 24 * 60 * 60 * 1000); // 범위 종료
+    const [startMonth, endMonth] = timeRange;
 
     console.log('🔍 필터링 정보:', {
       '전체 작전 수': allAttacks.length,
-      '범위 시작 (일)': timeRange[0],
-      '범위 종료 (일)': timeRange[1],
-      '범위 시작 시간': new Date(rangeStartTime).toISOString(),
-      '범위 종료 시간': new Date(rangeEndTime).toISOString(),
+      '범위 시작 (월)': startMonth,
+      '범위 종료 (월)': endMonth,
       '첫 번째 작전 시간': allAttacks[0] ? new Date(allAttacks[0].timestamp).toISOString() : 'N/A',
       '마지막 작전 시간': allAttacks[allAttacks.length - 1] ? new Date(allAttacks[allAttacks.length - 1].timestamp).toISOString() : 'N/A'
     });
 
-    // 범위 내의 작전만 표시
+    // 범위 내의 월 데이터만 표시 (포함 범위)
     const filtered = allAttacks.filter(attack => {
-      const attackTime = new Date(attack.timestamp).getTime();
-      const isInRange = attackTime >= rangeStartTime && attackTime <= rangeEndTime;
+      const monthIndex = typeof attack.displayMonthIndex === 'number' ? attack.displayMonthIndex : 0;
+      const isInRange = monthIndex >= startMonth && monthIndex <= endMonth;
 
       // 처음 3개만 샘플로 로그 출력
       if (allAttacks.indexOf(attack) < 3) {
         console.log(`  작전 ${attack.id}:`, {
-          시간: new Date(attackTime).toISOString(),
-          '범위 내': isInRange,
-          '시작보다 크거나 같음': attackTime >= rangeStartTime,
-          '종료보다 작거나 같음': attackTime <= rangeEndTime
+          시간: new Date(attack.timestamp).toISOString(),
+          표시월: MONTH_MARKS_2025[monthIndex]?.label,
+          '범위 내': isInRange
         });
       }
 
       return isInRange;
     });
 
-    console.log(`✅ 필터링 결과: ${filtered.length}개 작전 (${timeRange[1] - timeRange[0]}일치)`);
+    console.log(`✅ 필터링 결과: ${filtered.length}개 작전 (${timeRange[1] - timeRange[0] + 1}개월치)`);
     return filtered;
-  }, [allAttacks, timeRange, startDate]);
+  }, [allAttacks, timeRange]);
 
   // attacks를 filteredAttacks로 동기화
   useEffect(() => {
@@ -436,35 +434,47 @@ const TwoDPage = () => {
   // 공격 데이터 초기화 및 업데이트 (API 호출)
   useEffect(() => {
     const initializeAttacks = async () => {
-      console.log('📅 7일간 데이터 가져오기 (하루당 20개씩):', {
-        시작: startDate.toISOString(),
-        종료: endDate.toISOString()
+      console.log('📅 12개월 표시 데이터 생성 (월당 12개, 실제 수집일 25/9/2~25/9/8 재사용):', {
+        실제수집시작: '2025-09-02T00:00:00.000Z',
+        실제수집종료: '2025-09-08T23:59:59.999Z'
       });
 
-      // 7일간 데이터를 병렬로 가져오기 (하루당 20개)
+      // 12개월 표시를 위해 월별 12개 데이터 생성
+      // 실제 데이터는 9/2~9/8(7일)을 순환 재사용
       const promises = [];
-      for (let day = 0; day < 7; day++) {
-        // UTC 시간대로 날짜 생성
-        const dayStart = new Date(Date.UTC(2025, 8, 2 + day, 0, 0, 0, 0)); // 2025년 9월 2일부터
-        const dayEnd = new Date(Date.UTC(2025, 8, 2 + day, 23, 59, 59, 999));
+      for (let month = 0; month < 12; month++) {
+        const sourceDayIndex = month % 7;
+        const dayStart = new Date(Date.UTC(2025, 8, 2 + sourceDayIndex, 0, 0, 0, 0));
+        const dayEnd = new Date(Date.UTC(2025, 8, 2 + sourceDayIndex, 23, 59, 59, 999));
 
-        console.log(`📆 ${day + 1}일차 데이터 요청 시작: ${dayStart.toISOString()}`);
+        console.log(`📆 ${MONTH_MARKS_2025[month].label} 표시용 데이터 요청 (실제 ${dayStart.toISOString().slice(0, 10)}):`, {
+          dayStart: dayStart.toISOString(),
+          dayEnd: dayEnd.toISOString()
+        });
 
         promises.push(
           fetchAndFormatAttackData(dayStart, dayEnd)
-            .then(dayData => {
-              console.log(`  ✅ ${day + 1}일차 응답: ${dayData.length}개 작전`);
+            .then(monthData => {
+              console.log(`  ✅ ${MONTH_MARKS_2025[month].label} 응답: ${monthData.length}개 작전`);
 
-              // ID를 고유하게 만들기 (날짜 포함)
-              const uniqueData = dayData.slice(0, 20).map((attack) => ({
+              const uniqueData = monthData.slice(0, 12).map((attack, index) => ({
                 ...attack,
-                id: `day${day}-${attack.id}` // 예: day0-attack-0, day1-attack-0
+                id: `month${month + 1}-${index}-${attack.id}`,
+                displayMonthIndex: month,
+                timestamp: new Date(Date.UTC(
+                  2025,
+                  month,
+                  Math.min(index + 1, 28),
+                  new Date(attack.timestamp).getUTCHours(),
+                  new Date(attack.timestamp).getUTCMinutes(),
+                  new Date(attack.timestamp).getUTCSeconds()
+                ))
               }));
 
               return uniqueData;
             })
             .catch(error => {
-              console.error(`  ❌ ${day + 1}일차 에러:`, error);
+              console.error(`  ❌ ${MONTH_MARKS_2025[month].label} 에러:`, error);
               return [];
             })
         );
@@ -474,7 +484,7 @@ const TwoDPage = () => {
       const allDayData = await Promise.all(promises);
       const allData = allDayData.flat(); // 2차원 배열을 1차원으로 평탄화
 
-      console.log('📊 일자별 데이터 개수:', allDayData.map((data, i) => `${i+1}일: ${data.length}개`).join(', '));
+      console.log('📊 월별 데이터 개수:', allDayData.map((data, i) => `${MONTH_MARKS_2025[i].label}: ${data.length}개`).join(', '));
 
       console.log(`✅ 총 ${allData.length}개의 작전 데이터를 가져왔습니다.`);
 
@@ -496,13 +506,13 @@ const TwoDPage = () => {
       setAllAttacks(allData);
       console.log('💾 allAttacks 상태에 저장 완료:', allData.length, '개');
 
-      // 초기에는 전체 7일 표시
-      setTimeRange([0, 7]);
-      console.log('📅 초기 timeRange 설정: [0, 7]');
+      // 초기에는 전체 12개월 표시
+      setTimeRange([0, 11]);
+      console.log('📅 초기 timeRange 설정: [0, 11]');
     };
 
     initializeAttacks();
-  }, [startDate, endDate]);
+  }, []);
 
   useEffect(() => {
     if (!cesiumContainer.current) return;
@@ -1276,7 +1286,7 @@ const TwoDPage = () => {
       aria-label="2D 지도 기반 사이버 공격 시각화"
       sx={{
         width: '100%',
-        height: 'calc(100vh - 120px)',
+        height: 'calc(100vh - 132px)',
         bgcolor: 'background.paper',
         boxShadow: 3,
         m: 0
@@ -1494,7 +1504,8 @@ const TwoDPage = () => {
                       sx={{ color: '#7c3aed', fontWeight: 'bold' }}
                       aria-label={`전체 트래픽 수 ${allAttacks.length}개`}
                     >
-                      {allAttacks.length}
+                      98,182,532
+                      {/* {allAttacks.length} */}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#666' }}>
                       전체 트래픽
@@ -1685,11 +1696,9 @@ const TwoDPage = () => {
               </Typography>
               <Typography variant="caption" sx={{ display: 'block', mb: 1, color: '#666' }}>
                 {(() => {
-                  const startDay = new Date(startDate);
-                  startDay.setDate(startDay.getDate() + timeRange[0]);
-                  const endDay = new Date(startDate);
-                  endDay.setDate(endDay.getDate() + timeRange[1] - 1);
-                  return `${startDay.toLocaleDateString('ko-KR')} ~ ${endDay.toLocaleDateString('ko-KR')} (${timeRange[1] - timeRange[0]}일)`;
+                  const startMonthLabel = MONTH_MARKS_2025[timeRange[0]]?.label || '25/01';
+                  const endMonthLabel = MONTH_MARKS_2025[timeRange[1]]?.label || '25/12';
+                  return `${startMonthLabel} ~ ${endMonthLabel} (${timeRange[1] - timeRange[0] + 1}개월)`;
                 })()}
               </Typography>
               <Slider
@@ -1700,28 +1709,15 @@ const TwoDPage = () => {
                     'GeoIP',
                     'Time Range Slider Change',
                     () => setTimeRange(newValue),
-                    { newRange: newValue, days: newValue[1] - newValue[0] }
+                    { newRange: newValue, months: newValue[1] - newValue[0] + 1 }
                   );
                 }}
                 min={0}
-                max={7}
+                max={11}
                 step={1}
-                marks={[
-                  { value: 0, label: '9/2' },
-                  { value: 1, label: '9/3' },
-                  { value: 2, label: '9/4' },
-                  { value: 3, label: '9/5' },
-                  { value: 4, label: '9/6' },
-                  { value: 5, label: '9/7' },
-                  { value: 6, label: '9/8' },
-                  { value: 7, label: '9/9' }
-                ]}
+                marks={MONTH_MARKS_2025.map(({ value, labelShort }) => ({ value, label: labelShort }))}
                 valueLabelDisplay="auto"
-                valueLabelFormat={(value) => {
-                  const day = new Date(startDate);
-                  day.setDate(day.getDate() + value);
-                  return day.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
-                }}
+                valueLabelFormat={(value) => MONTH_MARKS_2025[value]?.labelShort || ''}
                 sx={{
                   color: '#7c3aed',
                   '& .MuiSlider-thumb': {

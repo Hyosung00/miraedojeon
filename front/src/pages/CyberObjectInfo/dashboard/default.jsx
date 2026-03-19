@@ -230,7 +230,7 @@ export default function DashboardDefault() {
   }, [isAutoPaused, visualizations.length]);
 
   return (
-    <Box sx={{ height: 'calc(100vh - 90px)', display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
+    <Box sx={{ height: 'calc(96vh - 80px)', display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
 
       {/* 하단 가변 카드 - 2열 그리드 */}
       <Card 
@@ -447,8 +447,14 @@ export default function DashboardDefault() {
             
             {displayedBottomCards.map((card) => {
               const ChartComponent = CHART_MAP[card.logCard];
+              const isActiveResponseView = currentViewConfig.id === 'activeResponse';
+              const mdSize = isActiveResponseView
+                ? (card.logCard === '대응 방책' ? 6 : 3)
+                : 3;
+              const cardHeight = '38vh';
+
               return (
-                <Grid size={6} key={card.logCard}>
+                <Grid size={{ xs: 12, md: mdSize }} key={card.logCard}>
                   <Card
                     onClick={() => interactionTracker.log('DashboardDefault', 'Card Interaction', { card: card.logCard })}
                     sx={{
@@ -457,66 +463,43 @@ export default function DashboardDefault() {
                       borderRadius: 2,
                       border: '1px solid',
                       borderColor: 'divider',
-                      height: '20vh',
+                      height: cardHeight,
                       display: 'flex',
-                      flexDirection: 'row',
+                      flexDirection: 'column',
                       overflow: 'hidden',
                       cursor: 'pointer'
                     }}
                   >
-                    {/* 좌측: 텍스트 */}
-                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', p: 1.5, overflow: 'hidden', height: '100%', minWidth: 0 }}>
-                      {/* 헤더 */}
-                      <Box sx={{ mb: 0.5, flexShrink: 0 }}>
-                        <Typography noWrap fontWeight="bold" color="#000" sx={{ fontSize: responsiveFont.cardTitle, lineHeight: 1.3 }}>
-                          {card.title}
-                        </Typography>
-                        <Typography noWrap color="#000" sx={{ fontSize: responsiveFont.cardSubtitle, lineHeight: 1.3, mt: 0.2 }}>
-                          {card.subtitle}
-                        </Typography>
-                      </Box>
-                      {/* 내용 */}
-                      <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.25 }}>
-                        {card.modules.map((module) => (
-                          <Typography
-                            key={`${card.logCard}-${module.label}`}
-                            color="#000"
-                            sx={{
-                              fontSize: responsiveFont.cardBody,
-                              lineHeight: 1.35,
-                              overflow: 'hidden',
-                              whiteSpace: 'normal',
-                              wordBreak: 'keep-all',
-                            }}
-                          >
-                            <strong>{module.label}:</strong> {module.content}
-                          </Typography>
-                        ))}
-                      </Box>
-                      {/* 태그 */}
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'nowrap', mt: 0.4, flexShrink: 0, overflow: 'hidden' }}>
-                        {card.tags.map((tag) => (
-                          <Typography key={tag} noWrap sx={{ bgcolor: 'rgba(0,0,0,0.06)', px: 0.7, py: 0.2, borderRadius: 1, fontSize: responsiveFont.chipText, flexShrink: 0 }}>
-                            {tag}
-                          </Typography>
-                        ))}
-                      </Box>
+                    {/* 카드 제목 영역 */}
+                    <Box sx={{
+                      px: 1.5,
+                      py: 1,
+                      bgcolor: 'rgba(255,255,255,0.9)',
+                      borderBottom: '1px solid',
+                      borderColor: 'divider',
+                      flexShrink: 0
+                    }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: responsiveFont.cardTitle, color: '#000', mb: 0.3 }}>
+                        {card.title}
+                      </Typography>
+                      <Typography variant="caption" sx={{ fontSize: responsiveFont.cardSubtitle, color: '#666' }}>
+                        {card.subtitle}
+                      </Typography>
                     </Box>
 
-                    {/* 우측: 미니 차트 */}
+                    {/* MiniCharts 영역 */}
                     {ChartComponent && (
                       <Box sx={{
-                        width: '38%',
-                        flexShrink: 0,
-                        alignSelf: 'stretch',
                         position: 'relative',
+                        flex: 1,
+                        width: '100%',
+                        height: '100%',
                         bgcolor: 'rgba(255,255,255,0.55)',
-                        borderLeft: '1px solid',
-                        borderColor: '#E4DFFA',
                         overflow: 'hidden',
+                        minHeight: 0
                       }}>
-                        <Box sx={{ position: 'absolute', top: 6, left: 6, right: 6, bottom: 6 }}>
-                          <ChartComponent />
+                        <Box sx={{ position: 'absolute', top: 6, left: 6, right: 6, bottom: 2, height: 'calc(100% - 12px)' }}>
+                          <ChartComponent nodes={dbNodes} />
                         </Box>
                       </Box>
                     )}

@@ -20,7 +20,7 @@ const TreatAnalysis = ({ open = true, isPopup = false }) => {
   return (
     <Card sx={{
       width: '100%',
-      height: isPopup ? '100%' : 'calc(100vh - 120px)',
+      height: isPopup ? '100%' : 'calc(97vh - 93px)',
       bgcolor: 'background.paper',
       boxShadow: 3,
       m: 0
