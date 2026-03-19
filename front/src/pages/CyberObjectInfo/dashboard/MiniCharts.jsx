@@ -966,6 +966,26 @@ export function NetworkTaskProgressChart() {
 export function TargetCandidateChart() {
   const [data, setData] = useState([]);
 
+  const toTargetScore100 = (node) => {
+    const raw = Number(
+      node?.target_score ??
+      node?.targetScore ??
+      node?.score ??
+      node?.risk_score ??
+      node?.priority ??
+      NaN
+    );
+
+    if (!Number.isNaN(raw)) {
+      if (raw <= 1) return Math.max(0, Math.min(100, raw * 100));
+      return Math.max(0, Math.min(100, raw));
+    }
+
+    const degree = typeof node?.degree_score === 'number' ? node.degree_score : 0;
+    const con = typeof node?.con_score === 'number' ? node.con_score : 0;
+    return Math.max(0, Math.min(100, ((degree + con) / 2) * 100));
+  };
+
   useEffect(() => {
     fetchTargetNodes().then(raw => {
       const nodeMap = new Map();
@@ -985,22 +1005,23 @@ export function TargetCandidateChart() {
         return;
       }
 
-      const typeCounts = {};
-      [...nodeMap.values()].forEach((node) => {
-        const degree = typeof node.degree_score === 'number' ? node.degree_score : 0;
-        const con = typeof node.con_score === 'number' ? node.con_score : 0;
-        if (degree < 0.5 || con < 0.5) return;
-
-        const type = node.type || node.kind || 'UNKNOWN';
-        typeCounts[type] = (typeCounts[type] || 0) + 1;
+      const bins = Array.from({ length: 10 }, (_, idx) => {
+        const start = idx * 10;
+        const end = idx === 9 ? 100 : start + 9;
+        return {
+          name: `${start}-${end}`,
+          value: 0,
+          rangeStart: start
+        };
       });
 
-      const result = Object.entries(typeCounts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 7)
-        .map(([name, value]) => ({ name, value }));
+      [...nodeMap.values()].forEach((node) => {
+        const score = toTargetScore100(node);
+        const bucketIndex = Math.min(9, Math.floor(score / 10));
+        bins[bucketIndex].value += 1;
+      });
 
-      setData(result);
+      setData(bins);
     });
   }, []);
 
@@ -1010,7 +1031,7 @@ export function TargetCandidateChart() {
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
           <XAxis type="number" tick={{ fontSize: 8 }} allowDecimals={false} />
           <YAxis type="category" dataKey="name" tick={{ fontSize: 8 }} width={56} />
-          <Tooltip formatter={(v) => [`${v}개`, '고위험 노드 수']} contentStyle={{ fontSize: 10 }} />
+          <Tooltip formatter={(v) => [`${v}개`, '노드 수']} labelFormatter={(label) => `표적 점수 ${label}점`} contentStyle={{ fontSize: 10 }} />
           <Bar dataKey="value" fill={PURPLE} radius={[0, 2, 2, 0]}>
             {data.map((entry, index) => (
               <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -1019,7 +1040,7 @@ export function TargetCandidateChart() {
         </BarChart>
       ) : (
         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: 11 }}>
-          고위험군(0.5↑) 노드 없음
+          표적 점수 데이터 없음
         </div>
       )}
     </ResponsiveContainer>

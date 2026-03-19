@@ -143,8 +143,6 @@ export default function DashboardDefault() {
       component: <GeoIPMini />,
       action: handleTimeSeries,
       mainTitle: 'OSINT 및 수집 데이터 융합기',
-      viewerDescription: `• BGP 아카이브 수집 데이터를 기간별로 필터링해 국가·경로 단위 트래픽을 즉시 비교함.
-    • 출발지/목적지 좌표와 아크 경로, 실시간 로그를 함께 제공해 위협 흐름을 빠르게 파악함.`,
       description: [
         'BGP 아카이브(RouteViews, RIPE RIS) 데이터를 주기적으로 수집·파싱하며, 날짜 범위 슬라이더로 특정 기간의 트래픽을 필터링하고 전체 수집 건수와 현재 표시 건수를 별도 집계·표시함.',
         '수집된 트래픽은 세계 지도 위에 출발지(노란 마커)·목적지(청색 마커) 좌표로 표시되고, 두 지점을 연결하는 붉은 아크 라인으로 경로를 시각화하며 국가별 트래픽 통계를 한국어로 제공함.',
@@ -160,8 +158,6 @@ export default function DashboardDefault() {
       component: <PDRMini/>,
       action: handlePDR,
       mainTitle: '사이버 객체 정보 가시화기',
-      viewerDescription: `• 북한 6개 핵심 군사·전략 시설의 위경도 좌표를 위성 지도에 매핑해 시설 간 거리·연계를 분석함.
-    • 시설 선택 시 SVG 블루프린트로 내부 구조를 표시하고, 정상/이상 구역 색상 구분으로 취약 지점을 직관적으로 확인함.`,
       description: [
         '북한 6개 핵심 군사·전략 시설(영변 핵시설, 신포 조선소, 국방과학원 미사일 연구소, 평양 공군 기지, 무수단리 발사 기지, 동창리 미사일 발사대)의 정확한 위경도 좌표를 위성 지도 위에 마커로 표시하고 시설 간 거리 및 관계를 분석함.',
         '각 시설 선택 시 건물 내부 구조를 SVG 블루프린트 스타일로 가시화하며, 정상 구역(초록 테두리)과 이상 감지 구역(빨간 테두리)으로 색상 구분하여 구조적 취약 지점을 즉시 파악할 수 있음.',
@@ -177,7 +173,6 @@ export default function DashboardDefault() {
       component: <Zone7Mini />,
       action: handleInternalTopology,
       mainTitle: '내외부 네트워크 가시화기',
-      viewerDescription: `네트워크 데이터 융합 → 외부망 기본맵 → 내부망 토폴로지 분석 흐름으로 운영`,
       description: [
         '네트워크 데이터 융합은 콘솔 기반 수집·융합 파이프라인을 제공하며 Start/Stop/Restart 제어로 처리 상태와 데이터 흐름을 실시간 모니터링함.',
         '외부망 기본맵 가시화는 외부 연계 토폴로지를 3D로 구성하고 영역 필터·링크 유형 전환(물리/논리)·노드 선택 이벤트 로그를 통해 연결 구조를 분석함.',
@@ -193,8 +188,6 @@ export default function DashboardDefault() {
       component: <TargetGraph2DMini dbNodes={dbNodes} />,
       action: handleTargetDashboard,
       mainTitle: '지능형 사이버 표적 식별기',
-      viewerDescription: `• 후보 표적을 degree/con 기반으로 분류해 핵심 타겟의 우선순위를 정량적으로 산출함.
-    • 의존성 그래프와 위험 분포를 동시에 비교해 우선 차단 대상 노드·링크를 빠르게 식별함.`,
       description: [
         '네트워크 구조 분석 모듈은 DB(Neo4j)에 저장된 노드·엣지 데이터를 기반으로 자산 간 연결성, 영향도, 의존 관계를 분석해 구조적 위험을 도출하도록 설계됨.',
         '노드의 연결 수(degree), 도달성/연결성 지표(con), 엣지 관계를 함께 해석해 네트워크 내부 파급 경로와 핵심 허브를 식별하고, 전략적 차단 우선순위 표적을 산출함.',
@@ -210,8 +203,6 @@ export default function DashboardDefault() {
       component: <OffensiveStrategyMini />,
       action: handleActiveResponse,
       mainTitle: '사이버 능동 대응 방책 분석기',
-      viewerDescription: `• 공격 경로(점선)와 정상 연결(실선)을 분리 표시해 우회 가능 지점과 병목 구간을 신속히 식별함.
-    • 차단 전·후 위험 지표(RS) 변화를 비교해 대응 시나리오의 효과를 정량적으로 검증함.`,
       description: [
         '내부망 토폴로지와 공격 경로를 결합해 공격 경로(빨간 점선)·정상연결(보라 실선)을 분리 시각화하고, 고위험 노드 링 강조로 우회 가능 지점을 식별함.',
         'RS( degree*0.6 + con*0.4 ) 기반 고/중/저 위험군을 차단 전·후로 비교해 정책별 완화 효과와 잔존 위험 편차를 정량적으로 확인함.',
