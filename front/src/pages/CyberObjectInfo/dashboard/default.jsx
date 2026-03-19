@@ -187,13 +187,13 @@ export default function DashboardDefault() {
       action: handleTargetDashboard,
       mainTitle: '지능형 사이버 표적 식별기',
       description: [
-        'target 데이터의 degree_score·con_score를 기반으로 후보 노드를 직접/간접/미분류로 분류하고, 도넛·산점·히스토그램으로 위험 분포를 입체적으로 확인함.',
-        '선택 노드 클릭 시 중심-인접 노드 의존성 그래프가 즉시 갱신되어 파급 경로, 허브 연결 밀도, 우선 차단 링크 후보를 빠르게 식별함.',
-        '연결 수 버킷(1, 2-5, 6-10, 11-20, 21+)과 고위험 군집(고degree·고con)을 함께 추적해 표적 우선순위와 후속 대응 대상을 정밀화함.',
-        '실시간 필터 변화에 따라 후보군 비중, 위험도 분포, 연결성 구조가 동기화되어 분석자가 동일 화면에서 탐지·해석·우선조치 결정을 연속적으로 수행할 수 있음.',
-        '선정된 핵심 표적은 이벤트 로그 및 후속 대응 파이프라인과 연계되어 검증→재평가→차단 의사결정 근거를 축적하고, 반복 분석 시 일관된 기준으로 비교 가능함.'
+        '네트워크 구조 분석 모듈은 DB(Neo4j)에 저장된 노드·엣지 데이터를 기반으로 자산 간 연결성, 영향도, 의존 관계를 분석해 구조적 위험을 도출하도록 설계됨.',
+        '노드의 연결 수(degree), 도달성/연결성 지표(con), 엣지 관계를 함께 해석해 네트워크 내부 파급 경로와 핵심 허브를 식별하고, 전략적 차단 우선순위 표적을 산출함.',
+        '후보/핵심 표적 상세 가시화는 노드 연결 수와 고위험 군집(고연결·고도달)을 함께 추적해 표적 우선순위 근거를 정량화함.',
+        '표적 데이터를 기반으로 필터 조건, 그래프 상호작용, 통계 지표, 이벤트 로그가 동기화되어 지휘관이 단일 화면에서 탐지·해석·우선조치 결정을 연속 수행할 수 있음.',
+        '선정된 핵심 표적은 후속 대응 파이프라인과 연계되어 검증→재평가→차단 의사결정 근거를 축적하며, 반복 분석 시 동일 기준으로 비교·추적 가능함.'
       ],
-      flowSteps: ['표적 후보 분류(직접·간접·미분류)', '선택 노드 의존성 파급 분석', '위험 산점·연결 분포 해석', '핵심 표적 우선순위 확정', '후속 대응 대상 전달']
+      flowSteps: ['네트워크 구조 분석(의존성·파급)', '후보/핵심 표적 상세 가시화', '핵심 표적 선정', '후속 대응 대상 전달']
     },
     {
       id: 'activeResponse',
@@ -202,7 +202,7 @@ export default function DashboardDefault() {
       action: handleActiveResponse,
       mainTitle: '사이버 능동 대응 방책 분석기',
       description: [
-        'zone7 물리 토폴로지와 공격 경로를 결합해 공격경로(빨간 점선)·정상연결(보라 실선)을 분리 시각화하고, 고위험 노드 링 강조로 우회 가능 지점을 식별함.',
+        '내부망 토폴로지와 공격 경로를 결합해 공격 경로(빨간 점선)·정상연결(보라 실선)을 분리 시각화하고, 고위험 노드 링 강조로 우회 가능 지점을 식별함.',
         'RS( degree*0.6 + con*0.4 ) 기반 고/중/저 위험군을 차단 전·후로 비교해 정책별 완화 효과와 잔존 위험 편차를 정량적으로 확인함.',
         '장치 유형 분포와 RS 구간(10% 단위) 분포를 함께 추적해 시나리오 우선순위, 정책 적용 순서, 지속 개선 루프를 운영함.',
         '공격 가능 경로의 병목 지점과 측면 이동 가능 구간을 분리 관찰하여 차단·격리·우회 통제 정책을 단계별로 설계하고, 정책 충돌 가능성까지 사전 점검함.',
@@ -273,7 +273,7 @@ export default function DashboardDefault() {
 
                   <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.8, mb: 1 }}>
                     {visualizations[currentView].description.map((desc, index) => (
-                      <Typography key={index} color="#000" sx={{ lineHeight: 1.6, fontSize: responsiveFont.heroDescription }}>
+                      <Typography key={index} color="#000" sx={{ lineHeight: 1.6, fontSize: responsiveFont.heroDescription, whiteSpace: 'pre-line' }}>
                         • {desc}
                       </Typography>
                     ))}
@@ -424,9 +424,23 @@ export default function DashboardDefault() {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
+                    gap: 1,
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                   }}>
-                    <Typography variant="subtitle1" color="#000" fontWeight="bold" sx={{ fontSize: responsiveFont.viewerTitle }}>
+                    <Typography
+                      variant="subtitle1"
+                      color="#000"
+                      fontWeight="bold"
+                      sx={{
+                        fontSize: responsiveFont.viewerTitle,
+                        flex: 1,
+                        minWidth: 0,
+                        lineHeight: 1.25,
+                        whiteSpace: 'normal',
+                        wordBreak: 'keep-all',
+                        overflowWrap: 'anywhere'
+                      }}
+                    >
                       {visualizations[currentView].title}
                     </Typography>
                     <Button
@@ -436,7 +450,7 @@ export default function DashboardDefault() {
                         e.stopPropagation();
                         visualizations[currentView].action();
                       }}
-                      sx={{ ml: 1, minWidth: '40px', p: 0, fontSize: responsiveFont.actionButton }}
+                      sx={{ ml: 1, minWidth: '40px', p: 0, fontSize: responsiveFont.actionButton, flexShrink: 0 }}
                     >
                       이동
                     </Button>
@@ -479,10 +493,33 @@ export default function DashboardDefault() {
                       borderColor: 'divider',
                       flexShrink: 0
                     }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', fontSize: responsiveFont.cardTitle, color: '#000', mb: 0.3 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 'bold',
+                          fontSize: responsiveFont.cardTitle,
+                          color: '#000',
+                          mb: 0.3,
+                          whiteSpace: 'normal',
+                          lineHeight: 1.25,
+                          wordBreak: 'keep-all',
+                          overflowWrap: 'anywhere'
+                        }}
+                      >
                         {card.title}
                       </Typography>
-                      <Typography variant="caption" sx={{ fontSize: responsiveFont.cardSubtitle, color: '#666' }}>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: responsiveFont.cardSubtitle,
+                          color: '#666',
+                          display: 'block',
+                          whiteSpace: 'normal',
+                          lineHeight: 1.3,
+                          wordBreak: 'keep-all',
+                          overflowWrap: 'anywhere'
+                        }}
+                      >
                         {card.subtitle}
                       </Typography>
                     </Box>

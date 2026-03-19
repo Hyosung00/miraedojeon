@@ -467,18 +467,14 @@ export function TargetCandidateChart() {
     fetchTargetNodes().then(raw => {
       const nodeMap = new Map();
       raw.forEach(item => {
-        if (item.src_IP?.ip) nodeMap.set(item.src_IP.ip, item.src_IP);
-        if (item.dst_IP?.ip) nodeMap.set(item.dst_IP.ip, item.dst_IP);
-      });
-
-      let direct = 0;
-      let indirect = 0;
-      let unclassified = 0;
-      [...nodeMap.values()].forEach(node => {
-        const degree = typeof node.degree_score === 'number' ? node.degree_score : 0;
-        if (degree > 0.5) direct += 1;
-        else if (degree > 0) indirect += 1;
-        else unclassified += 1;
+        if (item.src_IP) {
+          const key = item.src_IP.id != null ? `id:${item.src_IP.id}` : (item.src_IP.ip ? `ip:${item.src_IP.ip}` : null);
+          if (key && !nodeMap.has(key)) nodeMap.set(key, item.src_IP);
+        }
+        if (item.dst_IP) {
+          const key = item.dst_IP.id != null ? `id:${item.dst_IP.id}` : (item.dst_IP.ip ? `ip:${item.dst_IP.ip}` : null);
+          if (key && !nodeMap.has(key)) nodeMap.set(key, item.dst_IP);
+        }
       });
 
       if (!nodeMap.size) {
@@ -486,24 +482,43 @@ export function TargetCandidateChart() {
         return;
       }
 
-      setData([
-        { name: '직접', value: direct },
-        { name: '간접', value: indirect },
-        { name: '미분류', value: unclassified }
-      ]);
+      const typeCounts = {};
+      [...nodeMap.values()].forEach((node) => {
+        const degree = typeof node.degree_score === 'number' ? node.degree_score : 0;
+        const con = typeof node.con_score === 'number' ? node.con_score : 0;
+        if (degree < 0.5 || con < 0.5) return;
+
+        const type = node.type || node.kind || 'UNKNOWN';
+        typeCounts[type] = (typeCounts[type] || 0) + 1;
+      });
+
+      const result = Object.entries(typeCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 7)
+        .map(([name, value]) => ({ name, value }));
+
+      setData(result);
     });
   }, []);
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <PieChart>
-        <Pie data={data} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="28%" outerRadius="54%" paddingAngle={2}>
-          <Cell fill={PURPLE} />
-          <Cell fill={LIGHT_PURPLE} />
-          <Cell fill="#94a3b8" />
-        </Pie>
-        <Tooltip formatter={(v, n) => [`${v}개`, n]} contentStyle={{ fontSize: 10 }} />
-      </PieChart>
+      {data.length ? (
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 8, bottom: 4 }}>
+          <XAxis type="number" tick={{ fontSize: 8 }} allowDecimals={false} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 8 }} width={56} />
+          <Tooltip formatter={(v) => [`${v}개`, '고위험 노드 수']} contentStyle={{ fontSize: 10 }} />
+          <Bar dataKey="value" fill={PURPLE} radius={[0, 2, 2, 0]}>
+            {data.map((entry, index) => (
+              <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Bar>
+        </BarChart>
+      ) : (
+        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: 11 }}>
+          고위험군(0.5↑) 노드 없음
+        </div>
+      )}
     </ResponsiveContainer>
   );
 }
