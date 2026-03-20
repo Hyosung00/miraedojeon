@@ -921,7 +921,7 @@ export function NetworkTaskProgressChart() {
               dataKey="value"
               nameKey="name"
               cx="50%"
-              cy="74%"
+              cy="56%"
               startAngle={180}
               endAngle={0}
               innerRadius="52%"
@@ -934,10 +934,10 @@ export function NetworkTaskProgressChart() {
               ))}
             </Pie>
 
-            <text x="50%" y="66%" textAnchor="middle" fill="#111827" fontSize="11" fontWeight="bold">
+            <text x="50%" y="48%" textAnchor="middle" fill="#111827" fontSize="11" fontWeight="bold">
               {`${topType?.name || '-'} ${topType?.value ?? 0}%`}
             </text>
-            <text x="50%" y="75%" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="600">
+            <text x="50%" y="57%" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="600">
               {`총 ${totalLinks}개 링크`}
             </text>
             <Tooltip
