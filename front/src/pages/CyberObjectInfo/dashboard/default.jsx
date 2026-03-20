@@ -197,9 +197,9 @@ export default function DashboardDefault() {
       action: handleTargetDashboard,
       mainTitle: '지능형 사이버 표적 식별기',
       description: [
-        '네트워크 구조 분석 모듈은 DB(Neo4j)에 저장된 노드·엣지 데이터를 기반으로 자산 간 연결성, 영향도, 의존 관계를 분석해 구조적 위험을 도출하도록 설계됨.',
-        '노드의 연결 수(degree), 도달성/연결성 지표(con), 엣지 관계를 함께 해석해 네트워크 내부 파급 경로와 핵심 허브를 식별하고, 전략적 차단 우선순위 표적을 산출함.',
-        '후보/핵심 표적 상세 가시화는 노드 연결 수와 고위험 군집(고연결·고도달)을 함께 추적해 표적 우선순위 근거를 정량화함.',
+        '【네트워크 구조 분석 모듈】 DB(Neo4j)에 저장된 노드·엣지 데이터를 기반으로 자산 간 연결성, 영향도, 의존 관계를 분석해 구조적 위험을 도출하도록 설계됨.',
+        '노드의 연결 수(degree), 도달성/연결성 지표(con), 엣지 관계를 함께 해석해 네트워크 내부 파급 경로와 핵심 허브를 식별하고, 전략적 차단 우선순위 표적을 산출함.',        
+        '【후보/핵심 표적 상세 가시화】 노드 연결 수와 고위험 군집(고연결·고도달)을 함께 추적해 표적 우선순위 근거를 정량화함.',
         '표적 데이터를 기반으로 필터 조건, 그래프 상호작용, 통계 지표, 이벤트 로그가 동기화되어 지휘관이 단일 화면에서 탐지·해석·우선조치 결정을 연속 수행할 수 있음.',
         '선정된 핵심 표적은 후속 대응 파이프라인과 연계되어 검증→재평가→차단 의사결정 근거를 축적하며, 반복 분석 시 동일 기준으로 비교·추적 가능함.'
       ],
@@ -212,8 +212,8 @@ export default function DashboardDefault() {
       action: handleActiveResponse,
       mainTitle: '사이버 능동 대응 방책 분석기',
       description: [
-        '위험 노출도 및 공격 가능도 측정 모듈은 내부망 토폴로지와 위협 지표를 기반으로 노드·경로 단위 위험도를 정량화하고, 공격 확산 가능 구간과 병목 지점을 식별하도록 설계됨.',
-        '능동 대응책 대응 효과/경로 가시화 모듈은 공격 경로(빨간 점선)와 정상 연결(보라 실선)을 분리 표시하고, 정책 적용 전·후 변화 경로를 비교해 통제 효과를 직관적으로 검증하도록 구성됨.',
+        '【위험 노출도 및 공격 가능도 측정기】 내부망 토폴로지와 위협 지표를 기반으로 노드·경로 단위 위험도를 정량화하고, 공격 확산 가능 구간과 병목 지점을 식별하도록 설계됨.',
+        '【능동 대응책 대응 효과/경로 가시화】 공격 경로(빨간 점선)와 정상 연결(보라 실선)을 분리 표시하고, 정책 적용 전·후 변화 경로를 비교해 통제 효과를 직관적으로 검증하도록 구성됨.',
         'RS( 연결 정도 * 0.6 + 도달 정도 * 0.4 ) 기반 고·중·저 위험군 분포를 추적해 정책별 완화 효과와 잔존 위험 편차를 정량적으로 평가함.',
         '장치 유형 분포와 RS 구간(10% 단위) 분포를 함께 분석해 시나리오 우선순위, 정책 적용 순서, 재조치 필요 대상을 도출함.',      
       ],
@@ -280,25 +280,56 @@ export default function DashboardDefault() {
                     {visualizations[currentView].mainTitle}
                   </Typography>
 
-                  <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1, mb: 1 }}>
-                    {visualizations[currentView].description.map((desc, index) =>
-                      typeof desc === 'object' ? (
-                        <Box key={index} sx={{ mb: index < visualizations[currentView].description.length - 1 ? 1.2 : 0 }}>
-                          <Typography fontWeight="bold" color="#4c1d95" sx={{ fontSize: responsiveFont.heroDescription, lineHeight: 1.4, mb: 0.4 }}>
-                            {desc.subTitle}
-                          </Typography>
-                          {desc.lines.map((line, ci) => (
-                            <Typography key={ci} color="#000" sx={{ fontSize: responsiveFont.heroDescription, lineHeight: 1.55, pl: 0.5 }}>
-                              - {line}
+                  <Box
+                    sx={{
+                      flex: 1,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      gap: 0.8,
+                      mb: 1,
+                      fontSize: 'clamp(0.78rem, 0.35vw + 0.72rem, 1.2rem)'
+                    }}
+                  >
+                    {visualizations[currentView].description.map((desc, index) => {
+                      // { subTitle, lines } 객체 형식 (osint, cyberObject)
+                      if (typeof desc === 'object') {
+                        return (
+                          <Box key={index} sx={{ display: 'flex', flexDirection: 'column', gap: 0.2, mt: index > 0 ? 1.5 : 0 }}>
+                            <Typography color="#4c1d95" sx={{ lineHeight: 1.35, fontSize: '1.22em', fontWeight: 800 }}>
+                              • {desc.subTitle}
                             </Typography>
-                          ))}
-                        </Box>
-                      ) : (
-                        <Typography key={index} color="#000" sx={{ lineHeight: 1.6, fontSize: responsiveFont.heroDescription }}>
+                            {desc.lines.map((line, ci) => (
+                              <Typography key={ci} color="#000" sx={{ lineHeight: 1.55, fontSize: '1em', pl: 1.9 }}>
+                                - {line}
+                              </Typography>
+                            ))}
+                          </Box>
+                        );
+                      }
+                      // 【subtitle】 body 문자열 형식 (target, activeResponse)
+                      const subtitleMatch = desc.match(/^【([^】]+)】\s*(.*)$/);
+                      if (subtitleMatch) {
+                        const [, subtitle, body] = subtitleMatch;
+                        return (
+                          <Box key={index} sx={{ display: 'flex', flexDirection: 'column', gap: 0.2, mt: index > 0 ? 1.5 : 0 }}>
+                            <Typography color="#000" sx={{ lineHeight: 1.35, fontSize: '1.22em', fontWeight: 800, whiteSpace: 'pre-line' }}>
+                              • {subtitle}
+                            </Typography>
+                            <Typography color="#000" sx={{ lineHeight: 1.55, fontSize: '1em', pl: 1.9, whiteSpace: 'pre-line' }}>
+                              {body}
+                            </Typography>
+                          </Box>
+                        );
+                      }
+                      // 일반 문자열
+                      return (
+                        <Typography key={index} color="#000" sx={{ lineHeight: 1.6, fontSize: '1em', whiteSpace: 'pre-line' }}>
                           • {desc}
                         </Typography>
-                      )
-                    )}
+                      );
+                    })}
                   </Box>
 
                   {/* 흐름도 */}
