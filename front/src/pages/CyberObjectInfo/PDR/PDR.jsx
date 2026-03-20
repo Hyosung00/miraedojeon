@@ -13,6 +13,8 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DomainIcon from '@mui/icons-material/Domain';
 import northInformation from './north_information.json';
 
+const DEFAULT_SITE = northInformation.find(s => s.id === 'site_sohae') || northInformation[0];
+
 // Cesium Token
 Cesium.Ion.defaultAccessToken = import.meta.env.VITE_CESIUM_ION_ACCESS_TOKEN || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIzODNiZmZiNC04YTUxLTQ1YzgtOWU1Mi1kNDUyY2I2ZDRkNTQiLCJpZCI6MzQyNDEzLCJpYXQiOjE3NTgxNzMyNDh9.zZRyMPovg5ALhNtG2_E-0ED0qHqd_uQQnAG84eQUyG4';
 
@@ -28,9 +30,11 @@ const PDR = () => {
   const cesiumContainer = useRef(null);
   const viewerRef = useRef(null);
 
-  const [selectedSite, setSelectedSite] = useState(null);
+  const [selectedSite, setSelectedSite] = useState(DEFAULT_SITE);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [expandedBuildingId, setExpandedBuildingId] = useState(DEFAULT_SITE.buildings[0]?.id ?? null);
 
   // 컴포넌트 마운트/언마운트 추적
   useEffect(() => {
@@ -66,12 +70,11 @@ const PDR = () => {
         viewerRef.current = viewer;
         viewer.cesiumWidget.creditContainer.style.display = "none";
         
-        // 초기 한반도 전체 뷰
-        const KOREA_VIEW = {
+        // 초기 뷰: 한반도 전체 (로드 후 fly-to로 교체됨)
+        viewer.camera.setView({
             destination: Cesium.Cartesian3.fromDegrees(127.5, 39.5, 1200000),
             orientation: { heading: 0.0, pitch: Cesium.Math.toRadians(-90.0), roll: 0.0 }
-        };
-        viewer.camera.setView(KOREA_VIEW);
+        });
 
         try {
           const terrainProvider = await Cesium.createWorldTerrainAsync();
@@ -118,10 +121,33 @@ const PDR = () => {
     };
   }, []);
 
+  // 초기 로드 시 서해위성발사장으로 카메라 fly-to
+  useEffect(() => {
+    if (!isLoaded || !viewerRef.current) return;
+    const site = DEFAULT_SITE;
+    if (!site.buildings || site.buildings.length === 0) return;
+
+    const lats = site.buildings.map(b => b.lat);
+    const lngs = site.buildings.map(b => b.lng);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    const MIN_BUFFER = 0.005;
+    const latBuffer = Math.max((maxLat - minLat) * 0.2, MIN_BUFFER);
+    const lngBuffer = Math.max((maxLng - minLng) * 0.2, MIN_BUFFER);
+
+    viewerRef.current.camera.flyTo({
+      destination: Cesium.Rectangle.fromDegrees(
+        minLng - lngBuffer, minLat - latBuffer,
+        maxLng + lngBuffer, maxLat + latBuffer
+      ),
+      duration: 1.5
+    });
+  }, [isLoaded]);
+
   useEffect(() => {
     if (!viewerRef.current || !isLoaded) return;
     const viewer = viewerRef.current;
-    
+
     viewer.entities.removeAll();
 
     if (!selectedSite) {
@@ -411,8 +437,29 @@ const PDR = () => {
                 <Typography variant="body2"><strong>건축:</strong> {selectedSite.detail.건물년수}</Typography>
             </Paper>
         )}
+        {/* 패널 토글 탭 */}
+        <Box
+          onClick={() => setPanelOpen(o => !o)}
+          sx={{
+            position: 'absolute', top: '50%', right: 0, transform: 'translateY(-50%)',
+            zIndex: 1100,
+            width: 20, height: 64,
+            bgcolor: '#263238',
+            borderRadius: '6px 0 0 6px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: '-2px 0 6px rgba(0,0,0,0.3)',
+            '&:hover': { bgcolor: '#37474f' },
+            transition: 'background 0.2s'
+          }}
+        >
+          <Typography sx={{ color: 'white', fontSize: 12, fontWeight: 'bold', lineHeight: 1 }}>
+            {panelOpen ? '›' : '‹'}
+          </Typography>
+        </Box>
       </Box>
 
+      {panelOpen && (
       <Card sx={{ width: 520, height: '100%', display: 'flex', flexDirection: 'column', borderLeft: '1px solid #ddd', bgcolor: '#f8f9fa' }}>
         <Box sx={{ p: 2, bgcolor: '#263238', color: 'white' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', display:'flex', alignItems:'center', gap:1 }}>
@@ -428,71 +475,83 @@ const PDR = () => {
                 </Box>
             )}
 
-            {selectedSite && !selectedBuilding && (
+            {selectedSite && (
                 <>
+                    <Button
+                        variant="outlined"
+                        startIcon={<ArrowBackIcon />}
+                        onClick={handleResetView}
+                        size="small"
+                        sx={{ alignSelf: 'flex-start', borderColor: '#90a4ae', color: '#546e7a', '&:hover': { borderColor: '#455a64', bgcolor: '#eceff1' } }}
+                    >
+                        전체 지도 보기
+                    </Button>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#333' }}>
                         내부 건물 목록 ({selectedSite.buildings.length})
                     </Typography>
-                    {selectedSite.buildings.map((bldg) => (
-                        <Button key={bldg.id} variant="outlined" startIcon={<BusinessIcon />}
-                            onClick={() => {
-                                interactionTracker.measureResponseSync(
-                                  'PDR',
-                                  'Building Card Click',
-                                  () => {
-                                    handleSelectBuilding(bldg, viewerRef.current);
-                                    viewerRef.current.flyTo(
-                                        viewerRef.current.entities.values.find(e => e.properties?.data?.getValue()?.id === bldg.id),
-                                        { duration: 1.0, offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), 1000) }
-                                    );
-                                  },
-                                  { buildingName: bldg.name, buildingId: bldg.id }
-                                );
-                            }}
-                            sx={{ justifyContent: 'flex-start', bgcolor: 'white', py: 1.5, borderColor: '#cfd8dc', color: '#455a64' }}>
-                            {bldg.name}
-                        </Button>
-                    ))}
+
+                    {/* 범례 */}
+                    <Box sx={{ display: 'flex', gap: 2, px: 0.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#e8f5e9', border: '2px solid #66bb6a' }} />
+                            <Typography variant="caption" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>정상</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#ffebee', border: '2px solid #e57373' }} />
+                            <Typography variant="caption" sx={{ color: '#c62828', fontWeight: 'bold' }}>이상</Typography>
+                        </Box>
+                    </Box>
+
+                    {selectedSite.buildings.map((bldg) => {
+                        const isExpanded = expandedBuildingId === bldg.id;
+                        return (
+                            <Box key={bldg.id} sx={{ border: '1px solid', borderColor: isExpanded ? '#90caf9' : '#cfd8dc', borderRadius: 1.5, overflow: 'hidden', bgcolor: 'white' }}>
+                                {/* 건물 헤더 - 클릭으로 토글 */}
+                                <Box
+                                    onClick={() => {
+                                        interactionTracker.measureResponseSync('PDR', 'Building Toggle', () => {
+                                            setExpandedBuildingId(isExpanded ? null : bldg.id);
+                                            if (!isExpanded) {
+                                                viewerRef.current?.flyTo(
+                                                    viewerRef.current.entities.values.find(e => e.properties?.data?.getValue()?.id === bldg.id),
+                                                    { duration: 1.0, offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), 1000) }
+                                                );
+                                            }
+                                        }, { buildingId: bldg.id, action: isExpanded ? 'collapse' : 'expand' });
+                                    }}
+                                    sx={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        px: 1.5, py: 1.2, cursor: 'pointer',
+                                        bgcolor: isExpanded ? '#e3f2fd' : 'white',
+                                        '&:hover': { bgcolor: isExpanded ? '#bbdefb' : '#f5f5f5' },
+                                        transition: 'background 0.15s'
+                                    }}
+                                >
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <BusinessIcon sx={{ fontSize: 16, color: isExpanded ? '#1565c0' : '#546e7a' }} />
+                                        <Typography variant="body2" sx={{ fontWeight: isExpanded ? 700 : 400, color: isExpanded ? '#1565c0' : '#455a64', fontSize: '0.82rem' }}>
+                                            {bldg.name}
+                                        </Typography>
+                                    </Box>
+                                    <Typography sx={{ fontSize: 13, color: '#90a4ae', fontWeight: 'bold' }}>
+                                        {isExpanded ? '▲' : '▼'}
+                                    </Typography>
+                                </Box>
+
+                                {/* 구조도 - 열렸을 때만 표시 */}
+                                {isExpanded && (
+                                    <Box sx={{ p: 1.5, borderTop: '1px solid #e3f2fd' }}>
+                                        <FloorPlanViewer building={bldg} />
+                                    </Box>
+                                )}
+                            </Box>
+                        );
+                    })}
                 </>
-            )}
-
-            {selectedBuilding && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb: 2 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1a237e', fontSize: '1.1rem' }}>
-                            {selectedBuilding.name}
-                        </Typography>
-                        <Button size="small" onClick={() => {
-                          interactionTracker.measureResponseSync(
-                            'PDR',
-                            'Back to Building List',
-                            () => setSelectedBuilding(null),
-                            {}
-                          );
-                        }} variant="outlined">목록</Button>
-                    </Box>
-
-                    <Box sx={{ flex: 1, minHeight: 400 }}>
-                        <FloorPlanViewer building={selectedBuilding} />
-                    </Box>
-
-                    <Box sx={{ mt: 'auto', p: 2, bgcolor: 'white', borderTop: '1px solid #eee' }}>
-                         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: '#455a64' }}>시설 상태 범례</Typography>
-                         <Box sx={{ display: 'flex', gap: 3 }}>
-                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                 <Box sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: '#e8f5e9', border: '2px solid #66bb6a' }} />
-                                 <Typography variant="body2" sx={{ color: '#2e7d32', fontWeight: 'bold' }}>정상 시설</Typography>
-                             </Box>
-                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                 <Box sx={{ width: 14, height: 14, borderRadius: '50%', bgcolor: '#ffebee', border: '2px solid #e57373' }} />
-                                 <Typography variant="body2" sx={{ color: '#c62828', fontWeight: 'bold' }}>이상 시설</Typography>
-                             </Box>
-                         </Box>
-                    </Box>
-                </Box>
             )}
         </Box>
       </Card>
+      )}
     </Card>
   );
 };

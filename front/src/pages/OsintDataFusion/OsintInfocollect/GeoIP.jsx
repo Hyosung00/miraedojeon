@@ -383,6 +383,23 @@ const TwoDPage = () => {
     };
   }, [attacks]);
 
+  const mapStats = useMemo(() => {
+    if (!attacks || attacks.length === 0) return null;
+
+    const routeViewsCount = attacks.filter(a => (a.displayMonthIndex ?? 0) % 2 === 0).length;
+    const ripeCount = attacks.length - routeViewsCount;
+
+    const protocolMap = {};
+    attacks.forEach(a => { const p = a.type || 'UNKNOWN'; protocolMap[p] = (protocolMap[p] || 0) + 1; });
+    const protocols = Object.entries(protocolMap).sort((a, b) => b[1] - a[1]).slice(0, 4);
+
+    const countryMap = {};
+    attacks.forEach(a => { const c = toKo(a.source.name); countryMap[c] = (countryMap[c] || 0) + 1; });
+    const countries = Object.entries(countryMap).sort((a, b) => b[1] - a[1]).slice(0, 4);
+
+    return { routeViewsCount, ripeCount, protocols, countries, total: attacks.length };
+  }, [attacks]);
+
   // 현재 월 범위에 따른 필터링된 작전 데이터
   const filteredAttacks = useMemo(() => {
     console.log('🔄 filteredAttacks useMemo 실행');
@@ -809,17 +826,12 @@ const TwoDPage = () => {
     // 기존 하이라이트 제거
     highlightedBuildings.forEach(entityId => {
       const entity = viewer.current.entities.getById(entityId);
-      if (entity) {
-        resetEntityColors(entity, entityId);
-      }
-      // 기존 광선(아크 노드)도 빨간색으로 복원
-      const beamId = entityId.replace(/^(source|target)-2d-/, 'beam-2d-');
-      const beamEntity = viewer.current.entities.getById(beamId);
-      if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
-        beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.05,
-          color: Cesium.Color.RED.withAlpha(0.08)
-        });
+      if (entity) resetEntityColors(entity, entityId);
+    });
+    // 모든 경로 투명화
+    viewer.current.entities.values.forEach(e => {
+      if (e.id?.startsWith('beam-2d-') && e.polyline?.material) {
+        e.polyline.material = new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.05, color: Cesium.Color.RED.withAlpha(0) });
       }
     });
 
@@ -844,11 +856,11 @@ const TwoDPage = () => {
       newHighlighted.push(sourcePrefix);
     }
 
-    // 광선(아크 노드)을 파란색으로 변경
+    // 선택된 경로를 빨간색으로 강조
     if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
       beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-        glowPower: 0.15,
-        color: Cesium.Color.BLUE.withAlpha(0.6)
+        glowPower: 0.05,
+        color: Cesium.Color.RED.withAlpha(0.9)
       });
     }
 
@@ -861,6 +873,12 @@ const TwoDPage = () => {
 
     // 모든 하이라이트 강제 제거
     clearAllHighlights();
+    // 모든 경로 투명화
+    viewer.current.entities.values.forEach(e => {
+      if (e.id?.startsWith('beam-2d-') && e.polyline?.material) {
+        e.polyline.material = new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.05, color: Cesium.Color.RED.withAlpha(0) });
+      }
+    });
 
     // 클릭된 건물의 정확한 좌표 가져오기
     const isTargetClick = entityId.includes('target');
@@ -906,11 +924,11 @@ const TwoDPage = () => {
         newMarkerHighlights.push(targetEntityId);
       }
 
-      // 광선(아크 노드)을 파란색으로 변경
+      // 선택된 경로를 빨간색으로 강조
       if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
         beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-          glowPower: 0.15,
-          color: Cesium.Color.BLUE.withAlpha(0.6)
+          glowPower: 0.3,
+          color: Cesium.Color.RED.withAlpha(0.9)
         });
       }
     });
@@ -945,6 +963,13 @@ const TwoDPage = () => {
     );
 
     if (relatedAttacks.length > 0) {
+      // 모든 경로 투명화
+      viewer.current.entities.values.forEach(e => {
+        if (e.id?.startsWith('beam-2d-') && e.polyline?.material) {
+          e.polyline.material = new Cesium.PolylineGlowMaterialProperty({ glowPower: 0.05, color: Cesium.Color.RED.withAlpha(0) });
+        }
+      });
+
       // 모든 관련된 마커 하이라이트
       const newMarkerHighlights = [];
 
@@ -969,11 +994,11 @@ const TwoDPage = () => {
           newMarkerHighlights.push(targetEntityId);
         }
 
-        // 광선(아크 노드)을 파란색으로 변경
+        // 선택된 경로를 빨간색으로 강조
         if (beamEntity && beamEntity.polyline && beamEntity.polyline.material) {
           beamEntity.polyline.material = new Cesium.PolylineGlowMaterialProperty({
-            glowPower: 0.15,
-            color: Cesium.Color.BLUE.withAlpha(0.6)
+            glowPower: 0.3,
+            color: Cesium.Color.RED.withAlpha(0.9)
           });
         }
       });
@@ -1084,7 +1109,7 @@ const TwoDPage = () => {
           id: `beam-2d-${attack.id}`,
           polyline: {
             positions: [sourceMarkerPos, targetMarkerPos],
-            width: 6,
+            width: 12,
             material: new Cesium.PolylineGlowMaterialProperty({
               glowPower: 0.05,
               color: Cesium.Color.RED.withAlpha(0.08)
@@ -1379,21 +1404,93 @@ const TwoDPage = () => {
               </Box>
             )}
 
-            {/* 품질 표시 */}
-            {isLoaded && (
+            {/* 통계 패널 - 가로형 */}
+            {isLoaded && mapStats && (
               <Box sx={{
-                position: 'absolute',
-                top: 8,
-                left: 8,
-                background: 'rgba(0,0,0,0.7)',
+                position: 'absolute', top: 8, left: 8, zIndex: 1000,
+                bgcolor: 'rgba(8,16,26,0.85)',
+                backdropFilter: 'blur(8px)',
+                borderRadius: 2.5,
+                border: '1px solid rgba(255,255,255,0.12)',
+                px: 2.5, py: 1.5,
                 color: 'white',
-                padding: '4px 8px',
-                borderRadius: 1,
-                fontSize: 10
+                display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 0
               }}>
-                <Typography variant="caption" color="inherit">
-                  🗺️ Osint 정보 수집
-                </Typography>
+
+                {/* 헤더 라벨 */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', pr: 2.5, mr: 2.5, borderRight: '1px solid rgba(255,255,255,0.12)', minWidth: 76 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 800, color: '#7dd3fc', letterSpacing: 0.5, whiteSpace: 'nowrap' }}>📊 BGP</Typography>
+                  <Typography sx={{ fontSize: 12, fontWeight: 800, color: '#7dd3fc', letterSpacing: 0.5 }}>트래픽 통계</Typography>
+                </Box>
+
+                {/* 컬렉터 통계 */}
+                <Box sx={{ pr: 2.5, mr: 2.5, borderRight: '1px solid rgba(255,255,255,0.12)', minWidth: 160 }}>
+                  <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', mb: 0.7, textTransform: 'uppercase', letterSpacing: 0.8 }}>컬렉터 통계</Typography>
+                  {[
+                    { label: 'RouteViews', val: mapStats.routeViewsCount, color: '#38bdf8' },
+                    { label: 'RIPE RIS',   val: mapStats.ripeCount,       color: '#a78bfa' }
+                  ].map(({ label, val, color }) => (
+                    <Box key={label} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', width: 70, flexShrink: 0 }}>{label}</Typography>
+                      <Box sx={{ width: 56, height: 6, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1, overflow: 'hidden' }}>
+                        <Box sx={{ width: `${Math.round(val / mapStats.total * 100)}%`, height: '100%', bgcolor: color, borderRadius: 1 }} />
+                      </Box>
+                      <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', width: 20, textAlign: 'right' }}>{val}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* 기간별 트래픽 수 */}
+                <Box sx={{ pr: 2.5, mr: 2.5, borderRight: '1px solid rgba(255,255,255,0.12)' }}>
+                  <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', mb: 0.7, textTransform: 'uppercase', letterSpacing: 0.8, whiteSpace: 'nowrap' }}>기간별 트래픽 수</Typography>
+                  <Box sx={{ display: 'flex', gap: 2.5 }}>
+                    {[
+                      { val: mapStats.total,              label: '현재 구간', color: '#34d399' },
+                      { val: timeRange[1]-timeRange[0]+1, label: '선택 월 수', color: '#fbbf24' },
+                      { val: allAttacks.length,           label: '전체 총계', color: '#f87171' }
+                    ].map(({ val, label, color }) => (
+                      <Box key={label} sx={{ textAlign: 'center' }}>
+                        <Typography sx={{ fontSize: 22, fontWeight: 700, color, lineHeight: 1 }}>{val}</Typography>
+                        <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', mt: 0.3, whiteSpace: 'nowrap' }}>{label}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+
+                {/* 프로토콜 통계 */}
+                <Box sx={{ pr: 2.5, mr: 2.5, borderRight: '1px solid rgba(255,255,255,0.12)', minWidth: 140 }}>
+                  <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', mb: 0.7, textTransform: 'uppercase', letterSpacing: 0.8 }}>프로토콜</Typography>
+                  {mapStats.protocols.map(([proto, cnt], i) => {
+                    const colors = ['#38bdf8', '#34d399', '#fbbf24', '#f87171'];
+                    return (
+                      <Box key={proto} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', width: 46, flexShrink: 0 }}>{proto}</Typography>
+                        <Box sx={{ width: 56, height: 6, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1, overflow: 'hidden' }}>
+                          <Box sx={{ width: `${Math.round(cnt / mapStats.total * 100)}%`, height: '100%', bgcolor: colors[i], borderRadius: 1 }} />
+                        </Box>
+                        <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', width: 20, textAlign: 'right' }}>{cnt}</Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+
+                {/* 국가 통계 */}
+                <Box sx={{ minWidth: 140 }}>
+                  <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', mb: 0.7, textTransform: 'uppercase', letterSpacing: 0.8 }}>국가</Typography>
+                  {mapStats.countries.map(([country, cnt], i) => {
+                    const colors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635'];
+                    return (
+                      <Box key={country} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Typography sx={{ fontSize: 11, color: 'rgba(255,255,255,0.8)', width: 46, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{country}</Typography>
+                        <Box sx={{ width: 56, height: 6, bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1, overflow: 'hidden' }}>
+                          <Box sx={{ width: `${Math.round(cnt / mapStats.total * 100)}%`, height: '100%', bgcolor: colors[i], borderRadius: 1 }} />
+                        </Box>
+                        <Typography sx={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', width: 20, textAlign: 'right' }}>{cnt}</Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+
               </Box>
             )}
 
