@@ -144,11 +144,14 @@ export default function DashboardDefault() {
       action: handleTimeSeries,
       mainTitle: 'OSINT 및 수집 데이터 융합기',
       description: [
-        'BGP 아카이브(RouteViews, RIPE RIS) 데이터를 주기적으로 수집·파싱하며, 날짜 범위 슬라이더로 특정 기간의 트래픽을 필터링하고 전체 수집 건수와 현재 표시 건수를 별도 집계·표시함.',
-        '수집된 트래픽은 세계 지도 위에 출발지(노란 마커)·목적지(청색 마커) 좌표로 표시되고, 두 지점을 연결하는 붉은 아크 라인으로 경로를 시각화하며 국가별 트래픽 통계를 한국어로 제공함.',
-        '각 트래픽 레코드는 출발지→목적지(건수) / 출발지 IP / 목적지 IP / CIDR 기반 서브넷 / 게이트웨이 / DNS 서버 / KST 기준 발생 시각 순으로 실시간 로그에 기록됩니다.',
-        '수집 완료된 데이터는 1차 저장소인 MongoDB에 적재되고, 이후 Neo4j 그래프 DB로 자동 변환되어 위협 노드(IP → 국가 → ASN) 간 연결 관계망을 구성하고 경로 분석에 활용함.',
-        'Start·Stop·Restart 버튼으로 수집·융합 프로세스를 실시간 제어하며, 처리 결과를 콘솔 로그로 즉시 확인할 수 있음.'
+        { subTitle: 'BGP 데이터 수집 및 분석', lines: [
+          'RouteViews·RIPE RIS BGP 아카이브를 파싱하여 2025년도 월별 슬라이더로 월간 트래픽을 필터링함.',
+          '출발지(노란 마커)·목적지(청색 마커)를 Cesium 2D 지도에 표시하고 아크 라인으로 공격 경로를 가시화함.',
+        ]},
+        { subTitle: '융합 데이터베이스 구축', lines: [
+          '수집된 BGP 데이터를 MongoDB에 1차 저장 후 Neo4j 그래프 DB로 자동 변환함.',
+          'IP → 국가 → ASN 위협 관계망을 구성하고 콘솔 로그로 처리 상태를 실시간 모니터링함.',
+        ]},
       ],
       flowSteps: ['BGP 아카이브 수집·파싱', '글로벌 트래픽 경로 가시화', 'IP·서브넷 로그 기록', 'MongoDB 1차 저장', 'Neo4j 위협 관계망 구축']
     },
@@ -159,11 +162,16 @@ export default function DashboardDefault() {
       action: handlePDR,
       mainTitle: '사이버 객체 정보 가시화기',
       description: [
-        '북한 6개 핵심 군사·전략 시설(영변 핵시설, 신포 조선소, 국방과학원 미사일 연구소, 평양 공군 기지, 무수단리 발사 기지, 동창리 미사일 발사대)의 정확한 위경도 좌표를 위성 지도 위에 마커로 표시하고 시설 간 거리 및 관계를 분석함.',
-        '각 시설 선택 시 건물 내부 구조를 SVG 블루프린트 스타일로 가시화하며, 정상 구역(초록 테두리)과 이상 감지 구역(빨간 테두리)으로 색상 구분하여 구조적 취약 지점을 즉시 파악할 수 있음.',
-        '물리 자산·논리 자산·행위자·취약점·위협 지표를 5개 계층으로 분류하고, 객체 간 의존성과 영향 관계를 네트워크 그래프로 연결하여 사이버-물리 연계 구조를 입체적으로 파악함.',
-        '객체별 속성(ID·유형·소유 조직·신뢰도·갱신 시각)과 상태 변화 이력을 통합 관리하며, 비정상 관계 발생 또는 급격한 상태 변동 시 즉시 알림을 제공함.',
-        '분석 결과 기반으로 정비·보강 작업 계획을 수립하고 담당자 할당·마감일 관리·처리 상태 추적을 통해 고위험 객체의 우선 조치를 지원함.'
+        { subTitle: '사이버 물리 환경 구조 가시화', lines: [
+          '북한 6개 핵심 군사시설의 위경도 좌표를 위성 지도에 마커로 표시함.',
+          '각 시설의 건물 내부 구조를 SVG 블루프린트로 렌더링하여 정상(초록)·이상(빨간) 구역을 구분함.',
+          '물리 환경 이상 여부를 시각적으로 즉시 파악함.',
+        ]},
+        { subTitle: '사이버 3계층 멀티레이어 가시화', lines: [
+          '물리(Physical)·논리(Logical)·페르소나(Persona) 3개 계층으로 노드를 분류하여 3D Force Graph로 시각화함.',
+          '계층 간 연결 관계(CONNECTS_TO·HOSTS·USES 등)를 링크로 표시하고 사이버-물리 연계 구조를 분석함.',
+          '노드별 up/down/unknown 상태 및 CVE 취약점 정보를 함께 표시함.',
+        ]},
       ],
       flowSteps: ['시설 위치 좌표 매핑', '건물 구조 블루프린트 가시화', '사이버 객체 계층 분류', '의존성·관계망 구성', '이상 감지 및 정비 관리']
     },
@@ -272,12 +280,25 @@ export default function DashboardDefault() {
                     {visualizations[currentView].mainTitle}
                   </Typography>
 
-                  <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.8, mb: 1 }}>
-                    {visualizations[currentView].description.map((desc, index) => (
-                      <Typography key={index} color="#000" sx={{ lineHeight: 1.6, fontSize: responsiveFont.heroDescription, whiteSpace: 'pre-line' }}>
-                        • {desc}
-                      </Typography>
-                    ))}
+                  <Box sx={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1, mb: 1 }}>
+                    {visualizations[currentView].description.map((desc, index) =>
+                      typeof desc === 'object' ? (
+                        <Box key={index} sx={{ mb: index < visualizations[currentView].description.length - 1 ? 1.2 : 0 }}>
+                          <Typography fontWeight="bold" color="#4c1d95" sx={{ fontSize: responsiveFont.heroDescription, lineHeight: 1.4, mb: 0.4 }}>
+                            {desc.subTitle}
+                          </Typography>
+                          {desc.lines.map((line, ci) => (
+                            <Typography key={ci} color="#000" sx={{ fontSize: responsiveFont.heroDescription, lineHeight: 1.55, pl: 0.5 }}>
+                              - {line}
+                            </Typography>
+                          ))}
+                        </Box>
+                      ) : (
+                        <Typography key={index} color="#000" sx={{ lineHeight: 1.6, fontSize: responsiveFont.heroDescription }}>
+                          • {desc}
+                        </Typography>
+                      )
+                    )}
                   </Box>
 
                   {/* 흐름도 */}
