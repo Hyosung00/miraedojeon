@@ -35,6 +35,11 @@ export default function Header() {
   // 현재 라우트에 따라 헤더 타이틀 결정
   const location = useLocation();
   const title = headerTitles[location.pathname] || "-";
+  const titleAddon = location.pathname === '/CyberObjectInfo/MultilayerVisualization'
+    ? '사이버 객체 계층 분류 ➔ 의존성·관계망 구성 ➔ 이상 감지 및 정비 관리'
+    : location.pathname === '/ExtInt/internaltopology'
+    ? '내부망 토폴로지 가시화 ➔ 통합 분석 및 대응 우선순위 도출'
+    : '';
   
   // targetDashboard 페이지인지 확인
   const isTargetDashboard = location.pathname === "/target/targetDashboard";
@@ -60,6 +65,11 @@ export default function Header() {
       <span style={{ fontWeight: 400, fontSize: 20, color: '#39306b', marginLeft: 24 }}>
         {title}
       </span>
+      {titleAddon && (
+        <span style={{ fontWeight: 500, fontSize: 12, color: '#6b7280', marginLeft: 10 }}>
+          {titleAddon}
+        </span>
+      )}
       {headerContent}
       
       {/* targetDashboard 페이지일 때만 i 아이콘 표시 */}

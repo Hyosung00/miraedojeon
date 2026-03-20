@@ -622,7 +622,7 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
   const nodeMatCache = useMemo(() => ({
     base: new Map(),
     highlight: new THREE.MeshStandardMaterial({ color: 0xffda79, metalness: 0.25, roughness: 0.72 }),
-    dim: new THREE.MeshStandardMaterial({ color: 0x324055, metalness: 0.25, roughness: 0.72 }),
+    dim: new THREE.MeshStandardMaterial({ color: 0x324055, metalness: 0.25, roughness: 0.72, transparent: true, opacity: 0.15 }),
     ledUp: new THREE.MeshBasicMaterial({ color: 0x00ff99 }),
     ledDown: new THREE.MeshBasicMaterial({ color: 0xff3355 }),
     hit: new THREE.MeshBasicMaterial({ opacity: 0.0, transparent: true, depthWrite: false })
@@ -696,10 +696,10 @@ export default function CyberMultiLayer3D({ onNodeSelect = () => {}, onInspector
     const group = new THREE.Group(); group.name = 'layer-planes';
     const makePlane = (z, color, label) => {
       const planeGeo = new THREE.PlaneGeometry(LAYOUT.plane.width, LAYOUT.plane.height, 1, 1);
-      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.06, depthWrite: false, side: THREE.DoubleSide });
+      const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.48, depthWrite: false, side: THREE.DoubleSide });
       const mesh = new THREE.Mesh(planeGeo, mat); mesh.position.set(0, 0, z);
       const edges = new THREE.EdgesGeometry(planeGeo);
-      const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.25 }));
+      const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.5 }));
       line.position.set(0, 0, z + 0.1);
   const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 128; const ctx = canvas.getContext('2d');
   ctx.fillStyle = 'rgba(0,0,0,0)'; ctx.fillRect(0,0,512,128); ctx.font = '40px sans-serif'; ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, 14, 64);

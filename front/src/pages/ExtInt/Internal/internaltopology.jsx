@@ -143,9 +143,9 @@ const buildAdjacency = (() => {
 
 // === 레이아웃 상수 ===
 const LAYOUT = {
-  ZONE_RADIUS: 420,
+  ZONE_RADIUS: 700,
   DEPTH_Z: { firewall: 51, router: 41, l3switch: 27, switchrouter: 27, layer3: 27, switch: 14, server: 0, host: -14, hub: -14, default: -7 },
-  ZONE_GAP_MARGIN: 40
+  ZONE_GAP_MARGIN: 80
 };
 
 const UI = { NODE_SCALE_MULT: 1.7, PHYSICAL_LINK_WIDTH: { base: 4, inc: 6 } };
@@ -333,15 +333,37 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
 
         const zonesFetched = Array.from(new Set(g.nodes.map((n) => normalizeZoneVal(n.zone)))).filter((z) => z !== null);
         const centersFetched = computeZoneCenters(zonesFetched);
-        const ZONE_RADIUS = Math.max(280, LAYOUT.ZONE_RADIUS);
+        const ZONE_RADIUS = Math.max(400, LAYOUT.ZONE_RADIUS);
+
+        // === 서브넷 기반 sub-clustering: 단일 존 표시 시 서브넷별로 분리 배치 ===
+        const subnetList = Array.from(new Set(g.nodes.filter(n => n.subnet).map(n => n.subnet))).sort();
+        const subnetCenterMap = new Map();
+        const subnetCount = subnetList.length;
+        if (subnetCount > 0) {
+          const subR = ZONE_RADIUS * (subnetCount <= 1 ? 0 : 0.70);
+          subnetList.forEach((subnet, i) => {
+            const ang = (i / subnetCount) * Math.PI * 2;
+            subnetCenterMap.set(subnet, { x: Math.cos(ang) * subR, y: Math.sin(ang) * subR });
+          });
+        }
+
         g.nodes.forEach((n) => {
           if (n.kind === 'core') { anchorNode(n, { x: 0, y: 0, z: 0 }); n.fx = 0; n.fy = 0; n.fz = 0; return; }
           if (normalizeZoneVal(n.zone) === 0 && String(n.kind).toLowerCase() === 'firewall') {
             anchorNode(n, { x: 0, y: 0, z: (LAYOUT.DEPTH_Z.firewall || 0) }); n.fx = 0; n.fy = 0; n.fz = (LAYOUT.DEPTH_Z.firewall || 0); return;
           }
           const zval = normalizeZoneVal(n.zone);
-          const center = centersFetched.get(zval) || { x: (Math.random() - 0.5) * ZONE_RADIUS * 2, y: (Math.random() - 0.5) * ZONE_RADIUS * 2, z: 0 };
-          const r = ZONE_RADIUS * (0.12 + Math.random() * 0.45);
+          const zoneCenter = centersFetched.get(zval) || { x: 0, y: 0, z: 0 };
+
+          // 서브넷 sub-center 우선 사용 → 없으면 zone center 기반 랜덤 배치
+          const subC = subnetCenterMap.get(n.subnet);
+          const center = subC
+            ? { x: zoneCenter.x + subC.x, y: zoneCenter.y + subC.y, z: 0 }
+            : { x: zoneCenter.x + (Math.random() - 0.5) * ZONE_RADIUS * 0.5,
+                y: zoneCenter.y + (Math.random() - 0.5) * ZONE_RADIUS * 0.5, z: 0 };
+
+          // 서브넷 클러스터 내부에서는 작은 반경으로 scatter (겹침 방지)
+          const r = ZONE_RADIUS * (0.04 + Math.random() * 0.16);
           const ang = Math.random() * Math.PI * 2;
           const x = center.x + Math.cos(ang) * r;
           const y = center.y + Math.sin(ang) * r;
@@ -360,7 +382,9 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
   const linkStrengthCache = useMemo(() => new Map(), []);
   useEffect(() => {
     const fg = fgRef.current; if (!fg) return;
-    try { const charge = fg.d3Force('charge'); if (charge) charge.strength(-48); } catch (e) {}
+    // Zone 7(내부망) 단일 존 표시 시 더 강한 반발력으로 노드 분리
+    try { const charge = fg.d3Force('charge'); if (charge) charge.strength(-220); } catch (e) {}
+    // 링크 길이를 늘려 그래프 확장 (겹침 감소)
     try {
       const linkForce = fg.d3Force('link');
       if (!linkForce) return;
@@ -373,11 +397,12 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
           const sk = String(lnk.source?.kind || '').toLowerCase();
           const tk = String(lnk.target?.kind || '').toLowerCase();
           const isFirewallEdge = ((lnk.source?.zone===0 && sk==='firewall') || (lnk.target?.zone===0 && tk==='firewall'));
-          const base = (String(lnk.type || '').toLowerCase() === 'physical' ? 90 : 130);
+          // physical: 130, logical: 190 (기존 90/130 대비 ~45% 확장)
+          const base = (String(lnk.type || '').toLowerCase() === 'physical' ? 130 : 190);
           const edgeKinds = ['host', 'server', 'hub'];
           const netKinds = ['router','switch','l3switch','switchrouter','layer3'];
           const isEdgeNet = (edgeKinds.includes(sk) && netKinds.includes(tk)) || (edgeKinds.includes(tk) && netKinds.includes(sk));
-          const dist = isFirewallEdge ? 52 : (isEdgeNet ? Math.round(base * 1.2) : base);
+          const dist = isFirewallEdge ? 65 : (isEdgeNet ? Math.round(base * 1.5) : base);
           linkDistanceCache.set(k, dist); return dist;
         })
         .strength((lnk) => {
@@ -387,7 +412,8 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
           if (linkStrengthCache.has(k)) return linkStrengthCache.get(k);
           const sk = String(lnk.source?.kind || '').toLowerCase();
           const tk = String(lnk.target?.kind || '').toLowerCase();
-          const s = ((lnk.source?.zone===0 && sk==='firewall') || (lnk.target?.zone===0 && tk==='firewall')) ? 1.0 : 0.9;
+          // link strength 약화 → force가 노드를 더 자유롭게 밀어냄
+          const s = ((lnk.source?.zone===0 && sk==='firewall') || (lnk.target?.zone===0 && tk==='firewall')) ? 0.8 : 0.55;
           linkStrengthCache.set(k, s); return s;
         });
     } catch (e) {}
@@ -1007,10 +1033,10 @@ function NetworkTopology3D_LeftSidebar({ activeView = "default", onInspectorChan
                 // 🔒 성능: 초기에는 OFF, 레이아웃 끝나면 onEngineStop에서 ON
                 enablePointerInteraction={pointerEnabled}
                 showNavInfo={false}
-                warmupTicks={12}
+                warmupTicks={80}
                 cooldownTicks={0}
-                d3AlphaDecay={0.06}
-                d3VelocityDecay={0.4}
+                d3AlphaDecay={0.018}
+                d3VelocityDecay={0.28}
               />
             </Suspense>
             {loading && (
