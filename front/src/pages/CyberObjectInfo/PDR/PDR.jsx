@@ -272,6 +272,8 @@ const PDR = () => {
       'Select Building',
       () => {
         setSelectedBuilding(building);
+        setExpandedBuildingId(building.id);
+        setPanelOpen(true);
       },
       {
         buildingName: building.name,
