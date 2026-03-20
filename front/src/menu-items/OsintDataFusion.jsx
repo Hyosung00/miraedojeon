@@ -20,18 +20,18 @@ const externalNetwork = {
   type: 'group',
   children: [
     {
-      id: 'GeoIP',
-      title: 'BGP 데이터 수집 및 분석',
-      type: 'item',
-      url: '/OsintDataFusion/GeoIP',
-      icon: icons.QuestionOutlined
-    },
-    {
       id: 'FusionDB',
       title: '융합 데이터베이스 구축',
       type: 'item',
       url: '/OsintDataFusion/FusionDB',
       icon: icons.DatabaseOutlined
+    },
+    {
+      id: 'GeoIP',
+      title: 'BGP 데이터 수집 및 분석',
+      type: 'item',
+      url: '/OsintDataFusion/GeoIP',
+      icon: icons.QuestionOutlined
     }
   ]
 };

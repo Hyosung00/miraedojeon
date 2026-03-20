@@ -1,7 +1,7 @@
 ﻿// material-ui
 import React, { useState, useEffect } from 'react';
 import interactionTracker from '../../../utils/interactionTracker';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid2';
 import Typography from '@mui/material/Typography';
@@ -18,7 +18,16 @@ import { CHART_MAP } from './MiniCharts';
 
 export default function DashboardDefault() {
   const [dbNodes, setDbNodes] = useState([]);
-  const [currentView, setCurrentView] = useState(0);
+  const [searchParams] = useSearchParams();
+  const [currentView, setCurrentView] = useState(() => {
+    const v = parseInt(searchParams.get('view'), 10);
+    return Number.isFinite(v) ? v : 0;
+  });
+
+  useEffect(() => {
+    const v = parseInt(searchParams.get('view'), 10);
+    if (Number.isFinite(v)) setCurrentView(v);
+  }, [searchParams]);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const navigate = useNavigate();
 
@@ -144,13 +153,13 @@ export default function DashboardDefault() {
       action: handleTimeSeries,
       mainTitle: 'OSINT 및 수집 데이터 융합기',
       description: [
-        { subTitle: 'BGP 데이터 수집 및 분석', lines: [
-          'RouteViews·RIPE RIS BGP 아카이브를 파싱하여 2025년도 월별 슬라이더로 월간 트래픽을 필터링함.',
-          '출발지(노란 마커)·목적지(청색 마커)를 지도에 표시하고 아크 라인으로 공격 경로를 가시화함.',
-        ]},
         { subTitle: '융합 데이터베이스 구축', lines: [
           '수집된 BGP 데이터를 MongoDB에 1차 저장 후 Neo4j 그래프 DB로 자동 변환함.',
           'IP → 국가 → ASN 위협 관계망을 구성하고 콘솔 로그로 처리 상태를 실시간 모니터링함.',
+        ]},
+        { subTitle: 'BGP 데이터 수집 및 분석', lines: [
+          'RouteViews·RIPE RIS BGP 아카이브를 파싱하여 2025년도 월별 슬라이더로 월간 트래픽을 필터링함.',
+          '출발지(노란 마커)·목적지(청색 마커)를 지도에 표시하고 아크 라인으로 공격 경로를 가시화함.',
         ]},
       ],
       flowSteps: ['BGP 아카이브 수집·파싱', '글로벌 트래픽 경로 가시화', 'IP·서브넷 로그 기록', 'MongoDB 1차 저장', 'Neo4j 위협 관계망 구축']
