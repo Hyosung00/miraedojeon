@@ -1,2 +1,2 @@
-import TargetPriority from './TargetPriority';
+import TargetPriority from './NetworkDataCollection';
 export default TargetPriority;
