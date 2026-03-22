@@ -25,7 +25,6 @@ const step1 = {
       id: 'osint-data-fusion',
       title: OsintFusion.title,
       type: 'collapse',
-      url: '/dashboard/default?view=0',
       icon: OsintFusion.children[0]?.icon,
       children: OsintFusion.children
     },
@@ -33,7 +32,6 @@ const step1 = {
       id: 'cyber-object-info',
       title: CyberObjectInfo.title,
       type: 'collapse',
-      url: '/dashboard/default?view=1',
       icon: CyberObjectInfo.children[0]?.icon,
       children: CyberObjectInfo.children
     }
@@ -49,7 +47,6 @@ const step2 = {
       id: 'ext-int-network',
       title: ExtInt.title,
       type: 'collapse',
-      url: '/dashboard/default?view=2',
       icon: ExtInt.children[0]?.icon,
       children: ExtInt.children
     },
@@ -57,6 +54,7 @@ const step2 = {
       id: 'intelligent-cyber-targets',
       title: target.title,
       type: 'collapse',
+      url: '/dashboard/default?view=3',
       icon: target.children[0]?.icon,
       children: target.children
     },
@@ -64,6 +62,7 @@ const step2 = {
       id: 'active-response',
       title: ActiveResponse.title,
       type: 'collapse',
+      url: '/dashboard/default?view=4',
       icon: ActiveResponse.children[0]?.icon,
       children: ActiveResponse.children
     }

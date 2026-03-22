@@ -42,6 +42,7 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
   const [displayedRows, setDisplayedRows] = useState(0);
   const [rowTimestamps, setRowTimestamps] = useState([]);
   const tableAnimationRef = React.useRef(null);
+  const outputScrollRef = React.useRef(null);
   
   const config = CONFIG[type] || CONFIG.treatAnalysis;
 
@@ -66,6 +67,16 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
       }
     };
   }, [open, type]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (type !== 'fusionDB') return;
+
+    const outputEl = outputScrollRef.current;
+    if (!outputEl) return;
+
+    outputEl.scrollTop = outputEl.scrollHeight;
+  }, [displayedRows, open, type]);
 
   const loadFileContent = async () => {
     setJsonTable(null);
@@ -140,7 +151,17 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
   };
 
   const tableBody = config.renderMode === 'text' ? (
-    <div style={{ fontFamily: "'Courier New', monospace", fontSize: '13px', lineHeight: '2' }}>
+    <div
+      ref={outputScrollRef}
+      style={{
+        fontFamily: "'Courier New', monospace",
+        fontSize: '13px',
+        lineHeight: '2',
+        height: '100%',
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}
+    >
       {jsonTable && jsonTable.slice(0, displayedRows).map((row, i) => {
         const isHeader = row['노드번호'] === '헤더';
         const isPath   = row['노드번호'] === '경로';
@@ -162,7 +183,7 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
       })}
     </div>
   ) : (
-    <div style={{ overflowX: 'auto' }}>
+    <div ref={outputScrollRef} style={{ height: '100%', overflowX: 'auto', overflowY: 'auto' }}>
       {jsonTable && (
         <table style={{ 
           borderCollapse: 'collapse', 

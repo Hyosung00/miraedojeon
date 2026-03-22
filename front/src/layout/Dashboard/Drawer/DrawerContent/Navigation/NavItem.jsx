@@ -54,6 +54,13 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
       setTimeout(() => openPopup(popup.name), 100);
       return;
     }
+
+    // 일반 URL 네비게이션 (쿼리 파라미터 포함)
+    if (item.url && !item.onClick?.startsWith('open')) {
+      e.preventDefault();
+      navigate(item.url);
+      return;
+    }
   };
 
   const Icon = item.icon;
@@ -85,8 +92,7 @@ export default function NavItem({ item, level, isParents = false, setSelectedID 
     <>
       <Box sx={{ position: 'relative' }}>
         <ListItemButton
-          component={item.onClick && item.onClick.startsWith('open') ? 'div' : Link}
-          to={item.onClick && item.onClick.startsWith('open') ? undefined : item.url}
+          component="div"
           target={itemTarget}
           disabled={item.disabled}
           selected={isSelected}
