@@ -1,2 +1,2 @@
-import TargetIdentification from './NetworkDataCollection';
+import TargetIdentification from './TargetIdentification';
 export default TargetIdentification;
