@@ -416,7 +416,7 @@ const PDR = () => {
 
   return (
     <Card sx={{ width: '100%', height: 'calc(100vh - 132px)', display: 'flex', bgcolor: '#f5f5f5', m:0, overflow: 'hidden', position: 'relative' }}>
-      
+
       <Box sx={{ flex: 1, position: 'relative', height: '100%' }}>
         <div ref={cesiumContainer} style={{ width: '100%', height: '100%' }} />
         

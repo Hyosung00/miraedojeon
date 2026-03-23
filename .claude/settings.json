@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"headerTitles\\\\|headerFlowSteps\" c:UsersdshinDesktop미래도전miraedojeonfrontsrc --include=*.jsx --include=*.js)"
+    ]
+  }
+}

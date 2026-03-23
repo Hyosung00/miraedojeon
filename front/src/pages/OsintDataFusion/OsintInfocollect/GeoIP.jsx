@@ -1305,7 +1305,7 @@ const TwoDPage = () => {
   }
 
   return (
-    <Card 
+    <Card
       component="main"
       role="main"
       aria-label="2D 지도 기반 사이버 공격 시각화"

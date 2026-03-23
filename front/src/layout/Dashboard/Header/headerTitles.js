@@ -4,9 +4,9 @@
 const headerTitles = {
   "/dashboard/default": "네트워크 토폴로지 가시화 및 표적 분석기",
   "/CyberObjectInfo/MultilayerVisualization": "사이버 3계층 멀티레이어 가시화기",
-  "/OsintDataFusion/GeoIP": "외부망 기본맵 가시화기",
+  "/OsintDataFusion/GeoIP": "BGP 데이터 수집 및 분석기",
   "/OsintDataFusion/FusionDB": "융합 데이터베이스 구축기",
-  "/CyberObjectInfo/PDR": "사이버 물리 환경 구조 가시화",
+  "/CyberObjectInfo/PDR": "사이버 물리 환경 구조 가시화기",
   "/ExtInt/NetworkDataFusion": "네트워크 데이터 융합",
   "/ExtInt/internaltopology": "내부망 네트워크 토폴로지 가시화기",
   "/ExtInt/externaltopology": "외부망 토폴로지 가시화기",
@@ -20,6 +20,20 @@ const headerTitles = {
 // 라우트 경로별 진행 흐름(flowSteps) 매핑 객체
 // Dashboard visualizations의 flowSteps와 동일한 포맷으로 관리합니다.
 export const headerFlowSteps = {
+  "/OsintDataFusion/GeoIP": [
+    "BGP 아카이브 수집·파싱",
+    "글로벌 트래픽 경로 가시화",
+    "IP·서브넷 로그 기록",
+    "MongoDB 1차 저장",
+    "Neo4j 위협 관계망 구축"
+  ],
+  "/CyberObjectInfo/PDR": [
+    "시설 위치 좌표 매핑",
+    "건물 구조 가시화",
+    "사이버 객체 계층 분류",
+    "의존성·관계망 구성",
+    "이상 감지 및 정비 관리"
+  ],
   "/OsintDataFusion/FusionDB": [
     "BGP 아카이브 실시간 수집",
     "수집 노드 유형/지역 분포 시각화",
