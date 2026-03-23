@@ -26,6 +26,19 @@ export const headerFlowSteps = {
     "융합 데이터베이스 테이블 갱신",
     "Neo4j 트랜잭션 콘솔 모니터링"
   ],
+  "/CyberObjectInfo/MultilayerVisualization": [
+    "사이버 객체 계층 분류",
+    "의존성·관계망 구성",
+    "이상 감지 및 정비 관리"
+  ],
+  "/ExtInt/externaltopology": [
+    "수집 데이터 시각적 분류",
+    "외부망 기본맵 가시화"
+  ],
+  "/ExtInt/internaltopology": [
+    "내부망 토폴로지 가시화",
+    "통합 분석 및 대응 우선순위 도출"
+  ],
   "/target/TargetIdentification": [
     "네트워크 구조 분석(의존성·파급)",
     "후보/핵심 표적 상세 가시화",
