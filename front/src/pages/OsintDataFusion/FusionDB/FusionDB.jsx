@@ -5,13 +5,15 @@ import ConsoleView from '../../Console/ConsoleView';
 import BGPConsole from '../../../components/BGPConsole';
 
 const FusionDB = ({ open = true, isPopup = false }) => {
-  const isBGPRealtimeRunning = true;
   const [tableRunning, setTableRunning] = useState(true);
+  const isBGPRealtimeRunning = tableRunning;
   const [tableKey, setTableKey] = useState(0);
   const [neo4jLogs, setNeo4jLogs] = useState([]);
   const donutPanelRef = useRef(null);
   const neo4jTimerRef = useRef(null);
   const neo4jEndRef = useRef(null);
+  const neo4jLogScrollRef = useRef(null);
+  const neo4jStickToBottomRef = useRef(true);
   const [rirTooltip, setRirTooltip] = useState({
     visible: false,
     x: 0,
@@ -49,6 +51,8 @@ const FusionDB = ({ open = true, isPopup = false }) => {
   const handleTableStop = () => setTableRunning(false);
   const handleTableRestart = () => {
     setTableRunning(false);
+    setNeo4jLogs([]);
+    neo4jStickToBottomRef.current = true;
     setTimeout(() => {
       setTableKey(prev => prev + 1);
       setTableRunning(true);
@@ -93,7 +97,9 @@ const FusionDB = ({ open = true, isPopup = false }) => {
     if (!tableRunning) return undefined;
 
     const starter = `[${formatNeo4jTimestamp()}] [INFO ] Neo4j writer attached (bolt+s://eff16e19.databases.neo4j.io)`;
-    setNeo4jLogs([starter]);
+    if (neo4jLogs.length === 0) {
+      setNeo4jLogs([starter]);
+    }
 
     const templates = [
       () => `[${formatNeo4jTimestamp()}] [INFO ] MERGE (:IP {value:$ip}) -> (:ASN {value:$asn}) relation upsert completed`,
@@ -125,8 +131,18 @@ const FusionDB = ({ open = true, isPopup = false }) => {
   }, [tableRunning, tableKey]);
 
   useEffect(() => {
+    if (!neo4jStickToBottomRef.current) return;
+
     neo4jEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [neo4jLogs]);
+
+  const handleNeo4jScroll = () => {
+    const outputEl = neo4jLogScrollRef.current;
+    if (!outputEl) return;
+
+    const bottomGap = outputEl.scrollHeight - outputEl.scrollTop - outputEl.clientHeight;
+    neo4jStickToBottomRef.current = bottomGap <= 24;
+  };
 
   return (
     <Box sx={{ 
@@ -441,6 +457,8 @@ const FusionDB = ({ open = true, isPopup = false }) => {
               </div>
 
               <div
+                ref={neo4jLogScrollRef}
+                onScroll={handleNeo4jScroll}
                 style={{
                   flex: 1,
                   minHeight: 0,

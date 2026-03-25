@@ -43,23 +43,24 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
   const [rowTimestamps, setRowTimestamps] = useState([]);
   const tableAnimationRef = React.useRef(null);
   const outputScrollRef = React.useRef(null);
+  const stickToBottomRef = React.useRef(true);
   
   const config = CONFIG[type] || CONFIG.treatAnalysis;
 
   useEffect(() => {
     if (open) {
-      setJsonTable(null);
-      setDisplayedRows(0);
-      setRowTimestamps([]);
-      loadFileContent();
+      if (jsonTable && Array.isArray(jsonTable)) {
+        if (displayedRows < jsonTable.length) {
+          animateTable(jsonTable.length, { startFrom: displayedRows, reset: false });
+        }
+      } else {
+        loadFileContent();
+      }
     } else {
       if (tableAnimationRef.current) {
         clearInterval(tableAnimationRef.current);
         tableAnimationRef.current = null;
       }
-      setJsonTable(null);
-      setDisplayedRows(0);
-      setRowTimestamps([]);
     }
     return () => {
       if (tableAnimationRef.current) {
@@ -75,6 +76,8 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
     const outputEl = outputScrollRef.current;
     if (!outputEl) return;
 
+    if (!stickToBottomRef.current) return;
+
     outputEl.scrollTop = outputEl.scrollHeight;
   }, [displayedRows, open, type]);
 
@@ -82,6 +85,7 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
     setJsonTable(null);
     setDisplayedRows(0);
     setRowTimestamps([]);
+    stickToBottomRef.current = true;
     
     await interactionTracker.measureResponse(
       'ConsoleView',
@@ -95,7 +99,7 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
         if (Array.isArray(json) && json.length > 0 && typeof json[0] === 'object') {
           // 시간 없이 원본 데이터 저장
           setJsonTable(json);
-          animateTable(json.length);
+          animateTable(json.length, { startFrom: 0, reset: true });
         }
           } catch (e) {
             // JSON 파싱 실패 시 무시
@@ -115,14 +119,21 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
     return `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')}.${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`;
   };
 
-  const animateTable = (totalRows) => {
+  const animateTable = (totalRows, options = {}) => {
+    const { startFrom = 0, reset = true } = options;
+
     if (tableAnimationRef.current) {
       clearInterval(tableAnimationRef.current);
     }
     
-    let currentRow = 0;
-    setDisplayedRows(0);
-    setRowTimestamps([]);
+    let currentRow = startFrom;
+
+    if (reset) {
+      setDisplayedRows(0);
+      setRowTimestamps([]);
+    } else {
+      setDisplayedRows(startFrom);
+    }
     
     tableAnimationRef.current = setInterval(() => {
       if (currentRow < totalRows) {
@@ -135,6 +146,14 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
         tableAnimationRef.current = null;
       }
     }, config.animationSpeed);
+  };
+
+  const handleOutputScroll = () => {
+    const outputEl = outputScrollRef.current;
+    if (!outputEl) return;
+
+    const bottomGap = outputEl.scrollHeight - outputEl.scrollTop - outputEl.clientHeight;
+    stickToBottomRef.current = bottomGap <= 24;
   };
 
   const formatRowAsText = (row) => {
@@ -153,6 +172,7 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
   const tableBody = config.renderMode === 'text' ? (
     <div
       ref={outputScrollRef}
+      onScroll={handleOutputScroll}
       style={{
         fontFamily: "'Courier New', monospace",
         fontSize: '13px',
@@ -183,7 +203,7 @@ const ConsoleView = ({ type = 'treatAnalysis', open = true, isPopup = false, con
       })}
     </div>
   ) : (
-    <div ref={outputScrollRef} style={{ height: '100%', overflowX: 'auto', overflowY: 'auto' }}>
+    <div ref={outputScrollRef} onScroll={handleOutputScroll} style={{ height: '100%', overflowX: 'auto', overflowY: 'auto' }}>
       {jsonTable && (
         <table style={{ 
           borderCollapse: 'collapse', 

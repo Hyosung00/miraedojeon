@@ -87,11 +87,23 @@ export default function BGPConsole({ onNavigate, isRunning = true }) {
   const [logs, setLogs] = useState([]);
   const logEndRef = useRef(null);
   const streamTimerRef = useRef(null);
+  const outputScrollRef = useRef(null);
+  const stickToBottomRef = useRef(true);
 
   // 자동 스크롤
   useEffect(() => {
+    if (!stickToBottomRef.current) return;
+
     logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [logs]);
+
+  const handleOutputScroll = () => {
+    const outputEl = outputScrollRef.current;
+    if (!outputEl) return;
+
+    const bottomGap = outputEl.scrollHeight - outputEl.scrollTop - outputEl.clientHeight;
+    stickToBottomRef.current = bottomGap <= 24;
+  };
 
   // isRunning 변경 시 로그 제어
   useEffect(() => {
@@ -102,16 +114,20 @@ export default function BGPConsole({ onNavigate, isRunning = true }) {
 
     if (!isRunning) return;
 
-    setLogs([
-      {
-        text: `[${formatTimestamp(new Date())}] [INFO ] BGP Archive Collector 실시간 수집 파이프라인 시작`,
-        color: '#008000'
-      },
-      {
-        text: `[${formatTimestamp(new Date())}] [INFO ] 흐름: 수집 -> 파싱 -> 정제 -> DB 저장 (무한 반복)`,
-        color: '#333333'
-      }
-    ]);
+    setLogs((prev) => {
+      if (prev.length > 0) return prev;
+
+      return [
+        {
+          text: `[${formatTimestamp(new Date())}] [INFO ] BGP Archive Collector 실시간 수집 파이프라인 시작`,
+          color: '#008000'
+        },
+        {
+          text: `[${formatTimestamp(new Date())}] [INFO ] 흐름: 수집 -> 파싱 -> 정제 -> DB 저장 (무한 반복)`,
+          color: '#333333'
+        }
+      ];
+    });
 
     const scheduleNext = () => {
       const delay = randomInt(180, 900);
@@ -148,6 +164,8 @@ export default function BGPConsole({ onNavigate, isRunning = true }) {
     >
       {/* 콘솔 출력 영역 */}
       <Box
+        ref={outputScrollRef}
+        onScroll={handleOutputScroll}
         sx={{
           flex: 1,
           overflow: 'auto',
